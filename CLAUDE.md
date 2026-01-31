@@ -2,10 +2,10 @@
 MetricYak
 
 ## Description
-A developer first platform using metrics that come through webhooks or other sources to trigger workflow automations. Developer UX is important
+A developer-first platform using metrics that come through webhooks or other sources to trigger workflow automations. Developer UX is important
 
 ## Repository set up
-Monorepo with seperation between open source and managed later on. Must use turborepo.
+Monorepo with separation between open source and managed later on. Must use turborepo.
 
 ## CLI
 Read the @packages/cli/src/README.md 
@@ -19,6 +19,6 @@ Read the @packages/cli/src/README.md
 
 
 ## Code Style
-- Follow software design principles like seperation of concerns, dependency injection if required, classes if needed.
+- Follow software design principles like separation of concerns, dependency injection if required, classes if needed.
 - type safety is of vital importance
 - Code must be tested

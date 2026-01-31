@@ -1,6 +1,20 @@
 import { WorkerConfig } from './types.js';
 
 /**
+ * Safely parse an integer from a string, returning a default value if parsing fails
+ * @param value - The string value to parse
+ * @param defaultValue - The default value to return if parsing fails
+ * @returns The parsed integer or the default value
+ */
+function safeParseInt(value: string | undefined, defaultValue: number): number {
+  if (!value) {
+    return defaultValue;
+  }
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
+}
+
+/**
  * Default worker configuration
  * Can be overridden via environment variables
  */
@@ -9,14 +23,14 @@ export const getWorkerConfig = (): WorkerConfig => {
     queueName: process.env.QUEUE_NAME || 'metricyak-jobs',
     redis: {
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      port: safeParseInt(process.env.REDIS_PORT, 6379),
       password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_DB || '0', 10),
+      db: safeParseInt(process.env.REDIS_DB, 0),
     },
-    concurrency: parseInt(process.env.WORKER_CONCURRENCY || '10', 10),
+    concurrency: safeParseInt(process.env.WORKER_CONCURRENCY, 10),
     rateLimiter: {
-      max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
-      duration: parseInt(process.env.RATE_LIMIT_DURATION || '60000', 10),
+      max: safeParseInt(process.env.RATE_LIMIT_MAX, 100),
+      duration: safeParseInt(process.env.RATE_LIMIT_DURATION, 60000),
     },
   };
 };

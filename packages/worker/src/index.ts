@@ -29,18 +29,30 @@ async function main() {
 
   const worker = new MetricYakWorker(config, processJob);
 
-  // Graceful shutdown
-  process.on('SIGTERM', async () => {
-    console.log('[MetricYak Worker] Received SIGTERM, shutting down...');
-    await worker.close();
-    process.exit(0);
-  });
+  // Graceful shutdown with error handling and re-entry protection
+  let isShuttingDown = false;
 
-  process.on('SIGINT', async () => {
-    console.log('[MetricYak Worker] Received SIGINT, shutting down...');
-    await worker.close();
-    process.exit(0);
-  });
+  const shutdownHandler = async (signal: 'SIGTERM' | 'SIGINT') => {
+    if (isShuttingDown) {
+      console.log(`[MetricYak Worker] Already shutting down, ignoring ${signal}`);
+      return;
+    }
+
+    isShuttingDown = true;
+    console.log(`[MetricYak Worker] Received ${signal}, shutting down...`);
+
+    try {
+      await worker.close();
+      console.log('[MetricYak Worker] Worker closed successfully');
+      process.exitCode = 0;
+    } catch (error) {
+      console.error('[MetricYak Worker] Error during shutdown:', error);
+      process.exitCode = 1;
+    }
+  };
+
+  process.once('SIGTERM', () => shutdownHandler('SIGTERM'));
+  process.once('SIGINT', () => shutdownHandler('SIGINT'));
 
   console.log('[MetricYak Worker] Worker is ready and listening for jobs');
 }

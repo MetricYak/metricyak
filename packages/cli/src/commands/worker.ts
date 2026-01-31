@@ -13,7 +13,7 @@ export function registerWorkerCommand(program: Command): void {
     .description('Start the MetricYak worker process')
     .option('-c, --concurrency <number>', 'Number of concurrent jobs to process', '5')
     .option('-q, --queue <name>', 'Queue name to process', 'metricyak')
-    .option('-h, --redis-host <host>', 'Redis host', 'localhost')
+    .option('-H, --redis-host <host>', 'Redis host', 'localhost')
     .option('-p, --redis-port <port>', 'Redis port', '6379')
     .action(async (options) => {
       console.log('[MetricYak CLI] Starting worker...');
