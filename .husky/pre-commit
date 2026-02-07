@@ -1,0 +1,2 @@
+pnpm biome check --write --files-ignore-unknown=true --no-errors-on-unmatched --staged
+pnpm turbo typecheck
