@@ -9,7 +9,7 @@ packages:
 # Docs: https://pnpm.io/catalogs
 catalog:
   typescript: ^6.0.3
-  "@types/node": ^24.13.2
+  "@types/node": ^25.9.3
 
 # Packages whose install/postinstall scripts are allowed to run.
 # pnpm blocks build scripts by default for security.
