@@ -1,0 +1,17 @@
+# pnpm workspace definition.
+# Docs: https://pnpm.io/pnpm-workspace_yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Shared, single-source-of-truth dependency versions.
+# Reference in a package with `"typescript": "catalog:"`.
+# Docs: https://pnpm.io/catalogs
+catalog:
+  typescript: ^6.0.3
+  "@types/node": ^24.13.2
+
+# Packages whose install/postinstall scripts are allowed to run.
+# pnpm blocks build scripts by default for security.
+onlyBuiltDependencies:
+  - "@biomejs/biome"
