@@ -4,14 +4,19 @@ packages:
   - "apps/*"
   - "packages/*"
 
+allowBuilds:
+  esbuild: true
+
 # Shared, single-source-of-truth dependency versions.
 # Reference in a package with `"typescript": "catalog:"`.
 # Docs: https://pnpm.io/catalogs
 catalog:
   typescript: ^6.0.3
   "@types/node": ^24.13.2
+  vitest: ^3.2.4
 
 # Packages whose install/postinstall scripts are allowed to run.
 # pnpm blocks build scripts by default for security.
 onlyBuiltDependencies:
   - "@biomejs/biome"
+  - esbuild
