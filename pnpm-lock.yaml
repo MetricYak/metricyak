@@ -44,9 +44,6 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.4.0
         version: 1.4.0(hono@4.12.25)(zod@4.4.3)
-      '@hono/zod-validator':
-        specifier: ^0.4.3
-        version: 0.4.3(hono@4.12.25)(zod@4.4.3)
       hono:
         specifier: ^4.7.11
         version: 4.12.25
@@ -469,12 +466,6 @@ packages:
     peerDependencies:
       hono: '>=4.10.0'
       zod: ^4.0.0
-
-  '@hono/zod-validator@0.4.3':
-    resolution: {integrity: sha512-xIgMYXDyJ4Hj6ekm9T9Y27s080Nl9NXHcJkOvkXPhubOLj8hZkOL8pDnnXfvCf5xEE8Q4oMFenQUZZREUY2gqQ==}
-    peerDependencies:
-      hono: '>=3.9.0'
-      zod: ^3.19.1
 
   '@hono/zod-validator@0.8.0':
     resolution: {integrity: sha512-5uS4S1/LKtZQYvD4BtpPUFkOv8d1wNxHHrChm26buMiEYc1FrHWvDUaKVBwkiVtvSExHSpLGDvcnpI2Copyj9w==}
@@ -1153,11 +1144,6 @@ snapshots:
       '@hono/zod-validator': 0.8.0(hono@4.12.25)(zod@4.4.3)
       hono: 4.12.25
       openapi3-ts: 4.6.0
-      zod: 4.4.3
-
-  '@hono/zod-validator@0.4.3(hono@4.12.25)(zod@4.4.3)':
-    dependencies:
-      hono: 4.12.25
       zod: 4.4.3
 
   '@hono/zod-validator@0.8.0(hono@4.12.25)(zod@4.4.3)':
