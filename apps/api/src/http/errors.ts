@@ -1,42 +1,105 @@
 import { z } from '@hono/zod-openapi';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-export const ERROR_CODES = {
+export const ERROR_TYPES = {
   validation: 'validation_error',
   internal: 'internal_error',
 } as const;
 
-export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+export type ErrorType = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES];
 
-export const ErrorResponseSchema = z
+export const ErrorItemSchema = z
   .object({
-    error_code: z.string().openapi({ example: ERROR_CODES.validation }),
-    message: z.string().openapi({ example: 'Invalid Project Id.' }),
+    error_type: z.string().openapi({ example: ERROR_TYPES.validation }),
+    error_code: z.string().openapi({ example: 'required' }),
+    message: z.string().openapi({ example: 'This field is required.' }),
+    attribute: z.string().nullable().openapi({ example: 'name' }),
   })
-  .openapi('ErrorResponse');
+  .openapi('ErrorItem');
+
+export type ErrorItem = z.infer<typeof ErrorItemSchema>;
+
+export const ErrorResponseSchema = z.array(ErrorItemSchema).openapi('ErrorResponse');
 
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
-export class AppError extends Error {
-  readonly errorCode: ErrorCode;
-  readonly status: ContentfulStatusCode;
+export function errorItem(
+  errorType: ErrorType,
+  errorCode: string,
+  message: string,
+  attribute: string | null = null,
+): ErrorItem {
+  return { error_type: errorType, error_code: errorCode, message, attribute };
+}
 
-  constructor(errorCode: ErrorCode, message: string, status: ContentfulStatusCode) {
-    super(message);
+export class AppError extends Error {
+  readonly status: ContentfulStatusCode;
+  readonly errors: ErrorItem[];
+
+  constructor(status: ContentfulStatusCode, errors: ErrorItem[]) {
+    super(errors[0]?.message ?? 'Error');
     this.name = new.target.name;
-    this.errorCode = errorCode;
     this.status = status;
+    this.errors = errors;
   }
 
   toResponse(): ErrorResponse {
-    return { error_code: this.errorCode, message: this.message };
+    return this.errors;
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string) {
-    super(ERROR_CODES.validation, message, 400);
+  constructor(errors: ErrorItem[]) {
+    super(400, errors);
   }
+
+  static fromZodError(error: z.ZodError, input?: unknown): ValidationError {
+    return new ValidationError(zodErrorToItems(error, input));
+  }
+}
+
+function attributeFromPath(path: ReadonlyArray<PropertyKey>): string | null {
+  return path.length === 0 ? null : path.map(String).join('.');
+}
+
+function valueAtPath(input: unknown, path: ReadonlyArray<PropertyKey>): unknown {
+  let current = input;
+  for (const key of path) {
+    if (current === null || typeof current !== 'object') return undefined;
+    current = (current as Record<PropertyKey, unknown>)[key];
+  }
+  return current;
+}
+
+function errorCodeFromIssue(issue: z.core.$ZodIssue, input: unknown): string {
+  if (issue.code === 'invalid_type') {
+    const value = valueAtPath(input, issue.path);
+    if (value === undefined || value === null) {
+      return 'required';
+    }
+  }
+  return issue.code;
+}
+
+const VALIDATION_MESSAGES: Record<string, string> = {
+  required: 'This field is required.',
+  invalid_type: 'An invalid value was provided.',
+};
+
+function messageForCode(code: string, issue: z.core.$ZodIssue): string {
+  return VALIDATION_MESSAGES[code] ?? issue.message;
+}
+
+export function zodErrorToItems(error: z.ZodError, input?: unknown): ErrorItem[] {
+  return error.issues.map((issue) => {
+    const code = errorCodeFromIssue(issue, input);
+    return errorItem(
+      ERROR_TYPES.validation,
+      code,
+      messageForCode(code, issue),
+      attributeFromPath(issue.path),
+    );
+  });
 }
 
 export function errorResponse(description: string) {
@@ -44,13 +107,4 @@ export function errorResponse(description: string) {
     content: { 'application/json': { schema: ErrorResponseSchema } },
     description,
   } as const;
-}
-
-export function formatValidationError(error: z.ZodError): string {
-  return error.issues
-    .map((issue) => {
-      const path = issue.path.map(String).join('.');
-      return path ? `${path}: ${issue.message}` : issue.message;
-    })
-    .join('; ');
 }
