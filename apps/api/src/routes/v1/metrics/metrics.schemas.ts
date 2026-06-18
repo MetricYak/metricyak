@@ -7,7 +7,7 @@ export const CreateMetricParams = z.object({
   }),
 });
 
-export const METRIC_AGGREGATIONS = ['count', 'sum', 'average', 'min', 'max'] as const;
+export const METRIC_AGGREGATIONS = ['count', 'sum', 'average'] as const;
 
 const CreateMetricEvent = z
   .object({
@@ -50,26 +50,10 @@ const CreateMetricDefinition = z
   .refine((d) => d.value != null || d.events.length === 1, {
     error: 'The field is required when a metric has more than one event.',
     path: ['value'],
-  })
-  .superRefine((d, ctx) => {
-    if (d.value == null) return;
-    const keys = new Set(d.events.map((e) => e.key));
-    const referenced = d.value.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? [];
-    const unknown = [...new Set(referenced.filter((ref) => !keys.has(ref)))];
-    if (unknown.length > 0) {
-      ctx.addIssue({
-        code: 'custom',
-        input: d.value,
-        message: `The value expression references an unknown event ${
-          unknown.length === 1 ? 'key' : 'keys'
-        }: ${unknown.join(', ')}.`,
-        path: ['value'],
-      });
-    }
   });
 
 export const CreateMetricRequest = z.object({
-  name: z.string().openapi({
+  name: z.string().min(1, 'The name must not be empty.').openapi({
     example: 'Monthly Active Users',
   }),
   description: z.string().nullish().openapi({
