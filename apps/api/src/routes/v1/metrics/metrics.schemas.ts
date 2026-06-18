@@ -11,9 +11,9 @@ export const METRIC_AGGREGATIONS = ['count', 'sum', 'average'] as const;
 
 const CreateMetricEvent = z
   .object({
-    key: z.string().openapi({ example: 'signup_completion' }),
-    source: z.string().openapi({ example: 'posthog' }),
-    type: z.string().openapi({ example: 'completed.signup' }),
+    key: z.string().min(1, 'The key must not be empty.').openapi({ example: 'signup_completion' }),
+    source: z.string().min(1, 'The source must not be empty.').openapi({ example: 'posthog' }),
+    type: z.string().min(1, 'The type must not be empty.').openapi({ example: 'completed.signup' }),
     aggregation: z
       .enum(METRIC_AGGREGATIONS, {
         error: `Invalid aggregation. Valid values are: ${METRIC_AGGREGATIONS.join(', ')}.`,
