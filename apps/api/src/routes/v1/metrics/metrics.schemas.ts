@@ -38,15 +38,10 @@ const CreateMetricDefinition = z
       .array(CreateMetricEvent)
       .min(1, 'A metric must have at least one event.')
       .openapi({ description: 'Events that affect a metric.' }),
-    value: z
-      .string()
-      .trim()
-      .min(1, 'The value expression must not be empty.')
-      .optional()
-      .openapi({
-        description:
-          'Expression combining per-event aggregated results. Defaults to the single event key when only one event is defined.',
-      }),
+    value: z.string().trim().min(1, 'The value expression must not be empty.').optional().openapi({
+      description:
+        'Expression combining per-event aggregated results. Defaults to the single event key when only one event is defined.',
+    }),
   })
   .refine((d) => new Set(d.events.map((e) => e.key)).size === d.events.length, {
     error: 'Event keys must be unique within a metric.',
