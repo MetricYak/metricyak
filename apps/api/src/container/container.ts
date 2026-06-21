@@ -1,9 +1,10 @@
-import { type Database, MetricsRepository } from '@metricyak/storage';
+import { type Database, MetricsRepository, ProjectsRepository } from '@metricyak/storage';
 
 export type Container = {
   db: Database;
   repositories: {
     metrics: MetricsRepository;
+    projects: ProjectsRepository;
   };
 };
 
@@ -18,6 +19,7 @@ export function createContainer(db: Database): Container {
     db,
     repositories: {
       metrics: new MetricsRepository(db),
+      projects: new ProjectsRepository(db),
     },
   };
 }

@@ -3,6 +3,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 export const ERROR_TYPES = {
   validation: 'validation_error',
+  not_found: 'not_found_error',
   internal: 'internal_error',
 } as const;
 
@@ -55,6 +56,12 @@ export class ValidationError extends AppError {
 
   static fromZodError(error: z.ZodError, input?: unknown): ValidationError {
     return new ValidationError(zodErrorToItems(error, input));
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(message: string, attribute: string | null = null) {
+    super(404, [errorItem(ERROR_TYPES.not_found, 'not_found', message, attribute)]);
   }
 }
 

@@ -52,20 +52,24 @@ export class MetricsRepository {
         throw new Error('Failed to insert metric definition version.');
       }
 
-      await tx
+      const [updatedMetric] = await tx
         .update(metricDefinitions)
-        .set({ currentVersionId: version.id })
-        .where(eq(metricDefinitions.id, metric.id));
+        .set({ currentVersionId: version.id, updatedAt: metric.updatedAt })
+        .where(eq(metricDefinitions.id, metric.id))
+        .returning();
+      if (!updatedMetric) {
+        throw new Error('Failed to update metric definition.');
+      }
 
       return {
-        id: metric.id,
-        projectId: metric.projectId,
+        id: updatedMetric.id,
+        projectId: updatedMetric.projectId,
         version: version.version,
         name: version.name,
         description: version.description,
         definition: version.definition,
-        createdAt: metric.createdAt,
-        updatedAt: metric.updatedAt,
+        createdAt: updatedMetric.createdAt,
+        updatedAt: updatedMetric.updatedAt,
       };
     });
   }
