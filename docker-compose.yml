@@ -1,0 +1,23 @@
+name: metricyak
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: on-failure
+    environment:
+      POSTGRES_USER: metricyak
+      POSTGRES_PASSWORD: metricyak
+      POSTGRES_DB: metricyak
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - metricyak-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 30s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  metricyak-postgres-data:

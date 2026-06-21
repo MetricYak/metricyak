@@ -1,5 +1,9 @@
+import type { Database } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
-import app from '../app.js';
+import { createApp } from '../app.js';
+import { createContainer } from '../container/container.js';
+
+const app = createApp(createContainer({} as Database));
 
 describe('GET /health', () => {
   it('returns 200 with status ok', async () => {

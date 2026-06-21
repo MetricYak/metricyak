@@ -15,6 +15,11 @@ catalog:
   "@types/node": ^24.13.2
   vitest: ^3.2.4
   zod: ^4.4.3
+  drizzle-orm: ^0.45.2
+  drizzle-kit: ^0.31.10
+  pg: ^8.22.0
+  "@types/pg": ^8.20.0
+  uuidv7: ^1.2.1
 
 # Packages whose install/postinstall scripts are allowed to run.
 # pnpm blocks build scripts by default for security.
