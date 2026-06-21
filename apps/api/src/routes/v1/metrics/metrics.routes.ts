@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponse } from '../../../http/errors.js';
 import { createRouter } from '../../../http/router.js';
@@ -29,16 +28,20 @@ export const createMetricRoute = createRoute({
 
 const metricsRouter = createRouter();
 
-metricsRouter.openapi(createMetricRoute, (c) => {
+metricsRouter.openapi(createMetricRoute, async (c) => {
+  const { projectId } = c.req.valid('param');
   const { name, description, definition } = c.req.valid('json');
-  const now = new Date().toISOString();
+  const { metrics } = c.var.container.repositories;
+
+  const record = await metrics.create({ projectId, name, description, definition });
+
   const metric = CreateMetricResponse.parse({
-    id: randomUUID(),
-    name,
-    description,
-    definition,
-    createdAt: now,
-    updatedAt: now,
+    id: record.id,
+    name: record.name,
+    description: record.description,
+    definition: record.definition,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
   });
   return c.json(metric, 201);
 });

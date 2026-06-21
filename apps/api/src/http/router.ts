@@ -1,9 +1,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
+import type { AppEnv } from '../container/container.js';
 import { AppError, ERROR_TYPES, errorItem, ValidationError } from './errors.js';
 
 export function createRouter() {
-  const router = new OpenAPIHono({
+  const router = new OpenAPIHono<AppEnv>({
     defaultHook: (result) => {
       if (!result.success) {
         throw ValidationError.fromZodError(result.error, (result as { data?: unknown }).data);
