@@ -27,6 +27,16 @@ export type MetricRecord = {
 export class MetricsRepository {
   constructor(private readonly db: Database) {}
 
+  async get(id: string): Promise<{ id: string } | null> {
+    const [metric] = await this.db
+      .select({ id: metricDefinitions.id })
+      .from(metricDefinitions)
+      .where(eq(metricDefinitions.id, id))
+      .limit(1);
+
+    return metric ?? null;
+  }
+
   async create(input: CreateMetricInput): Promise<MetricRecord> {
     return this.db.transaction(async (tx) => {
       const [metric] = await tx
