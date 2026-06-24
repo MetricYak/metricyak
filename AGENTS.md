@@ -4,7 +4,7 @@ This file provides guidance on how to work with the metricyak repository.
 
 ## Project
 
-MetricYak is an open-source platform for **metric-powered autonomous workflows**: declare metrics over an event stream, and declare workflows that watch those metrics and fire automated steps when a metric crosses a threshold.
+MetricYak is an open-source platform for **metric-powered autonomous workflows**: declare metrics over an event stream, define monitors that watch those metrics and declare workflows that watch those metrics, provide investigations and fire automated steps when a metric crosses a threshold 
 
 
 ## Technology
