@@ -40,7 +40,7 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
     throw new NotFoundError('The project could not be found');
   }
 
-  const metric = await metrics.get(metricId);
+  const metric = await metrics.get(metricId, projectId);
   if (!metric) {
     throw new NotFoundError('The metric could not be found');
   }
