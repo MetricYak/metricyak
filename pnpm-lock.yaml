@@ -56,6 +56,9 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.4.0
         version: 1.4.0(hono@4.12.25)(zod@4.4.3)
+      '@metricyak/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
       '@metricyak/storage':
         specifier: workspace:*
         version: link:../../packages/storage
@@ -84,6 +87,22 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.6(@types/node@24.13.2)(tsx@4.22.4)(yaml@2.9.0)
+
+  packages/queue:
+    dependencies:
+      '@metricyak/storage':
+        specifier: workspace:*
+        version: link:../storage
+    devDependencies:
+      '@metricyak/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/storage:
     dependencies:

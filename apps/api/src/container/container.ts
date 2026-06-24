@@ -1,12 +1,16 @@
+import type { EventPublisher } from '@metricyak/queue';
 import {
   type Database,
   MetricsRepository,
   MonitorsRepository,
+  ProjectKeysRepository,
   ProjectsRepository,
 } from '@metricyak/storage';
 
 export type Container = {
   db: Database;
+  publisher: EventPublisher;
+  projectKeys: ProjectKeysRepository;
   repositories: {
     metrics: MetricsRepository;
     monitors: MonitorsRepository;
@@ -20,9 +24,11 @@ export type AppEnv = {
   };
 };
 
-export function createContainer(db: Database): Container {
+export function createContainer(db: Database, publisher: EventPublisher): Container {
   return {
     db,
+    publisher,
+    projectKeys: new ProjectKeysRepository(db),
     repositories: {
       metrics: new MetricsRepository(db),
       monitors: new MonitorsRepository(db),
