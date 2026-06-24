@@ -4,6 +4,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 export const ERROR_TYPES = {
   validation: 'validation_error',
   not_found: 'not_found_error',
+  unauthorized: 'unauthorized_error',
   internal: 'internal_error',
 } as const;
 
@@ -62,6 +63,12 @@ export class ValidationError extends AppError {
 export class NotFoundError extends AppError {
   constructor(message: string, attribute: string | null = null) {
     super(404, [errorItem(ERROR_TYPES.not_found, 'not_found', message, attribute)]);
+  }
+}
+
+export class UnauthorizedError extends AppError {
+  constructor(message = 'Unauthorized.') {
+    super(401, [errorItem(ERROR_TYPES.unauthorized, 'unauthorized', message)]);
   }
 }
 
