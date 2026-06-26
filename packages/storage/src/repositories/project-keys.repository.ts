@@ -61,7 +61,13 @@ export class ProjectKeysRepository {
     const result = await this.db
       .update(projectKeys)
       .set({ revokedAt: new Date() })
-      .where(and(eq(projectKeys.id, keyId), eq(projectKeys.projectId, projectId), isNull(projectKeys.revokedAt)));
+      .where(
+        and(
+          eq(projectKeys.id, keyId),
+          eq(projectKeys.projectId, projectId),
+          isNull(projectKeys.revokedAt),
+        ),
+      );
 
     return (result.rowCount ?? 0) > 0;
   }
