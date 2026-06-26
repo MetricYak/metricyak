@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@metricyak/storage": "workspace:*"
+    "bullmq": "^5.0.0"
   },
   "devDependencies": {
     "@metricyak/typescript-config": "workspace:*",

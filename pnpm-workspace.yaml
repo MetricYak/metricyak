@@ -6,6 +6,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+  msgpackr-extract: true
 
 # Shared, single-source-of-truth dependency versions.
 # Reference in a package with `"typescript": "catalog:"`.
