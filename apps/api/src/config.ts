@@ -1,19 +1,20 @@
 import { existsSync } from 'node:fs';
-import type { QueueDriver } from '@metricyak/queue';
 import { z } from 'zod';
 
 const ROOT_ENV = '../../.env';
 
 const ConfigSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.'),
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required.'),
   PORT: z.coerce.number().int().positive().default(3000),
-  QUEUE_DRIVER: z.enum(['postgres', 'memory']).default('postgres'),
+  WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
 });
 
 export type Config = {
   databaseUrl: string;
+  redisUrl: string;
   port: number;
-  queueDriver: QueueDriver;
+  workerConcurrency: number;
 };
 
 export function loadConfig(): Config {
@@ -25,7 +26,8 @@ export function loadConfig(): Config {
 
   return {
     databaseUrl: env.DATABASE_URL,
+    redisUrl: env.REDIS_URL,
     port: env.PORT,
-    queueDriver: env.QUEUE_DRIVER,
+    workerConcurrency: env.WORKER_CONCURRENCY,
   };
 }

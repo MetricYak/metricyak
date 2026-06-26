@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponse, UnauthorizedError } from '../../../http/errors.js';
 import { createRouter } from '../../../http/router.js';
@@ -26,7 +27,7 @@ const eventsRouter = createRouter();
 
 eventsRouter.openapi(ingestRoute, async (c) => {
   const { project_key, events } = c.req.valid('json');
-  const { projectKeys, publisher } = c.var.container;
+  const { projectKeys, producer } = c.var.container;
 
   const keyRecord = await projectKeys.findActiveByKey(project_key);
   if (!keyRecord) {
@@ -36,16 +37,17 @@ eventsRouter.openapi(ingestRoute, async (c) => {
   const eventList = Array.isArray(events) ? events : [events];
   const now = new Date().toISOString();
 
-  const payload = {
+  const job = {
     projectId: keyRecord.projectId,
     events: eventList.map((e) => ({
+      id: randomUUID(),
       name: e.name,
       timestamp: e.timestamp ?? now,
       properties: e.properties ?? {},
     })),
   };
 
-  await publisher.publish('events', payload);
+  await producer.enqueue(job);
 
   return c.json({ accepted: eventList.length }, 202);
 });
