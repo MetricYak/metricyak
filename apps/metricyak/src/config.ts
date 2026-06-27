@@ -13,6 +13,10 @@ const ConfigSchema = z
       .string()
       .optional()
       .transform((v) => v === 'true' || v === '1'),
+    RUN_WORKERS_IN_API: z
+      .string()
+      .optional()
+      .transform((v) => v !== 'false' && v !== '0'),
   })
   .superRefine((data, ctx) => {
     if (!data.RUN_WORKER_INLINE && !data.REDIS_URL) {
@@ -25,11 +29,12 @@ const ConfigSchema = z
   });
 
 export type Config = {
-  databaseUrl: string;
-  redisUrl: string | undefined;
-  port: number;
-  workerConcurrency: number;
-  runWorkerInline: boolean;
+  readonly databaseUrl: string;
+  readonly redisUrl: string | undefined;
+  readonly port: number;
+  readonly workerConcurrency: number;
+  readonly runWorkerInline: boolean;
+  readonly runWorkersInApi: boolean;
 };
 
 export function loadConfig(): Config {
@@ -45,5 +50,6 @@ export function loadConfig(): Config {
     port: env.PORT,
     workerConcurrency: env.WORKER_CONCURRENCY,
     runWorkerInline: env.RUN_WORKER_INLINE,
+    runWorkersInApi: env.RUN_WORKERS_IN_API,
   };
 }

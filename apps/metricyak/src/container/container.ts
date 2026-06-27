@@ -1,6 +1,8 @@
 import type { EventsProducer } from '@metricyak/queue';
 import {
   type Database,
+  EventsRepository,
+  FailedEventsRepository,
   MetricsRepository,
   MonitorsRepository,
   ProjectKeysRepository,
@@ -8,13 +10,15 @@ import {
 } from '@metricyak/storage';
 
 export type Container = {
-  db: Database;
-  producer: EventsProducer;
-  projectKeys: ProjectKeysRepository;
-  repositories: {
-    metrics: MetricsRepository;
-    monitors: MonitorsRepository;
-    projects: ProjectsRepository;
+  readonly db: Database;
+  readonly producer: EventsProducer;
+  readonly projectKeys: ProjectKeysRepository;
+  readonly events: EventsRepository;
+  readonly failedEvents: FailedEventsRepository;
+  readonly repositories: {
+    readonly metrics: MetricsRepository;
+    readonly monitors: MonitorsRepository;
+    readonly projects: ProjectsRepository;
   };
 };
 
@@ -29,6 +33,8 @@ export function createContainer(db: Database, producer: EventsProducer): Contain
     db,
     producer,
     projectKeys: new ProjectKeysRepository(db),
+    events: new EventsRepository(db),
+    failedEvents: new FailedEventsRepository(db),
     repositories: {
       metrics: new MetricsRepository(db),
       monitors: new MonitorsRepository(db),

@@ -1,4 +1,4 @@
-export type { Job } from 'bullmq';
+export type { ConnectionOptions, Job, Worker } from 'bullmq';
 export { createProducerConnectionOptions, createWorkerConnectionOptions } from './connection.js';
 export {
   BullEventsProducer,
