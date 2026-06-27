@@ -38,7 +38,7 @@ const closeWorkers =
 
 registerShutdown(async (signal) => {
   console.log(JSON.stringify({ level: 'info', msg: `${signal} received, shutting down` }));
-  await Promise.all([
+  await Promise.allSettled([
     new Promise<void>((resolve) => server.close(() => resolve())),
     closeWorkers?.(),
   ]);
