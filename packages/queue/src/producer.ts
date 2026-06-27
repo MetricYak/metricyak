@@ -39,3 +39,22 @@ export class InMemoryEventsProducer implements EventsProducer {
     this.jobs.push(job);
   }
 }
+
+export type EventBatchHandler = (job: EventBatchJob) => Promise<void>;
+
+export class InProcessEventsProducer implements EventsProducer {
+  constructor(private readonly handler: EventBatchHandler) {}
+
+  async enqueue(job: EventBatchJob): Promise<void> {
+    void this.handler(job).catch((err) => {
+      console.log(
+        JSON.stringify({
+          level: 'error',
+          msg: 'inline event processing failed',
+          projectId: job.projectId,
+          error: (err as Error).message,
+        }),
+      );
+    });
+  }
+}

@@ -4,6 +4,10 @@ import type { Config } from '../config.js';
 import { processEventBatch } from './process-events.js';
 
 export async function startWorker(config: Config): Promise<void> {
+  if (!config.redisUrl) {
+    throw new Error('REDIS_URL is required to run the worker.');
+  }
+
   const db = createDatabase(config.databaseUrl);
   const connection = createWorkerConnectionOptions(config.redisUrl);
 
@@ -12,7 +16,7 @@ export async function startWorker(config: Config): Promise<void> {
 
   const worker = createEventsWorker(connection, {
     concurrency: config.workerConcurrency,
-    process: (job) => processEventBatch(job, eventsRepo),
+    process: (job) => processEventBatch(job.data, eventsRepo),
   });
 
   worker.on('completed', (job) => {
