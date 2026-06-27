@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "RUN_WORKER_INLINE=true tsx watch src/index.ts",
+    "dev:all": "tsx watch src/index.ts",
     "dev:worker": "tsx watch src/worker.ts",
     "build": "tsc",
     "start": "node dist/index.js",

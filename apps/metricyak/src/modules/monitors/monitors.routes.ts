@@ -1,6 +1,6 @@
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse, NotFoundError } from '../../../http/errors.js';
-import { createRouter } from '../../../http/router.js';
+import { errorResponse, NotFoundError } from '../../http/errors.js';
+import { createRouter } from '../../http/router.js';
 import {
   CreateMonitorParams,
   CreateMonitorRequest,

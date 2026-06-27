@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse, UnauthorizedError } from '../../../http/errors.js';
-import { createRouter } from '../../../http/router.js';
+import { errorResponse, UnauthorizedError } from '../../http/errors.js';
+import { createRouter } from '../../http/router.js';
 import { IngestRequest, IngestResponse } from './events.schemas.js';
 
 export const ingestRoute = createRoute({
