@@ -9,14 +9,10 @@ const ConfigSchema = z
     REDIS_URL: z.string().min(1).optional(),
     PORT: z.coerce.number().int().positive().default(3000),
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
-    // Local-dev only: skip Redis entirely; the event handler is called in-process.
     RUN_WORKER_INLINE: z
       .string()
       .optional()
       .transform((v) => v === 'true' || v === '1'),
-    // Self-host single-deploy: when true (default), index.ts boots workers in the
-    // same process as HTTP. Set to false for the scale-out API-only tier so workers
-    // run separately via worker.ts.
     RUN_WORKERS_IN_API: z
       .string()
       .optional()

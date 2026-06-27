@@ -9,7 +9,6 @@ const eventsWorkerFactory: WorkerFactory = (connection, container, concurrency) 
     process: (job) => processEventBatch(job.data, container.events),
   });
 
-  // Log completions with domain-specific context (event count, projectId).
   worker.on('completed', (job) => {
     console.log(
       JSON.stringify({
@@ -22,7 +21,6 @@ const eventsWorkerFactory: WorkerFactory = (connection, container, concurrency) 
     );
   });
 
-  // Dead-letter exhausted jobs to the failed_events table.
   worker.on('failed', async (job, err) => {
     const maxAttempts = job?.opts?.attempts ?? 1;
     const exhausted = (job?.attemptsMade ?? 0) >= maxAttempts;

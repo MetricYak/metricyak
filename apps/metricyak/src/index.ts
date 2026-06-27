@@ -7,6 +7,7 @@ import {
 import { createDatabase, EventsRepository } from '@metricyak/storage';
 import { createApp } from './app.js';
 import { startHttpServer } from './bootstrap/http.js';
+import { registerShutdown } from './bootstrap/shutdown.js';
 import { startWorkers } from './bootstrap/workers.js';
 import { loadConfig } from './config.js';
 import { createContainer } from './container/container.js';
@@ -17,7 +18,6 @@ const db = createDatabase(config.databaseUrl);
 
 let producer: EventsProducer;
 if (config.runWorkerInline) {
-  // Local-dev mode: call the event handler directly, no Redis required.
   const eventsRepo = new EventsRepository(db);
   producer = new InProcessEventsProducer((job) => processEventBatch(job, eventsRepo));
   console.log(JSON.stringify({ level: 'info', msg: 'inline worker enabled (in-process events)' }));
@@ -29,10 +29,18 @@ if (config.runWorkerInline) {
 const container = createContainer(db, producer);
 const app = createApp(container);
 
-startHttpServer(app, config);
+const server = startHttpServer(app, config);
 
-// Self-host single-deploy (default): boot workers in the same process as HTTP.
-// To run workers separately (scale-out), set RUN_WORKERS_IN_API=false and use worker.ts.
-if (!config.runWorkerInline && config.runWorkersInApi) {
-  await startWorkers(container, config);
-}
+const closeWorkers =
+  !config.runWorkerInline && config.runWorkersInApi
+    ? await startWorkers(container, config)
+    : undefined;
+
+registerShutdown(async (signal) => {
+  console.log(JSON.stringify({ level: 'info', msg: `${signal} received, shutting down` }));
+  await Promise.all([
+    new Promise<void>((resolve) => server.close(() => resolve())),
+    closeWorkers?.(),
+  ]);
+  process.exit(0);
+});

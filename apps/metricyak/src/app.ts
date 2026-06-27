@@ -13,7 +13,6 @@ export function createApp(container: Container) {
     await next();
   });
 
-  // Mount each module's routes under /v1. Modules without routes are skipped.
   for (const mod of modules) {
     if (mod.routes) {
       app.route('/v1', mod.routes);
