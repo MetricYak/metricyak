@@ -11,6 +11,7 @@ MetricYak is an open-source platform for **metric-powered autonomous workflows**
 ```
 apps/
   metricyak/          # @metricyak/app — the HTTP API + BullMQ worker process
+  metricyak-ui/       # @metricyak/ui — Vite + React 19 SPA (Tailwind v4, shadcn). Port 3001
 packages/
   storage/            # @metricyak/storage — Drizzle ORM + PostgreSQL (repositories, schema, migrations)
   queue/              # @metricyak/queue — BullMQ producer/worker abstractions
@@ -88,6 +89,34 @@ Strict by default. The shared `@metricyak/typescript-config/base` enables `stric
 - **Types are co-located with their Zod schemas / implementation**, not in separate `types.ts` files. `export type X = z.infer<typeof X>` next to the schema is the idiom here.
 - **Zod-inferred domain types are left mutable** (no deep-`readonly` wrapper). The parse boundary returns fresh objects and the code doesn't mutate them.
 
+
+## Frontend (`apps/metricyak-ui`)
+
+Vite + React 19 SPA, Tailwind v4, shadcn (new-york), `react-router-dom`, `motion`, `lucide-react`. The goal of these rules is that the next component is built on the foundation, not bolted onto it.
+
+### Design tokens are the single source of truth for style
+
+- **All color comes from semantic CSS variables** defined in `src/styles/globals.css` and exposed through `@theme inline` (`bg-background`, `text-muted-foreground`, `bg-primary`, `bg-sidebar-accent`, `ring`, …). **Never reach into the raw `metricyak-*` ramp from a component** (`text-metricyak-900`, `bg-yellow`) — if you need a new role, add a semantic token (light + dark) and a matching `--color-*` entry, then use that. Raw-ramp usage in a component is a smell that a token is missing.
+- **One role, one token.** Don't introduce a second color for the same concept (e.g. an "active/accent" that's orange in one place and yellow in another). Pick the existing semantic token.
+- **shadcn must stay real.** `components.json` declares shadcn, so the full standard token set (`primary`, `secondary`, `accent`, `card`, `popover`, `destructive`, `border`, `input`, `ring`, plus `-foreground` pairs) must exist in both `:root` and `.dark`, each mirrored in `@theme inline`. Before adding a shadcn component, confirm the tokens it references resolve — a missing token renders as broken styling with no error. Don't let the config promise a setup the CSS doesn't back.
+- **Every token defined for `:root` gets a `.dark` counterpart.** Dark-mode tokens exist and must be kept complete even while there's no theme toggle yet, so the switch is a one-line change later.
+
+### Tailwind
+
+- **Arbitrary values must be valid CSS.** `transition-[colors,width]` is a silent bug — `colors` is not a CSS property; the intended transition never runs. Name real properties (`transition-[width,background-color]`) or use the canonical utility (`transition-colors`). When in doubt, check the generated CSS, not the class name.
+- **Take Biome's `suggestCanonicalClasses` hints** (`w-[3px]` → `w-0.75`). Prefer canonical utilities over arbitrary values.
+- `pnpm --filter @metricyak/ui check-types` and `pnpm build` must both pass; run Biome (root `pnpm check:fix`) — the UI app is part of CI.
+
+### Components & state — one owner per fact
+
+- **Don't bookkeep the same fact in two systems.** If state lives in React, let React render the DOM/`data-*` attribute from it — don't *also* write that attribute imperatively. The legitimate exception is a performance hot path (e.g. per-frame width during a pointer drag written straight to `el.style`); there, keep the *discrete* state (collapsed/open) in React and sync it the instant it changes, so anything reading it can't lag the live UI. Imperative DOM writes that drift from React state are the default source of UI glitches here.
+- **Don't overload one mechanism to mean two things.** "Collapsed" is not "closed"; a resize affordance is not a dismiss button. Model open/close with an explicit prop, not by dragging a panel to width 0. Overloaded mechanisms (and `key`-forced remounts to paper over them) are the kind of hack to avoid.
+- **Be consistent across siblings.** If one resizable panel persists its size to `localStorage`, its siblings should too (or there should be a stated reason they don't).
+- **No dead code or impossible branches** (a fallback for a prop that's always provided, an unused export). Remove it rather than leaving it to mislead.
+
+### Accessibility — don't ship the appearance of it
+
+- If you give an element a `role`, `tabIndex`, or ARIA attributes, **implement the interaction and value attributes that role implies.** A focusable `role="separator"` needs keyboard resize (arrow keys) and `aria-valuemin/max/now`; an "accessible-looking" widget that does nothing on focus is worse than none.
 
 ## Environment variables
 
