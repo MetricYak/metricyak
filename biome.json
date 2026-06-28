@@ -45,5 +45,20 @@
     "formatter": {
       "enabled": true
     }
-  }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/metricyak-ui/src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "recommended": false
+        }
+      }
+    }
+  ]
 }

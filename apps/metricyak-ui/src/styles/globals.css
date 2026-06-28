@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --metricyak-25: #fafaf8;
+  --metricyak-50: #f5f4f0;
+  --metricyak-100: #edecea;
+  --metricyak-200: #e4e2dc;
+  --metricyak-300: #d4d0c8;
+  --metricyak-400: #b8b3a8;
+  --metricyak-500: #8c8880;
+  --metricyak-600: #635f58;
+  --metricyak-700: #3e3b36;
+  --metricyak-800: #252320;
+  --metricyak-900: #1a1917;
+  --metricyak-950: #0f0e0d;
+
+  --yellow: #f4c842;
+  --cream: #f2ead6;
+  --metricyak-brand-orange: #d9591a;
+}
+
+:root {
+  --radius: 0.625rem;
+
+  --background: #ffffff;
+  --foreground: var(--metricyak-900);
+
+  --card: #ffffff;
+  --card-foreground: var(--metricyak-900);
+
+  --popover: #ffffff;
+  --popover-foreground: var(--metricyak-900);
+
+  --primary: var(--metricyak-brand-orange);
+  --primary-foreground: var(--metricyak-25);
+
+  --secondary: var(--metricyak-100);
+  --secondary-foreground: var(--metricyak-900);
+
+  --muted: var(--metricyak-100);
+  --muted-foreground: var(--metricyak-600);
+
+  --accent: var(--metricyak-100);
+  --accent-foreground: var(--metricyak-900);
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --border: var(--metricyak-300);
+  --input: var(--metricyak-300);
+  --ring: var(--metricyak-brand-orange);
+
+  --sidebar-bg: var(--metricyak-200);
+  --sidebar-foreground: var(--metricyak-900);
+  --sidebar-accent: var(--metricyak-300);
+  --sidebar-accent-foreground: var(--metricyak-900);
+  --sidebar-border: var(--metricyak-300);
+}
+
+.dark {
+  --background: var(--metricyak-900);
+  --foreground: var(--metricyak-50);
+
+  --card: var(--metricyak-900);
+  --card-foreground: var(--metricyak-50);
+
+  --popover: var(--metricyak-900);
+  --popover-foreground: var(--metricyak-50);
+
+  --primary: var(--metricyak-brand-orange);
+  --primary-foreground: var(--metricyak-25);
+
+  --secondary: var(--metricyak-800);
+  --secondary-foreground: var(--metricyak-50);
+
+  --muted: var(--metricyak-800);
+  --muted-foreground: var(--metricyak-500);
+
+  --accent: var(--metricyak-800);
+  --accent-foreground: var(--metricyak-50);
+
+  --destructive: #ef4444;
+  --destructive-foreground: var(--metricyak-50);
+
+  --border: var(--metricyak-700);
+  --input: var(--metricyak-700);
+  --ring: var(--metricyak-brand-orange);
+
+  --sidebar-bg: var(--metricyak-800);
+  --sidebar-foreground: var(--metricyak-50);
+  --sidebar-accent: var(--metricyak-700);
+  --sidebar-accent-foreground: var(--metricyak-100);
+  --sidebar-border: var(--metricyak-700);
+}
+
+@theme inline {
+  --color-metricyak-25: var(--metricyak-25);
+  --color-metricyak-50: var(--metricyak-50);
+  --color-metricyak-100: var(--metricyak-100);
+  --color-metricyak-200: var(--metricyak-200);
+  --color-metricyak-300: var(--metricyak-300);
+  --color-metricyak-400: var(--metricyak-400);
+  --color-metricyak-500: var(--metricyak-500);
+  --color-metricyak-600: var(--metricyak-600);
+  --color-metricyak-700: var(--metricyak-700);
+  --color-metricyak-800: var(--metricyak-800);
+  --color-metricyak-900: var(--metricyak-900);
+  --color-metricyak-950: var(--metricyak-950);
+
+  --color-yellow: var(--yellow);
+  --color-cream: var(--cream);
+  --color-metricyak-brand-orange: var(--metricyak-brand-orange);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border, currentColor);
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
