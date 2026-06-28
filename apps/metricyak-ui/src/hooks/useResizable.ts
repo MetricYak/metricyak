@@ -24,6 +24,7 @@ export interface ResizeHandleProps {
   'aria-valuemin': number;
   'aria-valuemax': number;
   'aria-valuenow': number;
+  'aria-valuetext': string;
   tabIndex: 0;
 }
 
@@ -138,8 +139,6 @@ export function useResizable(options: UseResizableOptions): UseResizableResult {
           domWidth = nextWidth;
         }
 
-        // Mirror the collapsed flip into React immediately (it changes rarely,
-        // only when crossing the threshold) so dependent UI doesn't lag the drag.
         if (movedCollapsed !== nextCollapsed) {
           nextCollapsed = movedCollapsed;
           setCollapsedState(nextCollapsed);
@@ -161,16 +160,16 @@ export function useResizable(options: UseResizableOptions): UseResizableResult {
         document.body.style.userSelect = '';
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
 
         setWidth(nextWidth);
-        // Notify consumers (e.g. close-on-collapse) only once the drag commits,
-        // never mid-drag — otherwise the panel could unmount under the pointer.
         if (nextCollapsed !== startCollapsed) onCollapsedChange?.(nextCollapsed);
         persist(nextWidth, nextCollapsed);
       };
 
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
     },
     [
       applyWidth,
@@ -238,6 +237,7 @@ export function useResizable(options: UseResizableOptions): UseResizableResult {
   );
 
   const renderWidth = collapsed ? collapsedWidth : width;
+  const effectiveMin = collapsible ? Math.min(minWidth, collapsedWidth) : minWidth;
 
   return {
     panelRef,
@@ -246,9 +246,10 @@ export function useResizable(options: UseResizableOptions): UseResizableResult {
       onKeyDown,
       role: 'separator',
       'aria-orientation': 'vertical',
-      'aria-valuemin': minWidth,
+      'aria-valuemin': effectiveMin,
       'aria-valuemax': maxWidth,
       'aria-valuenow': renderWidth,
+      'aria-valuetext': collapsed ? 'Collapsed' : `${renderWidth} pixels`,
       tabIndex: 0,
     },
     renderWidth,
