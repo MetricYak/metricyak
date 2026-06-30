@@ -21,6 +21,9 @@ export const navItems: readonly NavItemData[] = [
     icon: BarChart3,
     path: '/metrics',
   },
+] satisfies readonly NavItemData[];
+
+export const bottomNavItems: readonly NavItemData[] = [
   {
     id: 'settings',
     label: 'Settings',

@@ -1,5 +1,7 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { App } from './App';
+import { SettingsPage } from './components/settings/SettingsPage';
+import { NotFoundPage } from './components/shell/NotFoundPage';
 import { PlaceholderPage } from './components/shell/PlaceholderPage';
 
 export const router = createBrowserRouter([
@@ -8,13 +10,31 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <PlaceholderPage title="Dashboard" /> },
-      { path: 'metrics', element: <PlaceholderPage title="Metrics · Overview" /> },
-      { path: 'metrics/definitions', element: <PlaceholderPage title="Metrics · Definitions" /> },
-      { path: 'metrics/explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
-      { path: 'monitors', element: <PlaceholderPage title="Monitors · Active" /> },
-      { path: 'monitors/history', element: <PlaceholderPage title="Monitors · History" /> },
-      { path: 'settings', element: <PlaceholderPage title="Settings" /> },
-      { path: '*', element: <PlaceholderPage title="404 · Page not found" /> },
+      {
+        path: 'metrics',
+        element: <Outlet />,
+        children: [
+          { index: true, element: <PlaceholderPage title="Metrics · Overview" /> },
+          { path: 'definitions', element: <PlaceholderPage title="Metrics · Definitions" /> },
+          { path: 'explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
+      {
+        path: 'monitors',
+        element: <Outlet />,
+        children: [
+          { index: true, element: <PlaceholderPage title="Monitors · Active" /> },
+          { path: 'history', element: <PlaceholderPage title="Monitors · History" /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
+        children: [{ path: '*', element: <NotFoundPage /> }],
+      },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);

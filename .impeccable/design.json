@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-29T00:00:00Z",
+  "title": "Design System: MetricYak",
+  "extensions": {
+    "colorMeta": {
+      "yak-orange": {
+        "role": "primary",
+        "displayName": "Yak Orange",
+        "canonical": "#d9591a",
+        "tonalRamp": [
+          "#160700",
+          "#3d1205",
+          "#681e0c",
+          "#973012",
+          "#c04216",
+          "#d9591a",
+          "#e8834a",
+          "#f2b08a",
+          "#fde5d4"
+        ]
+      },
+      "yak-yellow": {
+        "role": "secondary",
+        "displayName": "Yak Yellow",
+        "canonical": "#f4c842",
+        "tonalRamp": [
+          "#100f00",
+          "#2a2700",
+          "#514e00",
+          "#827a00",
+          "#c0a900",
+          "#f4c842",
+          "#f8dc8c",
+          "#fdf1c9"
+        ]
+      },
+      "yak-cream": {
+        "role": "tertiary",
+        "displayName": "Yak Cream",
+        "canonical": "#f2ead6",
+        "tonalRamp": [
+          "#1a160a",
+          "#332b13",
+          "#5c4c22",
+          "#8c7436",
+          "#c4a660",
+          "#e2ceab",
+          "#f2ead6",
+          "#fbf6ee"
+        ]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0f0e0d",
+          "#1a1917",
+          "#252320",
+          "#3e3b36",
+          "#635f58",
+          "#8c8880",
+          "#d4d0c8",
+          "#edecea",
+          "#f5f4f0",
+          "#fafaf8",
+          "#ffffff"
+        ]
+      },
+      "neutral-sidebar": {
+        "role": "neutral",
+        "displayName": "Sidebar Ash",
+        "canonical": "#e4e2dc",
+        "tonalRamp": [
+          "#0f0e0d",
+          "#1a1917",
+          "#252320",
+          "#3e3b36",
+          "#635f58",
+          "#8c8880",
+          "#d4d0c8",
+          "#e4e2dc",
+          "#f5f4f0",
+          "#fafaf8"
+        ]
+      },
+      "neutral-text": {
+        "role": "neutral",
+        "displayName": "Near-Black",
+        "canonical": "#1a1917",
+        "tonalRamp": [
+          "#0f0e0d",
+          "#1a1917",
+          "#252320",
+          "#3e3b36",
+          "#635f58",
+          "#8c8880",
+          "#d4d0c8",
+          "#edecea",
+          "#f5f4f0",
+          "#fafaf8"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0f0e0d",
+        "tonalRamp": [
+          "#0f0e0d",
+          "#1a1917",
+          "#252320",
+          "#3e3b36",
+          "#635f58",
+          "#8c8880",
+          "#b8b3a8",
+          "#d4d0c8",
+          "#edecea"
+        ]
+      },
+      "destructive": {
+        "role": "semantic",
+        "displayName": "Destructive Red",
+        "canonical": "#dc2626",
+        "tonalRamp": [
+          "#1a0000",
+          "#3b0000",
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#fca5a5",
+          "#fee2e2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-level headings. One per view." },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Panel headers, section labels, sidebar group headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Nav labels, list items, form text. Max 65–75ch for prose."
+      },
+      "label": { "displayName": "Label", "purpose": "Collapsed sidebar icon labels only." }
+    },
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+        "purpose": "Floating submenu panels. Signals transient overlay above the layout."
+      },
+      {
+        "name": "raised-rest",
+        "value": "0 4px 0 0 #0f0e0d",
+        "purpose": ".raised controls at rest. Creates the cartoony black bottom edge."
+      },
+      {
+        "name": "raised-hover",
+        "value": "0 6px 0 0 #0f0e0d",
+        "purpose": ".raised controls on hover. Deepens 2px as the control lifts 2px."
+      },
+      {
+        "name": "raised-active",
+        "value": "none",
+        "purpose": ".raised controls when pressed. Shadow collapses as control presses down."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "100ms ease",
+        "purpose": "Button press and box-shadow transitions on .raised controls."
+      },
+      {
+        "name": "ease-panel",
+        "value": "180ms easeOut",
+        "purpose": "Panel slide (x), accordion height/opacity reveals."
+      },
+      {
+        "name": "spring-nav",
+        "value": "spring(bounce: 0.4, visualDuration: 0.4)",
+        "purpose": "Nav highlight layoutId animation. The only spring in the system — physically follows cursor."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button (Raised)",
+      "kind": "button",
+      "refersTo": "button-raised",
+      "description": "Primary action button with the cartoony raised/pressed interaction. The signature MetricYak control style.",
+      "html": "<button class=\"ds-btn-primary raised\">Configure monitor</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; padding: 0.5rem 1rem; background-color: #d9591a; color: #fafaf8; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; border-radius: 0.5rem; border: 1.5px solid #0f0e0d; box-shadow: 0 4px 0 0 #0f0e0d; transform: translateY(0); transition: transform 100ms ease, box-shadow 100ms ease; cursor: pointer; user-select: none; outline: none; } .ds-btn-primary:hover:not(:active):not(:disabled) { box-shadow: 0 6px 0 0 #0f0e0d; transform: translateY(-2px); } .ds-btn-primary:active:not(:disabled) { box-shadow: none; transform: translateY(4px); } .ds-btn-primary:focus-visible { outline: 2px solid #d9591a; outline-offset: 3px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: 0 2px 0 0 #0f0e0d; }"
+    },
+    {
+      "name": "Secondary Button (Raised)",
+      "kind": "button",
+      "refersTo": "button-raised",
+      "description": "Secondary action. White fill, Ink border, same raised press mechanic.",
+      "html": "<button class=\"ds-btn-secondary raised\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 0.5rem 1rem; background-color: #ffffff; color: #1a1917; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border-radius: 0.5rem; border: 1.5px solid #0f0e0d; box-shadow: 0 4px 0 0 #0f0e0d; transform: translateY(0); transition: transform 100ms ease, box-shadow 100ms ease; cursor: pointer; user-select: none; outline: none; } .ds-btn-secondary:hover:not(:active):not(:disabled) { box-shadow: 0 6px 0 0 #0f0e0d; transform: translateY(-2px); background-color: #f5f4f0; } .ds-btn-secondary:active:not(:disabled) { box-shadow: none; transform: translateY(4px); } .ds-btn-secondary:focus-visible { outline: 2px solid #d9591a; outline-offset: 3px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: 0 2px 0 0 #0f0e0d; }"
+    },
+    {
+      "name": "Nav Item (Default)",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Standard navigation rail item. Flat — does not use .raised.",
+      "html": "<button class=\"ds-nav-item\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"20\" x2=\"18\" y2=\"10\"/><line x1=\"12\" y1=\"20\" x2=\"12\" y2=\"4\"/><line x1=\"6\" y1=\"20\" x2=\"6\" y2=\"14\"/></svg><span>Metrics</span></button>",
+      "css": ".ds-nav-item { position: relative; display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.5rem; background: transparent; color: #1a1917; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 400; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 150ms ease; text-align: left; } .ds-nav-item:hover { background-color: #d4d0c8; } .ds-nav-item:focus-visible { outline: 2px solid #d9591a; outline-offset: -2px; }"
+    },
+    {
+      "name": "Nav Item (Active)",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Active navigation rail item with Yak Orange highlight. Flat — does not use .raised.",
+      "html": "<button class=\"ds-nav-item ds-nav-item--active\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"20\" x2=\"18\" y2=\"10\"/><line x1=\"12\" y1=\"20\" x2=\"12\" y2=\"4\"/><line x1=\"6\" y1=\"20\" x2=\"6\" y2=\"14\"/></svg><span>Metrics</span></button>",
+      "css": ".ds-nav-item { position: relative; display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.5rem; background: transparent; color: #1a1917; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 400; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 150ms ease; text-align: left; } .ds-nav-item--active { background-color: rgba(217, 89, 26, 0.15); border: 1px solid #d9591a; font-weight: 500; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "settings-input",
+      "description": "Settings panel search. Transparent fill, border shifts to Yak Orange on focus. Flat — no .raised.",
+      "html": "<div class=\"ds-search-wrap\"><svg class=\"ds-search-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/></svg><input class=\"ds-search-input\" type=\"search\" placeholder=\"Search settings\"></div>",
+      "css": ".ds-search-wrap { position: relative; } .ds-search-icon { position: absolute; top: 50%; left: 0.625rem; transform: translateY(-50%); pointer-events: none; color: #8c8880; } .ds-search-input { width: 100%; padding: 0.5rem 0.75rem 0.5rem 2rem; background: transparent; color: #1a1917; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; border: 1px solid #d4d0c8; border-radius: 0.5rem; outline: none; transition: border-color 150ms ease; } .ds-search-input::placeholder { color: #8c8880; } .ds-search-input:focus { border-color: #d9591a; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Friendly Instrument",
+    "overview": "MetricYak's interface is a well-calibrated tool you actually enjoy picking up. Like a good instrument — a quality scale, a precision gauge, a reliable meter — it's honest about what it is, quick to respond, and quietly satisfying to use. The personality isn't layered on top of the function; it's baked into the craft: the warmth in the orange, the give in the rounded corners, the tactile press of a raised button.\n\nThe surface serves the data. Metric values, event streams, monitor states — these are the signal, and the UI's job is to get out of the way. Quirk and warmth live in the margins: a clever label when a list is empty, a loading state with personality, the physical satisfaction of a cartoony button press. On the metric canvas itself, the rule is restraint.",
+    "keyCharacteristics": [
+      "Single saturated accent (Yak Orange) kept deliberately rare against warm neutral surfaces",
+      "Cartoony raised interaction style on controls — tactile, physical, memorable",
+      "System font at a fixed readable scale — no display pairing, no fluid sizing",
+      "Flat by default; tonal sidebar layer creates depth without shadows",
+      "Motion serves state only: panel slide, accordion reveal, nav highlight spring, button press",
+      "Personality lives in the margins: empty states, microcopy, transitions"
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Yak Orange appears on ≤10% of any given screen. It marks the active item, the primary action, the focus ring. Used more broadly, it becomes noise.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tonal Layer Rule",
+        "body": "Sidebar Ash (light) and Near-Black Surface (dark) are the only depth mechanism at rest. No shadows on flat surfaces — only on transient overlays.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Rule",
+        "body": "Ink (#0f0e0d) is reserved for the raised interaction shadow/border. It should not appear as a general UI color elsewhere, which keeps the pressed-control effect feeling distinct and physical.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Scale Rule",
+        "body": "No clamp() sizing on product UI. Fixed rem values throughout.",
+        "section": "typography"
+      },
+      {
+        "name": "The One-Weight-per-Role Rule",
+        "body": "Each typographic role has one weight. Use label hierarchy or color for emphasis — not mid-paragraph bold.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-First Rule",
+        "body": "Surfaces are flat at rest. If you're reaching for a shadow on a card or section, use a tonal background shift instead. The only structural shadows are on overlays and raised controls.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep Yak Orange on ≤10% of any screen surface — it marks what matters.",
+      "Do use .raised on primary action buttons and prominent form controls for tactile character. It is an opt-in, not the default for every element.",
+      "Do use tonal backgrounds (Sidebar Ash / Near-Black Surface) for spatial depth. Shadows are for overlays and raised controls only.",
+      "Do let personality show in empty states, loading copy, and microcopy. The metric canvas stays clean.",
+      "Do use rounded-md (8px) consistently across all interactive controls.",
+      "Do animate state, not decoration — panel slides, accordion reveals, nav highlight, button press.",
+      "Do give every interactive component default, hover, focus, active, and disabled states before shipping.",
+      "Do use skeleton loaders for async content, not spinners in the middle of content areas.",
+      "Do cap prose and settings content at max-w-2xl (65–75ch)."
+    ],
+    "donts": [
+      "Don't make it feel like Datadog or Splunk — dense enterprise dashboards, aggressive blue/purple, wall-to-wall charts.",
+      "Don't make it feel like a generic SaaS tool (Notion, Monday.com) — soft pastels, friendly illustrations on every screen.",
+      "Don't make it feel like Grafana OSS — every feature exposed at once, low polish, assembled rather than designed.",
+      "Don't make it feel like a corporate BI tool (Tableau, Power BI) — heavy, formal, built for presentations.",
+      "Don't apply .raised to every control — nav items, accordion triggers, and sidebar list items stay flat.",
+      "Don't use border-left or border-right greater than 1px as a colored accent on list items or cards.",
+      "Don't use gradient text (background-clip: text). Emphasis goes through weight or size.",
+      "Don't use display or editorial fonts for UI labels, button text, or data values. System sans only.",
+      "Don't add decorative motion. Every animation must communicate a state change.",
+      "Don't reach for a modal as the first answer to any UX problem.",
+      "Don't crowd the metric canvas — if an element doesn't help the user understand their data faster, it loses."
+    ]
+  }
+}
