@@ -74,7 +74,7 @@ export function NotFoundPage(): React.JSX.Element {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="raised cursor-pointer rounded-md bg-metricyak-brand-orange px-5 py-2.5 text-sm font-medium text-metricyak-25"
+          className="raised cursor-pointer rounded-md bg-button-orange px-5 py-2.5 text-sm font-medium text-metricyak-25"
         >
           Back to Dashboard
         </button>

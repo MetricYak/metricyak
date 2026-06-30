@@ -19,6 +19,7 @@
   --yellow: #f4c842;
   --cream: #f2ead6;
   --metricyak-brand-orange: #d9591a;
+  --button-orange: #bf4d13;
 }
 
 :root {
@@ -112,6 +113,7 @@
   --color-yellow: var(--yellow);
   --color-cream: var(--cream);
   --color-metricyak-brand-orange: var(--metricyak-brand-orange);
+  --color-button-orange: var(--button-orange);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

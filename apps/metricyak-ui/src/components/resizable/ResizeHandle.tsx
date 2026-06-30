@@ -20,7 +20,7 @@ export function ResizeHandle({
         className,
       )}
     >
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-sidebar-border transition-[width,background-color] group-hover/handle:w-0.75 group-hover/handle:bg-ring group-data-[resizing=true]/panel:w-0.75 group-data-[resizing=true]/panel:bg-ring" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-sidebar-border transition-[transform,background-color] group-hover/handle:scale-x-[3] group-hover/handle:bg-ring group-data-[resizing=true]/panel:scale-x-[3] group-data-[resizing=true]/panel:bg-ring" />
     </div>
   );
 }
