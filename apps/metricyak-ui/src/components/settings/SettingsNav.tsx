@@ -72,7 +72,7 @@ export function SettingsNav(): React.JSX.Element {
     return sections
       .map((s) => ({
         ...s,
-        items: s.items.filter((item) => item.label.toLowerCase().startsWith(q)),
+        items: s.items.filter((item) => item.label.toLowerCase().includes(q)),
       }))
       .filter((s) => s.items.length > 0);
   }, [query, isSearching]);
