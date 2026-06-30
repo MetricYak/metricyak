@@ -35,10 +35,7 @@ export function Resizable({
       ref={panelRef}
       data-collapsed={collapsed}
       style={{ width: renderWidth }}
-      className={cn(
-        'group/panel relative h-full shrink-0 transition-[width] duration-150 ease-out data-[resizing=true]:transition-none',
-        className,
-      )}
+      className={cn('group/panel relative h-full shrink-0', className)}
     >
       <div className="h-full w-full overflow-hidden">{content}</div>
       {!hideHandle && <ResizeHandle side={side} className={handleClassName} {...handleProps} />}

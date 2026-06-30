@@ -1,8 +1,9 @@
 import { Resizable } from '@/components/resizable/Resizable';
+import { NavItem } from './NavItem';
 import { NavList } from './NavList';
+import { bottomNavItems } from './nav.config';
 import { SidePanelBody } from './SidePanelBody';
 import { SidePanelFooter } from './SidePanelFooter';
-import { SidePanelHeader } from './SidePanelHeader';
 
 interface SidePanelProps {
   activeSubMenuId?: string;
@@ -23,7 +24,6 @@ export function SidePanel({ activeSubMenuId, onOpenSubMenu }: SidePanelProps): R
     >
       {({ collapsed, setCollapsed }) => (
         <div className="flex h-full flex-col">
-          <SidePanelHeader />
           <SidePanelBody>
             <NavList
               activeId={activeSubMenuId}
@@ -31,6 +31,16 @@ export function SidePanel({ activeSubMenuId, onOpenSubMenu }: SidePanelProps): R
               onOpenSubMenu={onOpenSubMenu}
             />
           </SidePanelBody>
+          <div className="shrink-0 px-2 pb-1">
+            {bottomNavItems.map((item) => (
+              <NavItem
+                key={item.id}
+                item={item}
+                collapsed={collapsed}
+                onOpenSubMenu={onOpenSubMenu}
+              />
+            ))}
+          </div>
           <SidePanelFooter
             collapsed={collapsed}
             onToggleCollapse={() => setCollapsed(!collapsed)}
