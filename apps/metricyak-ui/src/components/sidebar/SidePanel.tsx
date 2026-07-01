@@ -4,6 +4,7 @@ import { NavList } from './NavList';
 import { bottomNavItems } from './nav.config';
 import { SidePanelBody } from './SidePanelBody';
 import { SidePanelFooter } from './SidePanelFooter';
+import { SidePanelHeader } from './SidePanelHeader';
 
 interface SidePanelProps {
   activeSubMenuId?: string;
@@ -24,6 +25,7 @@ export function SidePanel({ activeSubMenuId, onOpenSubMenu }: SidePanelProps): R
     >
       {({ collapsed, setCollapsed }) => (
         <div className="flex h-full flex-col">
+          <SidePanelHeader collapsed={collapsed} />
           <SidePanelBody>
             <NavList
               activeId={activeSubMenuId}
