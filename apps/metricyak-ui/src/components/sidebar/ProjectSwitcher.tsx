@@ -201,7 +201,7 @@ function HomeContent({
   orgsError: string | null;
   popupOrgId: string | null;
   onOpenBrowse: () => void;
-  onSelectOrg: (orgId: string) => void;
+  onSelectOrg: (org: Organization) => void;
 }): React.JSX.Element {
   return (
     <div className="flex flex-col">
@@ -244,7 +244,7 @@ function HomeContent({
               <button
                 key={org.id}
                 type="button"
-                onClick={() => onSelectOrg(org.id)}
+                onClick={() => onSelectOrg(org)}
                 className={cn(
                   'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-sidebar-accent',
                   org.id === popupOrgId && 'font-medium',
@@ -563,8 +563,10 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
   const [orgsLoading, setOrgsLoading] = useState(false);
   const [orgsError, setOrgsError] = useState<string | null>(null);
 
-  // Projects for the org currently viewed in the popup
-  const [popupOrgId, setPopupOrgId] = useState<string | null>(null);
+  // Org currently viewed in the popup — stored as the full object (not just an
+  // id looked up in `orgs`) so selection doesn't race with the async org list load.
+  const [popupOrg, setPopupOrg] = useState<Organization | null>(null);
+  const popupOrgId = popupOrg?.id ?? null;
   const [popupProjects, setPopupProjects] = useState<Project[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -614,12 +616,11 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
   const openPopup = (): void => {
     if (!triggerRef.current) return;
     setPopupRect(computePopupRect(triggerRef.current));
-    const initialOrgId = activeOrg?.id ?? null;
-    setPopupOrgId(initialOrgId);
+    setPopupOrg(activeOrg ?? null);
     setView('home');
     setOpen(true);
     void loadOrgs();
-    if (initialOrgId) void loadProjects(initialOrgId);
+    if (activeOrg) void loadProjects(activeOrg.id);
   };
 
   // Click-outside and Escape
@@ -666,15 +667,14 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
   }, [view]);
 
   const handleSelectProject = (project: Project): void => {
-    const org = orgs.find((o) => o.id === popupOrgId) ?? null;
-    if (org) setActiveProject(project, org);
+    if (popupOrg) setActiveProject(project, popupOrg);
     close();
   };
 
-  const handleSelectOrg = (orgId: string): void => {
-    setPopupOrgId(orgId);
+  const handleSelectOrg = (org: Organization): void => {
+    setPopupOrg(org);
     setPopupProjects([]);
-    void loadProjects(orgId);
+    void loadProjects(org.id);
   };
 
   const openBrowse = (): void => {
@@ -704,21 +704,19 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
   };
 
   const handleOpenProjectSettings = (project: Project): void => {
-    const org = orgs.find((o) => o.id === popupOrgId) ?? null;
-    if (org) setActiveProject(project, org);
+    if (popupOrg) setActiveProject(project, popupOrg);
     close();
     navigate('/settings');
   };
 
   const handleCreate = async (): Promise<void> => {
-    if (!newName.trim() || !popupOrgId) return;
+    if (!newName.trim() || !popupOrg) return;
     setCreating(true);
     setCreateError(null);
     try {
-      const project = await createProject(popupOrgId, newName.trim());
-      const org = orgs.find((o) => o.id === popupOrgId) ?? null;
+      const project = await createProject(popupOrg.id, newName.trim());
       setPopupProjects((prev) => [...prev, project]);
-      if (org) setActiveProject(project, org);
+      setActiveProject(project, popupOrg);
       close();
     } catch {
       setCreateError('Failed to create project. Try again.');
@@ -728,7 +726,7 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
   };
 
   const initials = activeProject ? getInitials(activeProject.name) : 'MY';
-  const creatingOrgName = orgs.find((o) => o.id === popupOrgId)?.name;
+  const creatingOrgName = popupOrg?.name;
 
   return (
     <>
