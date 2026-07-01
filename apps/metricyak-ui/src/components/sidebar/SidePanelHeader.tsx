@@ -1,20 +1,15 @@
 import { cn } from '@/lib/utils';
+import { ProjectSwitcher } from './ProjectSwitcher';
 
 interface SidePanelHeaderProps {
+  collapsed: boolean;
   className?: string;
 }
 
-export function SidePanelHeader({ className }: SidePanelHeaderProps): React.JSX.Element {
+export function SidePanelHeader({ collapsed, className }: SidePanelHeaderProps): React.JSX.Element {
   return (
-    <div
-      className={cn(
-        'flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border px-3',
-        className,
-      )}
-    >
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-foreground font-bold text-background text-sm">
-        M
-      </div>
+    <div className={cn('shrink-0 border-b border-sidebar-border p-2', className)}>
+      <ProjectSwitcher collapsed={collapsed} />
     </div>
   );
 }

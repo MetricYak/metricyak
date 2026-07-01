@@ -25,6 +25,9 @@
 :root {
   --radius: 0.625rem;
 
+  --z-dropdown: 50;
+  --z-popover: 60;
+
   --background: #ffffff;
   --foreground: var(--metricyak-900);
 
@@ -153,6 +156,12 @@
   ::file-selector-button {
     border-color: var(--border, currentColor);
   }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [role="option"] {
+    cursor: pointer;
+  }
 }
 
 @layer components {
@@ -189,6 +198,30 @@
       box-shadow: none;
       transform: translateY(4px);
     }
+  }
+
+  /* Scroll-shadow affordance: pure CSS, no JS scroll tracking. The "cover"
+     layers scroll with the content (attachment: local) and hide the "shadow"
+     layers beneath them everywhere except right at the true start/end of the
+     scrollable content, where the shadow shows through. */
+  .scroll-shadows {
+    background-image:
+      linear-gradient(to bottom, var(--popover), transparent),
+      linear-gradient(to top, var(--popover), transparent),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--foreground) 14%, transparent),
+        transparent
+      ),
+      linear-gradient(to top, color-mix(in srgb, var(--foreground) 14%, transparent), transparent);
+    background-position: top, bottom, top, bottom;
+    background-size:
+      100% 1.5rem,
+      100% 1.5rem,
+      100% 0.625rem,
+      100% 0.625rem;
+    background-repeat: no-repeat;
+    background-attachment: local, local, scroll, scroll;
   }
 }
 

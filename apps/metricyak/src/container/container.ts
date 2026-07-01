@@ -5,6 +5,7 @@ import {
   FailedEventsRepository,
   MetricsRepository,
   MonitorsRepository,
+  OrganizationsRepository,
   ProjectKeysRepository,
   ProjectsRepository,
 } from '@metricyak/storage';
@@ -18,6 +19,7 @@ export type Container = {
   readonly repositories: {
     readonly metrics: MetricsRepository;
     readonly monitors: MonitorsRepository;
+    readonly organizations: OrganizationsRepository;
     readonly projects: ProjectsRepository;
   };
 };
@@ -38,6 +40,7 @@ export function createContainer(db: Database, producer: EventsProducer): Contain
     repositories: {
       metrics: new MetricsRepository(db),
       monitors: new MonitorsRepository(db),
+      organizations: new OrganizationsRepository(db),
       projects: new ProjectsRepository(db),
     },
   };
