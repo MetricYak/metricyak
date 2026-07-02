@@ -18,3 +18,14 @@ export function createProject(organizationId: string, name: string): Promise<Pro
     body: JSON.stringify({ name }),
   });
 }
+
+export function updateProject(
+  organizationId: string,
+  projectId: string,
+  input: { name: string },
+): Promise<Project> {
+  return apiFetch<Project>(`/v1/organizations/${organizationId}/projects/${projectId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}

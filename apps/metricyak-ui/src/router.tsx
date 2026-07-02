@@ -1,5 +1,7 @@
-import { createBrowserRouter, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { App } from './App';
+import { ProjectGeneralPage } from './components/settings/pages/ProjectGeneralPage';
+import { ProjectKeysPage } from './components/settings/pages/ProjectKeysPage';
 import { SettingsPage } from './components/settings/SettingsPage';
 import { NotFoundPage } from './components/shell/NotFoundPage';
 import { PlaceholderPage } from './components/shell/PlaceholderPage';
@@ -32,7 +34,18 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
-        children: [{ path: '*', element: <NotFoundPage /> }],
+        children: [
+          { index: true, element: <Navigate to="/settings/project/general" replace /> },
+          {
+            path: 'project',
+            children: [
+              { index: true, element: <Navigate to="/settings/project/general" replace /> },
+              { path: 'general', element: <ProjectGeneralPage /> },
+              { path: 'keys', element: <ProjectKeysPage /> },
+            ],
+          },
+          { path: '*', element: <NotFoundPage /> },
+        ],
       },
       { path: '*', element: <NotFoundPage /> },
     ],

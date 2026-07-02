@@ -223,6 +223,64 @@
     background-repeat: no-repeat;
     background-attachment: local, local, scroll, scroll;
   }
+
+  .dialog {
+    margin: auto;
+    max-height: min(85vh, 40rem);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--popover);
+    color: var(--foreground);
+    box-shadow:
+      0 20px 25px -5px rgb(0 0 0 / 0.1),
+      0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+
+  .dialog::backdrop {
+    background-color: color-mix(in srgb, var(--metricyak-950) 45%, transparent);
+  }
+
+  @media not (prefers-reduced-motion: reduce) {
+    .dialog {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+      transition:
+        opacity 0.16s ease-out,
+        transform 0.16s ease-out,
+        overlay 0.16s ease-out allow-discrete,
+        display 0.16s ease-out allow-discrete;
+    }
+
+    .dialog[open] {
+      opacity: 1;
+      transform: none;
+    }
+
+    @starting-style {
+      .dialog[open] {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+      }
+    }
+
+    .dialog::backdrop {
+      opacity: 0;
+      transition:
+        opacity 0.16s ease-out,
+        overlay 0.16s ease-out allow-discrete,
+        display 0.16s ease-out allow-discrete;
+    }
+
+    .dialog[open]::backdrop {
+      opacity: 1;
+    }
+
+    @starting-style {
+      .dialog[open]::backdrop {
+        opacity: 0;
+      }
+    }
+  }
 }
 
 html,

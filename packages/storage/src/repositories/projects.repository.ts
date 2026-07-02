@@ -7,6 +7,10 @@ export type CreateProjectInput = {
   name: string;
 };
 
+export type UpdateProjectInput = {
+  name: string;
+};
+
 export type ProjectRecord = {
   id: string;
   organizationId: string;
@@ -39,5 +43,15 @@ export class ProjectsRepository {
     }
 
     return project;
+  }
+
+  async update(id: string, input: UpdateProjectInput): Promise<ProjectRecord | null> {
+    const [project] = await this.db
+      .update(projects)
+      .set({ name: input.name })
+      .where(eq(projects.id, id))
+      .returning();
+
+    return project ?? null;
   }
 }

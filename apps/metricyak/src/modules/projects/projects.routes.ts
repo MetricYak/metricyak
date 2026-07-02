@@ -7,6 +7,9 @@ import {
   CreateProjectResponse,
   ListProjectsParams,
   ListProjectsResponse,
+  UpdateProjectParams,
+  UpdateProjectRequest,
+  UpdateProjectResponse,
 } from './projects.schemas.js';
 
 export const listProjectsRoute = createRoute({
@@ -41,6 +44,26 @@ export const createProjectRoute = createRoute({
     },
     400: errorResponse('The request failed validation.'),
     404: errorResponse('The organization could not be found.'),
+  },
+});
+
+export const updateProjectRoute = createRoute({
+  method: 'patch',
+  path: '/organizations/{organizationId}/projects/{projectId}',
+  request: {
+    params: UpdateProjectParams,
+    body: {
+      content: { 'application/json': { schema: UpdateProjectRequest } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: UpdateProjectResponse } },
+      description: 'The project was updated.',
+    },
+    400: errorResponse('The request failed validation.'),
+    404: errorResponse('The organization or project could not be found.'),
   },
 });
 
@@ -92,6 +115,38 @@ projectsRouter.openapi(createProjectRoute, async (c) => {
       updatedAt: record.updatedAt.toISOString(),
     }),
     201,
+  );
+});
+
+projectsRouter.openapi(updateProjectRoute, async (c) => {
+  const { organizationId, projectId } = c.req.valid('param');
+  const { name } = c.req.valid('json');
+  const { organizations, projects } = c.var.container.repositories;
+
+  const organization = await organizations.get(organizationId);
+  if (!organization) {
+    throw new NotFoundError('The organization could not be found.');
+  }
+
+  const existing = await projects.get(projectId);
+  if (!existing || existing.organizationId !== organizationId) {
+    throw new NotFoundError('The project could not be found.');
+  }
+
+  const record = await projects.update(projectId, { name });
+  if (!record) {
+    throw new NotFoundError('The project could not be found.');
+  }
+
+  return c.json(
+    UpdateProjectResponse.parse({
+      id: record.id,
+      organizationId: record.organizationId,
+      name: record.name,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    }),
+    200,
   );
 });
 
