@@ -16,7 +16,16 @@ interface SettingsSection {
   items: SettingsItem[];
 }
 
-const sections: readonly SettingsSection[] = [] satisfies readonly SettingsSection[];
+const sections: readonly SettingsSection[] = [
+  {
+    id: 'project',
+    label: 'Project',
+    items: [
+      { id: 'project-general', label: 'General', path: '/settings/project/general' },
+      { id: 'project-keys', label: 'Project keys', path: '/settings/project/keys' },
+    ],
+  },
+] satisfies readonly SettingsSection[];
 
 function SettingsNavItem({ item }: { item: SettingsItem }): React.JSX.Element {
   return (
@@ -133,11 +142,9 @@ export function SettingsNav(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Nav sections */}
       <div className="flex flex-1 flex-col overflow-y-auto px-2 pb-4">
         <AnimatePresence mode="wait" initial={false}>
           {isSearching ? (
-            /* Search mode: flat grouped list, headers are non-interactive labels */
             <motion.div
               key="search"
               initial={{ opacity: 0 }}
@@ -172,7 +179,6 @@ export function SettingsNav(): React.JSX.Element {
               )}
             </motion.div>
           ) : (
-            /* Accordion mode: collapsible sections */
             <motion.div
               key="accordion"
               initial={{ opacity: 0 }}

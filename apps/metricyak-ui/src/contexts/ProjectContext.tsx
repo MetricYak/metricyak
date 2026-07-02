@@ -6,6 +6,7 @@ type ProjectContextValue = {
   activeOrg: Organization | null;
   activeProject: Project | null;
   setActiveProject: (project: Project, org: Organization) => void;
+  updateActiveProject: (project: Project) => void;
 };
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -42,6 +43,14 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     writeStorage('metricyak.active-org', org);
   }, []);
 
+  const updateActiveProject = useCallback((project: Project): void => {
+    setActiveProjectState((current) => {
+      if (current?.id !== project.id) return current;
+      writeStorage('metricyak.active-project', project);
+      return project;
+    });
+  }, []);
+
   useEffect(() => {
     if (activeProject) return;
 
@@ -60,7 +69,9 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
   }, [activeProject, setActiveProject]);
 
   return (
-    <ProjectContext.Provider value={{ activeOrg, activeProject, setActiveProject }}>
+    <ProjectContext.Provider
+      value={{ activeOrg, activeProject, setActiveProject, updateActiveProject }}
+    >
       {children}
     </ProjectContext.Provider>
   );
