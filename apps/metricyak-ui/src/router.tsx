@@ -1,5 +1,10 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { App } from './App';
+import {
+  ActivityExploreView,
+  ActivityLiveView,
+  ActivityPage,
+} from './components/activity/ActivityPage';
 import { ProjectGeneralPage } from './components/settings/pages/ProjectGeneralPage';
 import { ProjectKeysPage } from './components/settings/pages/ProjectKeysPage';
 import { SettingsPage } from './components/settings/SettingsPage';
@@ -12,6 +17,16 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <PlaceholderPage title="Dashboard" /> },
+      {
+        path: 'activity',
+        element: <ActivityPage />,
+        children: [
+          { index: true, element: <Navigate to="/activity/live" replace /> },
+          { path: 'live', element: <ActivityLiveView /> },
+          { path: 'explore', element: <ActivityExploreView /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
       {
         path: 'metrics',
         element: <Outlet />,
