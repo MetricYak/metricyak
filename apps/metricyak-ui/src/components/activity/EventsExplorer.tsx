@@ -20,6 +20,14 @@ export function EventsExplorer({ projectId }: { projectId: string }): React.JSX.
   const [sort, setSort] = useState<EventSort>('time-desc');
   const [page, setPage] = useState(0);
 
+  // Reset to page 0 whenever the project changes so stale pagination
+  // from a previous project doesn't carry over.
+  const prevProjectIdRef = useRef(projectId);
+  if (prevProjectIdRef.current !== projectId) {
+    prevProjectIdRef.current = projectId;
+    setPage(0);
+  }
+
   const [result, setResult] = useState<EventQueryResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
