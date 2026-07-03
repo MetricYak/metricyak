@@ -1,4 +1,4 @@
-import { BarChart3, type LucideIcon, Settings } from 'lucide-react';
+import { Activity, BarChart3, type LucideIcon, Settings } from 'lucide-react';
 
 export interface SubNavItem {
   id: string;
@@ -15,6 +15,12 @@ export interface NavItemData {
 }
 
 export const navItems: readonly NavItemData[] = [
+  {
+    id: 'activity',
+    label: 'Activity',
+    icon: Activity,
+    path: '/activity',
+  },
   {
     id: 'metrics',
     label: 'Metrics',

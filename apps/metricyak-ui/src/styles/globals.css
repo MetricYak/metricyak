@@ -181,6 +181,10 @@
     outline-offset: 2px;
   }
 
+  .raised-soft {
+    --raised-color: var(--metricyak-500);
+  }
+
   @media not (prefers-reduced-motion: reduce) {
     .raised {
       transform: translateY(0);
@@ -200,10 +204,6 @@
     }
   }
 
-  /* Scroll-shadow affordance: pure CSS, no JS scroll tracking. The "cover"
-     layers scroll with the content (attachment: local) and hide the "shadow"
-     layers beneath them everywhere except right at the true start/end of the
-     scrollable content, where the shadow shows through. */
   .scroll-shadows {
     background-image:
       linear-gradient(to bottom, var(--popover), transparent),
@@ -222,6 +222,48 @@
       100% 0.625rem;
     background-repeat: no-repeat;
     background-attachment: local, local, scroll, scroll;
+  }
+
+  @keyframes event-row-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .event-row-enter {
+    animation: event-row-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .event-row-enter {
+      animation: none;
+    }
+  }
+
+  @keyframes dropdown-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .dropdown-content[data-state="open"] {
+    animation: dropdown-in 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dropdown-content[data-state="open"] {
+      animation: none;
+    }
   }
 
   .dialog {
