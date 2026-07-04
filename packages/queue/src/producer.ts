@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import type { ConnectionOptions } from 'bullmq';
 import { Queue } from 'bullmq';
 import { EVENTS_QUEUE, type EventBatchJob } from './queues.js';
@@ -15,17 +14,8 @@ export class BullEventsProducer implements EventsProducer {
   }
 
   async enqueue(job: EventBatchJob): Promise<void> {
-    const jobId = createHash('sha256')
-      .update(
-        job.events
-          .map((e) => e.id)
-          .sort()
-          .join(','),
-      )
-      .digest('hex');
-
     await this.queue.add(EVENTS_QUEUE, job, {
-      jobId,
+      jobId: job.batchId,
       attempts: 3,
       backoff: { type: 'exponential', delay: 1000 },
     });

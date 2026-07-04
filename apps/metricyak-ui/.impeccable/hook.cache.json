@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "sessions": {
+    "17f4ebba-de53-41db-b39c-ed9e1319f661": {
+      "updatedAt": 1782766560195,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/NavItem.tsx": {
+          "editCount": 6,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/NavList.tsx": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/SubMenuPanel.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/shell/AppLayout.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/nav.config.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/ActiveHighlight.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/styles/globals.css": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "e82fa429-1a34-4521-b1a8-2be95cf2a7b3": {
+      "updatedAt": 1782769002534,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/shell/AppLayout.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "ede08c22-4fe0-4554-bc0d-d0561acfc610": {
+      "updatedAt": 1782854543593,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/settings/SettingsNav.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/router.tsx": {
+          "editCount": 5,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/shell/NotFoundPage.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/SidePanelHeader.tsx": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/SidePanel.tsx": {
+          "editCount": 4,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/nav.config.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/styles/globals.css": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/resizable/ResizeHandle.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/resizable/Resizable.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "1e2ad630-9d68-42da-a634-6fad7ed47240": {
+      "updatedAt": 1782942205111,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/ProjectSwitcher.tsx": {
+          "editCount": 10,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/contexts/ProjectContext.tsx": {
+          "editCount": 2,
+          "findings": []
+        }
+      }
+    },
+    "72d91cb2-4b80-42b3-952b-03c11f866c95": {
+      "updatedAt": 1783024990695,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/packages/storage/src/repositories/projects.repository.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak/src/modules/projects/projects.schemas.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak/src/modules/projects/projects.routes.ts": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/api/projects.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/api/project-keys.ts": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/contexts/ProjectContext.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/settings/SettingsNav.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/router.tsx": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/styles/globals.css": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/settings/SettingsDialog.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/settings/CopyButton.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/settings/pages/ProjectGeneralPage.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/settings/pages/ProjectKeysPage.tsx": {
+          "editCount": 3,
+          "findings": []
+        }
+      }
+    },
+    "729ab559-6b43-4403-a720-057306f4b087": {
+      "updatedAt": 1783027188027,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/ui/button.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/ui/card.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/settings/pages/ProjectGeneralPage.tsx": {
+          "editCount": 4,
+          "findings": []
+        }
+      }
+    },
+    "a09b27b4-2626-41bc-aaa0-6931e3acda7f": {
+      "updatedAt": 1783116556815,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/api/events.ts": {
+          "editCount": 10,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/useActivityFeed.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/ThroughputMeter.tsx": {
+          "editCount": 4,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/format.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/ActivityRow.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/ActivityPage.tsx": {
+          "editCount": 9,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/sidebar/nav.config.ts": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/router.tsx": {
+          "editCount": 2,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/ActivityDetail.tsx": {
+          "editCount": 1,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/EventsExplorer.tsx": {
+          "editCount": 19,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/EventTable.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/TimeRangeSelect.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/styles/globals.css": {
+          "editCount": 4,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/ui/table.tsx": {
+          "editCount": 1,
+          "findings": []
+        }
+      }
+    },
+    "dbe93dba-81c8-454d-8877-31ae1121dd52": {
+      "updatedAt": 1783115732346,
+      "files": {
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/components/activity/ActivityPage.tsx": {
+          "editCount": 3,
+          "findings": []
+        },
+        "/Users/hussam/Documents/MetricYak/Code/metricyak/apps/metricyak-ui/src/router.tsx": {
+          "editCount": 2,
+          "findings": []
+        }
+      }
+    }
+  }
+}

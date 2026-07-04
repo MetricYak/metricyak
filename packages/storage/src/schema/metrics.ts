@@ -12,7 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { projects } from './projects.js';
 
-export const METRIC_AGGREGATIONS = ['count', 'sum', 'average'] as const;
+export const METRIC_AGGREGATIONS = ['count', 'sum', 'average', 'min', 'max'] as const;
 
 export type MetricAggregation = (typeof METRIC_AGGREGATIONS)[number];
 
@@ -27,6 +27,7 @@ export type MetricEvent = {
 export type MetricDefinition = {
   events: MetricEvent[];
   value?: string;
+  dimensions?: string[];
 };
 
 export const metricDefinitions = pgTable(

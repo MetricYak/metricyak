@@ -1,3 +1,4 @@
+export * from './aggregates.js';
 export * from './events.js';
 export * from './failed-events.js';
 export * from './metrics.js';

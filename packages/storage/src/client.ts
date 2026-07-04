@@ -5,6 +5,9 @@ import * as schema from './schema/index.js';
 export type Schema = typeof schema;
 export type Database = NodePgDatabase<Schema>;
 
+type TransactionExecutor = Parameters<Parameters<Database['transaction']>[0]>[0];
+export type Executor = Database | TransactionExecutor;
+
 export function createDatabase(connectionString: string): Database {
   const pool = new Pool({ connectionString });
 

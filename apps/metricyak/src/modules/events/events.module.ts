@@ -6,7 +6,13 @@ import { processEventBatch } from './events.worker.js';
 const eventsWorkerFactory: WorkerFactory = (connection, container, concurrency) => {
   const worker = createEventsWorker(connection, {
     concurrency,
-    process: (job) => processEventBatch(job.data, container.events),
+    process: (job) =>
+      processEventBatch(job.data, {
+        db: container.db,
+        events: container.events,
+        aggregates: container.aggregates,
+        matcher: container.matcher,
+      }),
   });
 
   worker.on('completed', (job) => {
