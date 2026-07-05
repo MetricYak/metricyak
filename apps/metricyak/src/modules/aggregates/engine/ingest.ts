@@ -18,15 +18,19 @@ function compositeKey(parts: ReadonlyArray<string | number>): string {
   return JSON.stringify(parts);
 }
 
+export function fieldPath(field: string): string[] {
+  const path = field.startsWith(FIELD_PREFIX) ? field.slice(FIELD_PREFIX.length) : field;
+  return path.split('.');
+}
+
 export function extractField(
   properties: Record<string, unknown>,
   field: string | null,
 ): number | null {
   if (field == null) return null;
-  const path = field.startsWith(FIELD_PREFIX) ? field.slice(FIELD_PREFIX.length) : field;
 
   let current: unknown = properties;
-  for (const segment of path.split('.')) {
+  for (const segment of fieldPath(field)) {
     if (current == null || typeof current !== 'object') return null;
     current = (current as Record<string, unknown>)[segment];
   }

@@ -18,7 +18,7 @@ const PREVIEW_LIMIT = 4;
 export function EventTableFrame({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-background">
-      <Table className="min-w-[560px]">{children}</Table>
+      <Table className="min-w-140">{children}</Table>
     </div>
   );
 }

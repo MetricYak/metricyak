@@ -17,6 +17,7 @@ import {
   ValueQuery,
   ValueResponse,
 } from './aggregates.schemas.js';
+import { fieldPath } from './engine/ingest.js';
 import { aggregateScalar, windowValues } from './engine/materialize.js';
 
 const timeseriesRoute = createRoute({
@@ -161,7 +162,7 @@ router.openapi(breakdownRoute, async (c) => {
         projectId,
         eventNames,
         dimField: dimension,
-        valueField: event.field ?? null,
+        valuePath: event.field ? fieldPath(event.field) : null,
         from: rangeStart,
         to: rangeEnd,
       });

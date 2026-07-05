@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, lt, lte, type SQL, sql } from 'drizzle-orm';
 import type { Database, Executor } from '../client.js';
 import {
   aggregationBatches,
@@ -70,6 +70,15 @@ export type RawBreakdownRow = {
   min: number | null;
   max: number | null;
 };
+
+function jsonTextAccessor(path: readonly string[]): SQL {
+  let accessor: SQL = sql`properties`;
+  path.forEach((segment, index) => {
+    accessor =
+      index === path.length - 1 ? sql`${accessor} ->> ${segment}` : sql`${accessor} -> ${segment}`;
+  });
+  return accessor;
+}
 
 export class AggregatesRepository {
   constructor(private readonly db: Database) {}
@@ -356,19 +365,20 @@ export class AggregatesRepository {
       projectId: string;
       eventNames: readonly string[];
       dimField: string;
-      valueField: string | null;
+      valuePath: readonly string[] | null;
       from: Date;
       to: Date;
     },
     executor: Executor = this.db,
   ): Promise<RawBreakdownRow[]> {
-    const { projectId, eventNames, dimField, valueField, from, to } = params;
+    const { projectId, eventNames, dimField, valuePath, from, to } = params;
     if (eventNames.length === 0) return [];
 
     const dim = sql`coalesce(properties ->> ${dimField}, ${OTHER_SENTINEL})`;
-    const value = valueField
-      ? sql`(properties ->> ${valueField})::double precision`
-      : sql`null::double precision`;
+    const value =
+      valuePath && valuePath.length > 0
+        ? sql`(${jsonTextAccessor(valuePath)})::double precision`
+        : sql`null::double precision`;
 
     const result = await executor.execute<RawBreakdownRow>(sql`
       select

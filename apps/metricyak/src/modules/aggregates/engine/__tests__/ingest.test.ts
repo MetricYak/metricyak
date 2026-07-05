@@ -6,6 +6,7 @@ import {
   collectDimensionCandidates,
   type DimResolver,
   extractField,
+  fieldPath,
 } from '../ingest.js';
 import type { MatcherMap, MatchTarget } from '../matcher.js';
 
@@ -33,11 +34,24 @@ const event = (
   properties,
 });
 
+describe('fieldPath', () => {
+  it('strips the $properties prefix and splits nested paths', () => {
+    expect(fieldPath('$properties.amount_usd')).toEqual(['amount_usd']);
+    expect(fieldPath('$properties.checkout.total')).toEqual(['checkout', 'total']);
+    expect(fieldPath('amount')).toEqual(['amount']);
+  });
+});
+
 describe('extractField', () => {
   it('reads a $properties path and coerces to a finite number', () => {
     expect(extractField({ amount_usd: '19.99' }, '$properties.amount_usd')).toBe(19.99);
     expect(extractField({ amount_usd: 'nope' }, '$properties.amount_usd')).toBeNull();
     expect(extractField({}, '$properties.missing')).toBeNull();
+  });
+
+  it('reads a nested $properties path', () => {
+    expect(extractField({ checkout: { total: 42 } }, '$properties.checkout.total')).toBe(42);
+    expect(extractField({ checkout: {} }, '$properties.checkout.total')).toBeNull();
   });
 });
 
