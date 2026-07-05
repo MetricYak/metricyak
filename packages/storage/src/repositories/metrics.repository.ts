@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../client.js';
 import {
   type MetricDefinition,
@@ -24,6 +24,13 @@ export type MetricRecord = {
   updatedAt: Date;
 };
 
+export type MetricSummary = {
+  metricId: string;
+  version: number;
+  name: string;
+  definition: MetricDefinition;
+};
+
 export class MetricsRepository {
   constructor(private readonly db: Database) {}
 
@@ -35,6 +42,93 @@ export class MetricsRepository {
       .limit(1);
 
     return metric ?? null;
+  }
+
+  async getDefinition(id: string, projectId: string): Promise<MetricSummary | null> {
+    const [row] = await this.db
+      .select({
+        metricId: metricDefinitions.id,
+        version: metricDefinitionVersions.version,
+        name: metricDefinitionVersions.name,
+        definition: metricDefinitionVersions.definition,
+      })
+      .from(metricDefinitions)
+      .innerJoin(
+        metricDefinitionVersions,
+        eq(metricDefinitions.currentVersionId, metricDefinitionVersions.id),
+      )
+      .where(and(eq(metricDefinitions.id, id), eq(metricDefinitions.projectId, projectId)))
+      .limit(1);
+
+    if (!row) return null;
+
+    return {
+      metricId: row.metricId,
+      version: row.version,
+      name: row.name,
+      definition: row.definition,
+    };
+  }
+
+  async listByIds(ids: readonly string[]): Promise<MetricSummary[]> {
+    if (ids.length === 0) return [];
+
+    const rows = await this.db
+      .select({
+        metricId: metricDefinitions.id,
+        version: metricDefinitionVersions.version,
+        name: metricDefinitionVersions.name,
+        definition: metricDefinitionVersions.definition,
+      })
+      .from(metricDefinitions)
+      .innerJoin(
+        metricDefinitionVersions,
+        eq(metricDefinitions.currentVersionId, metricDefinitionVersions.id),
+      )
+      .where(inArray(metricDefinitions.id, [...ids]));
+
+    return rows.map((row) => ({
+      metricId: row.metricId,
+      version: row.version,
+      name: row.name,
+      definition: row.definition,
+    }));
+  }
+
+  async matcherEpoch(projectId: string): Promise<string> {
+    const [row] = await this.db
+      .select({
+        count: sql<number>`cast(count(*) as int)`,
+        updatedAt: sql<string | null>`max(${metricDefinitions.updatedAt})`,
+      })
+      .from(metricDefinitions)
+      .where(eq(metricDefinitions.projectId, projectId));
+
+    const millis = row?.updatedAt ? new Date(row.updatedAt).getTime() : 0;
+    return `${row?.count ?? 0}:${millis}`;
+  }
+
+  async listByProject(projectId: string): Promise<MetricSummary[]> {
+    const rows = await this.db
+      .select({
+        metricId: metricDefinitions.id,
+        version: metricDefinitionVersions.version,
+        name: metricDefinitionVersions.name,
+        definition: metricDefinitionVersions.definition,
+      })
+      .from(metricDefinitions)
+      .innerJoin(
+        metricDefinitionVersions,
+        eq(metricDefinitions.currentVersionId, metricDefinitionVersions.id),
+      )
+      .where(eq(metricDefinitions.projectId, projectId));
+
+    return rows.map((row) => ({
+      metricId: row.metricId,
+      version: row.version,
+      name: row.name,
+      definition: row.definition,
+    }));
   }
 
   async create(input: CreateMetricInput): Promise<MetricRecord> {

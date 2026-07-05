@@ -1,4 +1,4 @@
-import type { Database } from '../client.js';
+import type { Database, Executor } from '../client.js';
 import { events } from '../schema/events.js';
 
 export type InsertEventRow = {
@@ -12,9 +12,9 @@ export type InsertEventRow = {
 export class EventsRepository {
   constructor(private readonly db: Database) {}
 
-  async insertBatch(rows: InsertEventRow[]): Promise<void> {
+  async insertBatch(rows: InsertEventRow[], executor: Executor = this.db): Promise<void> {
     if (rows.length === 0) return;
 
-    await this.db.insert(events).values(rows).onConflictDoNothing({ target: events.id });
+    await executor.insert(events).values(rows).onConflictDoNothing({ target: events.id });
   }
 }

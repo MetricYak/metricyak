@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createRoute } from '@hono/zod-openapi';
+import { computeBatchId } from '@metricyak/queue';
 import { errorResponse, UnauthorizedError } from '../../http/errors.js';
 import { createRouter } from '../../http/router.js';
 import { IngestRequest, IngestResponse } from './events.schemas.js';
@@ -37,17 +38,18 @@ eventsRouter.openapi(ingestRoute, async (c) => {
   const eventList = Array.isArray(events) ? events : [events];
   const now = new Date().toISOString();
 
-  const job = {
-    projectId: keyRecord.projectId,
-    events: eventList.map((e) => ({
-      id: randomUUID(),
-      name: e.name,
-      timestamp: e.timestamp ?? now,
-      properties: e.properties ?? {},
-    })),
-  };
+  const storedEvents = eventList.map((e) => ({
+    id: randomUUID(),
+    name: e.name,
+    timestamp: e.timestamp ?? now,
+    properties: e.properties ?? {},
+  }));
 
-  await producer.enqueue(job);
+  await producer.enqueue({
+    projectId: keyRecord.projectId,
+    batchId: computeBatchId(storedEvents.map((e) => e.id)),
+    events: storedEvents,
+  });
 
   return c.json({ accepted: eventList.length }, 202);
 });

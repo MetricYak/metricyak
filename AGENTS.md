@@ -29,6 +29,10 @@ packages/
 - **Linter/formatter:** Biome (`pnpm lint` / `pnpm check:fix`). Single-quote strings, 100-char line width, trailing commas always.
 - **Dependency versions** for shared libs (vitest, zod, drizzle-orm, …) are pinned in the **pnpm `catalog:`** in `pnpm-workspace.yaml`. Reference them as `"vitest": "catalog:"` rather than hardcoding versions.
 
+## Code Quality
+- Do not write comments on the code.
+- Ensure code is idiomatic and self documenting
+
 ## Architecture
 
 ### App modules (`apps/metricyak/src/modules/`)

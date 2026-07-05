@@ -7,5 +7,10 @@ export {
   InMemoryEventsProducer,
   InProcessEventsProducer,
 } from './producer.js';
-export { EVENTS_QUEUE, type EventBatchJob, type StoredEvent } from './queues.js';
+export {
+  computeBatchId,
+  EVENTS_QUEUE,
+  type EventBatchJob,
+  type StoredEvent,
+} from './queues.js';
 export { createEventsWorker, type EventWorkerOptions } from './worker-factory.js';

@@ -1,4 +1,6 @@
 import { z } from '@hono/zod-openapi';
+import { METRIC_AGGREGATIONS } from '@metricyak/storage';
+import { expressionVariables, parseExpression } from '../aggregates/engine/expression.js';
 
 export const CreateMetricParams = z.object({
   projectId: z.uuid().openapi({
@@ -6,8 +8,6 @@ export const CreateMetricParams = z.object({
     example: 'd6ceaf26-fd71-4c38-90f1-2de20b946d00',
   }),
 });
-
-export const METRIC_AGGREGATIONS = ['count', 'sum', 'average'] as const;
 
 const CreateMetricEvent = z
   .object({
@@ -23,34 +23,76 @@ const CreateMetricEvent = z
       example: '$properties.amount_usd',
     }),
   })
-  .refine((e) => e.aggregation === 'count' || e.field != null, {
-    error: 'The field is required for sum and average aggregations.',
+  .refine((event) => event.aggregation === 'count' || event.field != null, {
+    error: 'The field is required for sum, average, min, and max aggregations.',
     path: ['field'],
   })
-  .refine((e) => e.aggregation !== 'count' || e.field == null, {
+  .refine((event) => event.aggregation !== 'count' || event.field == null, {
     error: 'The field must not be set for count aggregation.',
     path: ['field'],
   });
 
-const CreateMetricDefinition = z
-  .object({
-    events: z
-      .array(CreateMetricEvent)
-      .min(1, 'A metric must have at least one event.')
-      .openapi({ description: 'Events that affect a metric.' }),
-    value: z.string().trim().min(1, 'The value expression must not be empty.').optional().openapi({
-      description:
-        'Expression combining per-event aggregated results. Defaults to the single event key when only one event is defined.',
-    }),
-  })
-  .refine((d) => new Set(d.events.map((e) => e.key)).size === d.events.length, {
-    error: 'Event keys must be unique within a metric.',
-    path: ['events'],
-  })
-  .refine((d) => d.value != null || d.events.length === 1, {
-    error: 'The field is required when a metric has more than one event.',
-    path: ['value'],
-  });
+const Dimensions = z
+  .array(z.string().min(1, 'A dimension must not be empty.'))
+  .max(16, 'A metric may declare at most 16 dimensions.')
+  .optional()
+  .openapi({ description: 'Event property keys to pre-aggregate for breakdowns.' });
+
+const MetricDefinitionFields = z.object({
+  events: z
+    .array(CreateMetricEvent)
+    .min(1, 'A metric must have at least one event.')
+    .openapi({ description: 'Events that affect a metric.' }),
+  value: z.string().trim().min(1, 'The value expression must not be empty.').optional().openapi({
+    description:
+      'Expression combining per-event aggregated results. Defaults to the single event key when only one event is defined.',
+  }),
+  dimensions: Dimensions,
+});
+
+function validateExpression(
+  expression: string,
+  allowed: ReadonlySet<string>,
+  ctx: z.RefinementCtx,
+): void {
+  let variables: string[];
+  try {
+    variables = expressionVariables(parseExpression(expression));
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'The value expression is invalid.', path: ['value'] });
+    return;
+  }
+
+  const unknown = variables.filter((variable) => !allowed.has(variable));
+  if (unknown.length > 0) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `The value expression references unknown identifiers: ${unknown.join(', ')}.`,
+      path: ['value'],
+    });
+  }
+}
+
+const CreateMetricDefinition = MetricDefinitionFields.superRefine((definition, ctx) => {
+  const keys = new Set(definition.events.map((event) => event.key));
+  if (keys.size !== definition.events.length) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Event keys must be unique within a metric.',
+      path: ['events'],
+    });
+  }
+  if (definition.value == null && definition.events.length > 1) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'The value expression is required when a metric has more than one event.',
+      path: ['value'],
+    });
+  }
+  if (definition.value != null) {
+    validateExpression(definition.value, keys, ctx);
+  }
+});
 
 export const CreateMetricRequest = z.object({
   name: z.string().min(1, 'The name must not be empty.').openapi({
@@ -66,7 +108,7 @@ export const CreateMetricResponse = z.object({
   id: z.uuid(),
   name: z.string(),
   description: z.string().nullish(),
-  definition: CreateMetricDefinition,
+  definition: MetricDefinitionFields,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
