@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "RUN_WORKER_INLINE=true tsx watch src/index.ts",
-    "dev:all": "tsx watch src/index.ts",
+    "dev": "concurrently -n api,livestream -c blue,magenta \"RUN_WORKER_INLINE=true tsx watch src/index.ts\" \"tsx watch src/livestream.ts\"",
+    "dev:all": "concurrently -n api,livestream -c blue,magenta \"tsx watch src/index.ts\" \"tsx watch src/livestream.ts\"",
     "dev:worker": "tsx watch src/worker.ts",
+    "dev:livestream": "tsx watch src/livestream.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "start:worker": "node dist/worker.js",
+    "start:livestream": "node dist/livestream.js",
     "test": "vitest run",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist"
@@ -27,6 +29,7 @@
     "@metricyak/typescript-config": "workspace:*",
     "@metricyak/vitest-config": "workspace:*",
     "@types/node": "catalog:",
+    "concurrently": "^9.1.2",
     "tsx": "^4.19.2",
     "typescript": "catalog:",
     "vitest": "catalog:"

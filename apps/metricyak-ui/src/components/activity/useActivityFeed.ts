@@ -1,25 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listRecentEvents, type PlatformActivity, subscribeToEvents } from '@/api/events';
 
-const MAX_ROWS = 250;
+const MAX_ROWS = 150;
+const BACKFILL_LIMIT = 100;
+const FLUSH_INTERVAL_MS = 250;
+const FLUSH_COUNT = 10;
 
 export interface ActivityFeed {
   items: PlatformActivity[];
   freshIds: Set<string>;
-  bufferedCount: number;
+  pendingCount: number;
   live: boolean;
   loading: boolean;
   error: boolean;
   arrivalsRef: React.RefObject<number[]>;
   setLive: (live: boolean) => void;
-  setAtTop: (atTop: boolean) => void;
-  flush: () => void;
+  reveal: () => void;
   reload: () => void;
 }
 
 export function useActivityFeed(projectId: string | null): ActivityFeed {
   const [items, setItems] = useState<PlatformActivity[]>([]);
-  const [buffer, setBuffer] = useState<PlatformActivity[]>([]);
+  const [pending, setPending] = useState<PlatformActivity[]>([]);
   const [freshIds, setFreshIds] = useState<Set<string>>(() => new Set());
   const [live, setLiveState] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -27,39 +29,49 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
   const [reloadKey, setReloadKey] = useState(0);
 
   const liveRef = useRef(live);
-  const atTopRef = useRef(true);
-  const followingRef = useRef(true);
   const arrivalsRef = useRef<number[]>([]);
 
-  const recomputeFollowing = useCallback((): boolean => {
-    followingRef.current = liveRef.current && atTopRef.current;
-    return followingRef.current;
+  const batchRef = useRef<PlatformActivity[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearFlushTimer = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
   }, []);
 
-  const flush = useCallback(() => {
-    setBuffer((buffered) => {
+  const drainBatch = useCallback(() => {
+    clearFlushTimer();
+    const batch = batchRef.current;
+    if (batch.length === 0) return;
+    batchRef.current = [];
+    const newestFirst = batch.reverse();
+    setPending((prev) => [...newestFirst, ...prev].slice(0, MAX_ROWS));
+  }, [clearFlushTimer]);
+
+  const reveal = useCallback(() => {
+    drainBatch();
+    setPending((buffered) => {
       if (buffered.length === 0) return buffered;
       setItems((prev) => [...buffered, ...prev].slice(0, MAX_ROWS));
+      setFreshIds(new Set(buffered.map((b) => b.id)));
       return [];
     });
-  }, []);
+  }, [drainBatch]);
 
   const setLive = useCallback(
     (next: boolean) => {
       setLiveState(next);
       liveRef.current = next;
-      if (recomputeFollowing()) flush();
+      // Pausing freezes the stream: drop any half-formed batch so resuming starts
+      // clean. Whatever already reached `pending` stays revealable.
+      if (!next) {
+        clearFlushTimer();
+        batchRef.current = [];
+      }
     },
-    [recomputeFollowing, flush],
-  );
-
-  const setAtTop = useCallback(
-    (atTop: boolean) => {
-      if (atTopRef.current === atTop) return;
-      atTopRef.current = atTop;
-      if (recomputeFollowing()) flush();
-    },
-    [recomputeFollowing, flush],
+    [clearFlushTimer],
   );
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
@@ -68,7 +80,7 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
   useEffect(() => {
     if (!projectId) {
       setItems([]);
-      setBuffer([]);
+      setPending([]);
       setLoading(false);
       setError(false);
       return;
@@ -77,13 +89,14 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
     let active = true;
     setLoading(true);
     setError(false);
-    setBuffer([]);
+    setPending([]);
+    batchRef.current = [];
     arrivalsRef.current = [];
 
-    listRecentEvents(projectId)
+    listRecentEvents(projectId, BACKFILL_LIMIT)
       .then((recent) => {
         if (!active) return;
-        setItems(recent);
+        setItems(recent.slice(0, MAX_ROWS));
         setLoading(false);
       })
       .catch(() => {
@@ -93,7 +106,7 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
       });
 
     const unsubscribe = subscribeToEvents(projectId, (activity) => {
-      if (!active) return;
+      if (!active || !liveRef.current) return;
 
       const now = Date.now();
       const arrivals = arrivalsRef.current;
@@ -101,23 +114,21 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
       const cutoff = now - 60_000;
       while (arrivals.length && (arrivals[0] as number) < cutoff) arrivals.shift();
 
-      if (followingRef.current) {
-        setItems((prev) => [activity, ...prev].slice(0, MAX_ROWS));
-        setFreshIds((prev) => {
-          const next = new Set(prev);
-          next.add(activity.id);
-          return next;
-        });
-      } else {
-        setBuffer((prev) => [activity, ...prev]);
+      batchRef.current.push(activity);
+      if (batchRef.current.length >= FLUSH_COUNT) {
+        drainBatch();
+      } else if (!flushTimerRef.current) {
+        flushTimerRef.current = setTimeout(drainBatch, FLUSH_INTERVAL_MS);
       }
     });
 
     return () => {
       active = false;
+      clearFlushTimer();
+      batchRef.current = [];
       unsubscribe();
     };
-  }, [projectId, reloadKey]);
+  }, [projectId, reloadKey, drainBatch, clearFlushTimer]);
 
   useEffect(() => {
     if (freshIds.size === 0) return;
@@ -129,16 +140,15 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
     () => ({
       items,
       freshIds,
-      bufferedCount: buffer.length,
+      pendingCount: pending.length,
       live,
       loading,
       error,
       arrivalsRef,
       setLive,
-      setAtTop,
-      flush,
+      reveal,
       reload,
     }),
-    [items, freshIds, buffer.length, live, loading, error, setLive, setAtTop, flush, reload],
+    [items, freshIds, pending.length, live, loading, error, setLive, reveal, reload],
   );
 }

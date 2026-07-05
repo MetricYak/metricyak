@@ -1,3 +1,5 @@
+import { ArrowUp } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { PlatformActivity } from '@/api/events';
 import {
   Table,
@@ -8,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { formatValue, SEVERITY_DOT, SEVERITY_LABEL } from './format';
+import { formatValue } from './format';
 
 export { TableBody };
 
@@ -27,16 +29,68 @@ export function EventTableHead({ time }: { time?: React.ReactNode }): React.JSX.
   return (
     <TableHeader>
       <TableRow className="bg-metricyak-50 hover:bg-metricyak-50">
-        <TableHead className="h-9 pl-4 text-[11px] text-muted-foreground">
-          {time ?? 'Time'}
-        </TableHead>
-        <TableHead className="h-9 text-[11px] text-muted-foreground">Event</TableHead>
-        <TableHead className="h-9 text-[11px] text-muted-foreground">Source</TableHead>
-        <TableHead className="hidden h-9 pr-4 text-[11px] text-muted-foreground md:table-cell">
+        <TableHead className="h-11 px-4 text-xs text-muted-foreground">{time ?? 'Time'}</TableHead>
+        <TableHead className="h-11 px-4 text-xs text-muted-foreground">Event</TableHead>
+        <TableHead className="h-11 px-4 text-xs text-muted-foreground">Source</TableHead>
+        <TableHead className="hidden h-11 px-4 text-xs text-muted-foreground md:table-cell">
           Properties
         </TableHead>
       </TableRow>
     </TableHeader>
+  );
+}
+
+/**
+ * A live affordance that sits as the first row of the table body. While events are
+ * buffered off-screen it invites the user to fold them in — new events never shove
+ * the current view around on their own.
+ */
+export function NewEventsRow({
+  count,
+  onReveal,
+}: {
+  count: number;
+  onReveal: () => void;
+}): React.JSX.Element {
+  const reduceMotion = useReducedMotion();
+  return (
+    <AnimatePresence initial={false}>
+      {count > 0 && (
+        <motion.tr
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className="border-border border-b"
+        >
+          <TableCell colSpan={EVENT_COLUMNS} className="p-0">
+            <button
+              type="button"
+              onClick={onReveal}
+              className={cn(
+                'group flex w-full items-center justify-center gap-2.5 px-4 py-2.5',
+                'bg-metricyak-brand-orange/[0.07] font-medium text-[13px] transition-colors',
+                'hover:bg-metricyak-brand-orange/12',
+                'focus-visible:bg-metricyak-brand-orange/[0.14] focus-visible:outline-none',
+              )}
+            >
+              {/* Live pulse — the one spot of orange that signals "fresh" */}
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-metricyak-brand-orange/60 motion-safe:animate-ping motion-reduce:hidden" />
+                <span className="relative inline-flex size-2 rounded-full bg-metricyak-brand-orange" />
+              </span>
+              <ArrowUp className="size-3.5 text-metricyak-brand-orange transition-transform group-hover:-translate-y-0.5" />
+              <span className="tabular-nums text-foreground">
+                {count.toLocaleString()} new {count === 1 ? 'event' : 'events'}
+              </span>
+              <span className="text-muted-foreground transition-colors group-hover:text-foreground">
+                — show
+              </span>
+            </button>
+          </TableCell>
+        </motion.tr>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -56,7 +110,6 @@ export function EventRow({
   const entries = Object.entries(event.properties);
   const preview = entries.slice(0, PREVIEW_LIMIT);
   const overflow = entries.length - preview.length;
-  const isError = event.severity === 'error';
 
   return (
     <TableRow className={cn('hover:bg-metricyak-50', fresh && 'event-row-enter')}>
@@ -67,25 +120,16 @@ export function EventRow({
         {time}
       </TableCell>
       <TableCell className="py-2.5">
-        <span className="flex items-center gap-2">
-          <span
-            className={cn('size-2 shrink-0 rounded-full', SEVERITY_DOT[event.severity])}
-            title={SEVERITY_LABEL[event.severity]}
-          />
-          <span
-            className={cn('font-medium text-foreground text-sm', isError && 'text-destructive')}
-          >
-            {event.name}
-          </span>
-        </span>
+        <span className="font-medium text-foreground text-sm">{event.name}</span>
       </TableCell>
       <TableCell className="py-2.5">
         <span className="rounded bg-metricyak-100 px-1.5 py-0.5 font-medium text-[11px] text-metricyak-600">
-          {event.source}
+          {event.source ?? 'unknown'}
         </span>
       </TableCell>
       <TableCell className="hidden py-2.5 pr-4 md:table-cell">
         <span className="flex items-center gap-3 font-mono text-[12px] text-muted-foreground">
+          {entries.length === 0 && <span className="text-metricyak-400">—</span>}
           {preview.map(([key, value]) => (
             <span key={key} className="truncate">
               <span className="text-metricyak-500">{key}</span>

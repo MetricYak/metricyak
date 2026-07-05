@@ -3,38 +3,39 @@ import { z } from 'zod';
 
 const ROOT_ENV = '../../.env';
 
-const ConfigSchema = z
-  .object({
-    DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.'),
-    REDIS_URL: z.string().min(1).optional(),
-    PORT: z.coerce.number().int().positive().default(3000),
-    WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
-    RUN_WORKER_INLINE: z
-      .string()
-      .optional()
-      .transform((v) => v === 'true' || v === '1'),
-    RUN_WORKERS_IN_API: z
-      .string()
-      .optional()
-      .transform((v) => v !== 'false' && v !== '0'),
-  })
-  .superRefine((data, ctx) => {
-    if (!data.RUN_WORKER_INLINE && !data.REDIS_URL) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['REDIS_URL'],
-        message: 'REDIS_URL is required when RUN_WORKER_INLINE is not set.',
-      });
-    }
-  });
+const ConfigSchema = z.object({
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.'),
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required.'),
+  PORT: z.coerce.number().int().positive().default(3000),
+  WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
+  RUN_WORKER_INLINE: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  RUN_WORKERS_IN_API: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false' && v !== '0'),
+  LIVESTREAM_PORT: z.coerce.number().int().positive().default(3002),
+  LIVESTREAM_CORS_ALLOW_ORIGINS: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.split(',').map((o) => o.trim()) : ['http://localhost:3001'])),
+  // TODO(JWT): remove once dashboard user auth lands; this is a placeholder seam so the
+  // livestream client already sends an Authorization header the future PR can start verifying.
+  LIVESTREAM_DEV_TOKEN: z.string().optional(),
+});
 
 export type Config = {
   readonly databaseUrl: string;
-  readonly redisUrl: string | undefined;
+  readonly redisUrl: string;
   readonly port: number;
   readonly workerConcurrency: number;
   readonly runWorkerInline: boolean;
   readonly runWorkersInApi: boolean;
+  readonly livestreamPort: number;
+  readonly livestreamCorsAllowOrigins: string[];
+  readonly livestreamDevToken: string | undefined;
 };
 
 export function loadConfig(): Config {
@@ -51,5 +52,8 @@ export function loadConfig(): Config {
     workerConcurrency: env.WORKER_CONCURRENCY,
     runWorkerInline: env.RUN_WORKER_INLINE,
     runWorkersInApi: env.RUN_WORKERS_IN_API,
+    livestreamPort: env.LIVESTREAM_PORT,
+    livestreamCorsAllowOrigins: env.LIVESTREAM_CORS_ALLOW_ORIGINS,
+    livestreamDevToken: env.LIVESTREAM_DEV_TOKEN,
   };
 }

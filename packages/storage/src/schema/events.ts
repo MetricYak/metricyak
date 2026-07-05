@@ -9,6 +9,7 @@ export const events = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
+    source: varchar('source', { length: 255 }),
     timestamp: timestamp('timestamp', { mode: 'date', precision: 3, withTimezone: true }).notNull(),
     properties: jsonb('properties').$type<Record<string, unknown>>().notNull().default({}),
     ingestedAt: timestamp('ingested_at', { mode: 'date', precision: 3, withTimezone: true })
@@ -17,5 +18,10 @@ export const events = pgTable(
   },
   (table) => [
     index('events_project_id_name_timestamp_idx').on(table.projectId, table.name, table.timestamp),
+    index('events_project_id_source_timestamp_idx').on(
+      table.projectId,
+      table.source,
+      table.timestamp,
+    ),
   ],
 );

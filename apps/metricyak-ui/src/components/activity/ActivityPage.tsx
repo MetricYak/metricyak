@@ -1,6 +1,6 @@
-import { Activity, ArrowUp, List, Pause, Play, Radio } from 'lucide-react';
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Activity, List, Pause, Play, Radio } from 'lucide-react';
+import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { useProjectContext } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import {
   EventSkeletonRows,
   EventTableFrame,
   EventTableHead,
+  NewEventsRow,
   TableBody,
 } from './EventTable';
 import { formatFull, formatRelative } from './format';
@@ -117,43 +118,25 @@ function LiveToggle({
   );
 }
 
-// ─── Live stream (table) ────────────────────────────────────────────────────────
-
 function LiveStream({ feed }: { feed: ReturnType<typeof useActivityFeed> }): React.JSX.Element {
-  const { items, freshIds, bufferedCount, loading, error, setAtTop } = feed;
-  const reduceMotion = useReducedMotion();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | undefined>(undefined);
+  const { items, freshIds, pendingCount, loading, error, reveal } = feed;
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  // Low-frequency clock so relative timestamps age without re-rendering per event.
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 5_000);
     return () => clearInterval(timer);
   }, []);
 
-  const handleScroll = useCallback(() => {
-    if (rafRef.current) return;
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = undefined;
-      const el = scrollRef.current;
-      if (el) setAtTop(el.scrollTop < 8);
-    });
-  }, [setAtTop]);
-
-  const scrollToTopAndFlush = useCallback(() => {
-    feed.flush();
-    scrollRef.current?.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
-    setAtTop(true);
-  }, [feed, reduceMotion, setAtTop]);
+  const total = items.length;
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 pt-5 pb-8 md:px-8">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="px-6 pt-5 pb-8 md:px-8">
           <EventTableFrame>
             <EventTableHead />
             <TableBody>
+              <NewEventsRow count={pendingCount} onReveal={reveal} />
               {loading ? (
                 <EventSkeletonRows count={10} />
               ) : error ? (
@@ -170,7 +153,7 @@ function LiveStream({ feed }: { feed: ReturnType<typeof useActivityFeed> }): Rea
                     Try again
                   </button>
                 </EventMessageRow>
-              ) : items.length === 0 ? (
+              ) : total === 0 ? (
                 <EventMessageRow
                   icon={<Activity className="size-5" />}
                   title="Nothing grazing through yet"
@@ -191,30 +174,15 @@ function LiveStream({ feed }: { feed: ReturnType<typeof useActivityFeed> }): Rea
               )}
             </TableBody>
           </EventTableFrame>
-        </div>
-      </div>
 
-      {/* "N new" pill — floats over the top of the stream */}
-      <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center">
-        <AnimatePresence>
-          {bufferedCount > 0 && (
-            <motion.button
-              type="button"
-              onClick={scrollToTopAndFlush}
-              initial={reduceMotion ? false : { opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className={cn(
-                'pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5',
-                'bg-foreground font-medium text-[13px] text-background shadow-lg',
-              )}
-            >
-              <ArrowUp className="size-3.5" />
-              {bufferedCount} new {bufferedCount === 1 ? 'event' : 'events'}
-            </motion.button>
+          {!loading && !error && total > 0 && (
+            <p className="mt-3 text-muted-foreground text-xs tabular-nums">
+              Showing the latest{' '}
+              <span className="font-medium text-foreground">{total.toLocaleString()}</span>{' '}
+              {total === 1 ? 'event' : 'events'}
+            </p>
           )}
-        </AnimatePresence>
+        </div>
       </div>
     </div>
   );
@@ -251,37 +219,35 @@ export function ActivityPage(): React.JSX.Element {
     <div className="flex h-full flex-col">
       {/* Header */}
       <header className="shrink-0 border-border border-b px-6 pt-7 md:px-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="flex items-center gap-2 font-semibold text-foreground text-xl">
-                <Activity className="size-5 text-metricyak-brand-orange" />
-                Activity
-              </h1>
-              <p className="mt-1 text-muted-foreground text-sm">
-                A live pulse of everything flowing into MetricYak.
-              </p>
-            </div>
-            {view === 'live' && projectId && (
-              <div className="flex items-center gap-4">
-                <div className="hidden sm:block">
-                  <ThroughputMeter arrivalsRef={feed.arrivalsRef} live={feed.live} />
-                </div>
-                <LiveToggle live={feed.live} onToggle={() => feed.setLive(!feed.live)} />
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="flex items-center gap-2 font-semibold text-foreground text-xl">
+              <Activity className="size-5 text-metricyak-brand-orange" />
+              Activity
+            </h1>
+            <p className="mt-1 text-muted-foreground text-sm">
+              A live pulse of everything flowing into MetricYak.
+            </p>
+          </div>
+          {view === 'live' && projectId && (
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:block">
+                <ThroughputMeter arrivalsRef={feed.arrivalsRef} live={feed.live} />
               </div>
-            )}
-          </div>
+              <LiveToggle live={feed.live} onToggle={() => feed.setLive(!feed.live)} />
+            </div>
+          )}
+        </div>
 
-          <div className="mt-6">
-            <TabBar view={view} onChange={(v) => navigate(`/activity/${v}`)} />
-          </div>
+        <div className="mt-6">
+          <TabBar view={view} onChange={(v) => navigate(`/activity/${v}`)} />
         </div>
       </header>
 
       {/* Body */}
       {!projectId ? (
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-5xl px-6 pt-6 pb-8 md:px-8">
+          <div className="px-6 pt-6 pb-8 md:px-8">
             <NoProject />
           </div>
         </div>
@@ -303,7 +269,7 @@ export function ActivityExploreView(): React.JSX.Element {
   const { projectId } = useOutletContext<ActivityOutletContext>();
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-5xl px-6 pt-5 pb-10 md:px-8">
+      <div className="px-6 pt-5 pb-10 md:px-8">
         <EventsExplorer projectId={projectId} />
       </div>
     </div>

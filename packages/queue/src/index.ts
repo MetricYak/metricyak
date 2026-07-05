@@ -1,5 +1,6 @@
 export type { ConnectionOptions, Job, Worker } from 'bullmq';
 export { createProducerConnectionOptions, createWorkerConnectionOptions } from './connection.js';
+export { type EventBusHandler, RedisEventBus } from './event-bus.js';
 export {
   BullEventsProducer,
   type EventBatchHandler,
@@ -11,6 +12,7 @@ export {
   computeBatchId,
   EVENTS_QUEUE,
   type EventBatchJob,
+  type PublishedEvent,
   type StoredEvent,
 } from './queues.js';
 export { createEventsWorker, type EventWorkerOptions } from './worker-factory.js';

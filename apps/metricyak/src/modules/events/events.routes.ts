@@ -3,7 +3,13 @@ import { createRoute } from '@hono/zod-openapi';
 import { computeBatchId } from '@metricyak/queue';
 import { errorResponse, UnauthorizedError } from '../../http/errors.js';
 import { createRouter } from '../../http/router.js';
-import { IngestRequest, IngestResponse } from './events.schemas.js';
+import {
+  EventsListResponse,
+  EventsParams,
+  EventsQuery,
+  IngestRequest,
+  IngestResponse,
+} from './events.schemas.js';
 
 export const ingestRoute = createRoute({
   method: 'post',
@@ -24,6 +30,18 @@ export const ingestRoute = createRoute({
   },
 });
 
+const listEventsRoute = createRoute({
+  method: 'get',
+  path: '/projects/{projectId}/events',
+  request: { params: EventsParams, query: EventsQuery },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: EventsListResponse } },
+      description: 'A page of events for the project.',
+    },
+  },
+});
+
 const eventsRouter = createRouter();
 
 eventsRouter.openapi(ingestRoute, async (c) => {
@@ -41,6 +59,7 @@ eventsRouter.openapi(ingestRoute, async (c) => {
   const storedEvents = eventList.map((e) => ({
     id: randomUUID(),
     name: e.name,
+    source: e.source,
     timestamp: e.timestamp ?? now,
     properties: e.properties ?? {},
   }));
@@ -52,6 +71,37 @@ eventsRouter.openapi(ingestRoute, async (c) => {
   });
 
   return c.json({ accepted: eventList.length }, 202);
+});
+
+eventsRouter.openapi(listEventsRoute, async (c) => {
+  const { projectId } = c.req.valid('param');
+  const { from, to, order, limit, offset } = c.req.valid('query');
+  const { events } = c.var.container;
+
+  const range = {
+    projectId,
+    from: from ? new Date(from) : undefined,
+    to: to ? new Date(to) : undefined,
+  };
+
+  const [rows, total] = await Promise.all([
+    events.query({ ...range, order, limit, offset }),
+    events.count(range),
+  ]);
+
+  return c.json(
+    EventsListResponse.parse({
+      events: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        source: row.source,
+        timestamp: row.timestamp.toISOString(),
+        properties: row.properties,
+      })),
+      total,
+    }),
+    200,
+  );
 });
 
 export default eventsRouter;

@@ -12,6 +12,7 @@ const eventsWorkerFactory: WorkerFactory = (connection, container, concurrency) 
         events: container.events,
         aggregates: container.aggregates,
         matcher: container.matcher,
+        eventBus: container.eventBus,
       }),
   });
 

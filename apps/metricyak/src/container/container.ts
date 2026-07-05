@@ -1,4 +1,4 @@
-import type { EventsProducer } from '@metricyak/queue';
+import type { EventsProducer, PublishedEvent, RedisEventBus } from '@metricyak/queue';
 import {
   AggregatesRepository,
   type Database,
@@ -15,6 +15,7 @@ import { MetricMatcher } from '../modules/aggregates/engine/matcher.js';
 export type Container = {
   readonly db: Database;
   readonly producer: EventsProducer;
+  readonly eventBus: RedisEventBus<PublishedEvent>;
   readonly projectKeys: ProjectKeysRepository;
   readonly events: EventsRepository;
   readonly failedEvents: FailedEventsRepository;
@@ -34,12 +35,17 @@ export type AppEnv = {
   };
 };
 
-export function createContainer(db: Database, producer: EventsProducer): Container {
+export function createContainer(
+  db: Database,
+  producer: EventsProducer,
+  eventBus: RedisEventBus<PublishedEvent>,
+): Container {
   const metrics = new MetricsRepository(db);
 
   return {
     db,
     producer,
+    eventBus,
     projectKeys: new ProjectKeysRepository(db),
     events: new EventsRepository(db),
     failedEvents: new FailedEventsRepository(db),

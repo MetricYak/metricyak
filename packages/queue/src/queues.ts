@@ -5,6 +5,7 @@ export const EVENTS_QUEUE = 'events' as const;
 export type StoredEvent = {
   id: string;
   name: string;
+  source?: string;
   timestamp: string;
   properties: Record<string, unknown>;
 };
@@ -13,6 +14,14 @@ export type EventBatchJob = {
   projectId: string;
   batchId: string;
   events: StoredEvent[];
+};
+
+export type PublishedEvent = {
+  id: string;
+  name: string;
+  source: string | null;
+  timestamp: string;
+  properties: Record<string, unknown>;
 };
 
 export function computeBatchId(eventIds: readonly string[]): string {

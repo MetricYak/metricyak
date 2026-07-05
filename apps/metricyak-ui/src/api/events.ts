@@ -1,17 +1,15 @@
+import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { apiFetch } from '@/lib/api';
+
 export type ActivityKind = 'event';
 
-export type Severity = 'info' | 'warning' | 'error';
-
-export type EventSource = 'web' | 'ios' | 'android' | 'server' | 'api';
-
-export type PropertyValue = string | number | boolean;
+export type PropertyValue = unknown;
 
 export interface ActivityEvent {
   id: string;
   kind: 'event';
   name: string;
-  source: EventSource;
-  severity: Severity;
+  source: string | null;
   receivedAt: string;
   properties: Record<string, PropertyValue>;
 }
@@ -21,249 +19,36 @@ export type PlatformActivity = ActivityEvent;
 export type ActivityListener = (activity: PlatformActivity) => void;
 export type Unsubscribe = () => void;
 
-interface EventTemplate {
+type EventRecord = {
+  id: string;
   name: string;
-  sources: EventSource[];
-  severity: Severity;
-  weight: number;
-  properties: () => Record<string, PropertyValue>;
-}
+  source: string | null;
+  timestamp: string;
+  properties: Record<string, unknown>;
+};
 
-const COUNTRIES = ['US', 'GB', 'DE', 'FR', 'CA', 'AU', 'JP', 'BR', 'IN', 'NL'];
-const PLANS = ['free', 'starter', 'growth', 'scale', 'enterprise'];
-const PATHS = ['/', '/pricing', '/docs', '/dashboard', '/settings', '/blog/launch', '/signup'];
-const METHODS = ['password', 'google', 'github', 'magic-link', 'saml'];
-const ENDPOINTS = ['/v1/metrics', '/v1/events', '/v1/monitors', '/v1/projects', '/v1/keys'];
-const GATEWAYS = ['stripe', 'adyen', 'braintree'];
-const SERVICES = ['ingest', 'aggregator', 'notifier', 'scheduler', 'api-gateway'];
-const FLAGS = ['new-onboarding', 'streaming-charts', 'ai-summaries', 'slack-v2'];
+type EventsListResponse = {
+  events: EventRecord[];
+  total: number;
+};
 
-const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)] as T;
-const int = (min: number, max: number): number => Math.floor(min + Math.random() * (max - min + 1));
-const money = (min: number, max: number): number =>
-  Math.round((min + Math.random() * (max - min)) * 100) / 100;
-
-const TEMPLATES: EventTemplate[] = [
-  {
-    name: 'page.viewed',
-    sources: ['web'],
-    severity: 'info',
-    weight: 20,
-    properties: () => ({
-      path: pick(PATHS),
-      referrer: pick(['direct', 'google', 'twitter', 'email']),
-    }),
-  },
-  {
-    name: 'session.started',
-    sources: ['web', 'ios', 'android'],
-    severity: 'info',
-    weight: 12,
-    properties: () => ({ country: pick(COUNTRIES), device: pick(['desktop', 'mobile', 'tablet']) }),
-  },
-  {
-    name: 'checkout.started',
-    sources: ['web', 'ios'],
-    severity: 'info',
-    weight: 8,
-    properties: () => ({ plan: pick(PLANS), value: money(9, 499), currency: 'USD' }),
-  },
-  {
-    name: 'checkout.completed',
-    sources: ['web', 'ios'],
-    severity: 'info',
-    weight: 7,
-    properties: () => ({
-      plan: pick(PLANS),
-      amount: money(9, 499),
-      currency: 'USD',
-      items: int(1, 4),
-    }),
-  },
-  {
-    name: 'cart.updated',
-    sources: ['web'],
-    severity: 'info',
-    weight: 9,
-    properties: () => ({ items: int(1, 8), value: money(5, 320), currency: 'USD' }),
-  },
-  {
-    name: 'signup.started',
-    sources: ['web'],
-    severity: 'info',
-    weight: 6,
-    properties: () => ({ plan: pick(PLANS), referrer: pick(['direct', 'google', 'partner']) }),
-  },
-  {
-    name: 'signup.completed',
-    sources: ['web'],
-    severity: 'info',
-    weight: 5,
-    properties: () => ({ plan: pick(PLANS), method: pick(METHODS) }),
-  },
-  {
-    name: 'login.succeeded',
-    sources: ['web', 'ios', 'android'],
-    severity: 'info',
-    weight: 10,
-    properties: () => ({ method: pick(METHODS) }),
-  },
-  {
-    name: 'login.failed',
-    sources: ['web', 'ios', 'android'],
-    severity: 'warning',
-    weight: 4,
-    properties: () => ({
-      method: pick(METHODS),
-      reason: pick(['bad-password', 'unknown-user', 'locked']),
-    }),
-  },
-  {
-    name: 'subscription.renewed',
-    sources: ['server'],
-    severity: 'info',
-    weight: 4,
-    properties: () => ({ plan: pick(PLANS), amount: money(9, 499), currency: 'USD' }),
-  },
-  {
-    name: 'subscription.canceled',
-    sources: ['server'],
-    severity: 'warning',
-    weight: 2,
-    properties: () => ({
-      plan: pick(PLANS),
-      reason: pick(['too-expensive', 'missing-feature', 'churned']),
-    }),
-  },
-  {
-    name: 'payment.failed',
-    sources: ['server'],
-    severity: 'error',
-    weight: 3,
-    properties: () => ({
-      amount: money(9, 499),
-      currency: 'USD',
-      gateway: pick(GATEWAYS),
-      reason: pick(['card_declined', 'insufficient_funds', 'expired_card']),
-    }),
-  },
-  {
-    name: 'api.request',
-    sources: ['api'],
-    severity: 'info',
-    weight: 14,
-    properties: () => ({ endpoint: pick(ENDPOINTS), status: 200, latencyMs: int(12, 240) }),
-  },
-  {
-    name: 'api.error',
-    sources: ['api'],
-    severity: 'error',
-    weight: 3,
-    properties: () => ({
-      endpoint: pick(ENDPOINTS),
-      status: pick([429, 500, 502, 503]),
-      latencyMs: int(80, 1400),
-    }),
-  },
-  {
-    name: 'feature.flag.evaluated',
-    sources: ['server', 'web'],
-    severity: 'info',
-    weight: 6,
-    properties: () => ({ flag: pick(FLAGS), value: pick([true, false]) }),
-  },
-  {
-    name: 'error.logged',
-    sources: ['server'],
-    severity: 'error',
-    weight: 3,
-    properties: () => ({
-      service: pick(SERVICES),
-      level: pick(['error', 'fatal']),
-      message: pick(['timeout waiting for lock', 'null pointer in reducer', 'connection reset']),
-    }),
-  },
-  {
-    name: 'email.sent',
-    sources: ['server'],
-    severity: 'info',
-    weight: 5,
-    properties: () => ({
-      template: pick(['welcome', 'receipt', 'digest', 'reset']),
-      domain: pick(['gmail.com', 'outlook.com', 'proton.me', 'company.io']),
-    }),
-  },
-  {
-    name: 'webhook.delivered',
-    sources: ['server'],
-    severity: 'info',
-    weight: 4,
-    properties: () => ({ endpoint: 'hooks.acme.io', status: 200, attempts: int(1, 2) }),
-  },
-];
-
-const TOTAL_WEIGHT = TEMPLATES.reduce((sum, t) => sum + t.weight, 0);
-
-function pickTemplate(): EventTemplate {
-  let roll = Math.random() * TOTAL_WEIGHT;
-  for (const t of TEMPLATES) {
-    roll -= t.weight;
-    if (roll <= 0) return t;
-  }
-  return TEMPLATES[0] as EventTemplate;
-}
-
-let idCounter = 0;
-function nextId(): string {
-  idCounter += 1;
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `evt_${Date.now().toString(36)}${rand}${idCounter}`;
-}
-
-function makeEvent(receivedAt: string): ActivityEvent {
-  const template = pickTemplate();
+function toActivity(record: EventRecord): ActivityEvent {
   return {
-    id: nextId(),
+    id: record.id,
     kind: 'event',
-    name: template.name,
-    source: pick(template.sources),
-    severity: template.severity,
-    receivedAt,
-    properties: template.properties(),
+    name: record.name,
+    source: record.source,
+    receivedAt: record.timestamp,
+    properties: record.properties,
   };
 }
 
-const STORE_MAX = 5_000;
-const SEED_COUNT = 900;
-const SEED_SPAN_MS = 45 * 24 * 60 * 60 * 1000;
-
-let store: ActivityEvent[] | null = null;
-
-function ensureStore(): ActivityEvent[] {
-  if (store) return store;
-  const now = Date.now();
-  const seeded: ActivityEvent[] = [];
-  for (let i = 0; i < SEED_COUNT; i += 1) {
-    const age = Math.random() ** 2.4 * SEED_SPAN_MS;
-    seeded.push(makeEvent(new Date(now - age).toISOString()));
-  }
-  seeded.sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
-  store = seeded;
-  return store;
-}
-
-function pushToStore(event: ActivityEvent): void {
-  const current = ensureStore();
-  current.unshift(event);
-  if (current.length > STORE_MAX) current.length = STORE_MAX;
-}
-
-export async function listRecentEvents(
-  _projectId: string,
-  limit = 40,
-): Promise<PlatformActivity[]> {
-  await new Promise((resolve) => setTimeout(resolve, 320));
-  return ensureStore().slice(0, limit);
+export async function listRecentEvents(projectId: string, limit = 40): Promise<PlatformActivity[]> {
+  const params = new URLSearchParams({ limit: String(limit), order: 'desc' });
+  const result = await apiFetch<EventsListResponse>(
+    `/v1/projects/${projectId}/events?${params.toString()}`,
+  );
+  return result.events.map(toActivity);
 }
 
 export type EventSort = 'time-desc' | 'time-asc';
@@ -330,9 +115,6 @@ export function timeRangeLabel(range: TimeRange): string {
 }
 
 export interface EventQuery {
-  search?: string;
-  severities?: Severity[];
-  source?: EventSource | 'all';
   range?: TimeRange;
   sort?: EventSort;
   page?: number;
@@ -346,81 +128,62 @@ export interface EventQueryResult {
   pageSize: number;
 }
 
-function eventMatches(event: ActivityEvent, needle: string): boolean {
-  if (event.name.includes(needle) || event.source.includes(needle)) return true;
-  for (const [key, value] of Object.entries(event.properties)) {
-    if (key.includes(needle)) return true;
-    if (String(value).toLowerCase().includes(needle)) return true;
-  }
-  return false;
-}
-
 export async function queryEvents(
-  _projectId: string,
+  projectId: string,
   query: EventQuery = {},
 ): Promise<EventQueryResult> {
-  await new Promise((resolve) => setTimeout(resolve, 220));
+  const { range = 'all', sort = 'time-desc', page = 0, pageSize = 25 } = query;
 
-  const {
-    search = '',
-    severities,
-    source = 'all',
-    range = 'all',
-    sort = 'time-desc',
-    page = 0,
-    pageSize = 25,
-  } = query;
-
-  const needle = search.trim().toLowerCase();
-  const sevSet = severities?.length ? new Set(severities) : null;
-  const cutoff = rangeCutoff(range, Date.now());
-
-  let rows = ensureStore().filter((event) => {
-    if (cutoff != null && new Date(event.receivedAt).getTime() < cutoff) return false;
-    if (sevSet && !sevSet.has(event.severity)) return false;
-    if (source !== 'all' && event.source !== source) return false;
-    if (needle && !eventMatches(event, needle)) return false;
-    return true;
+  const params = new URLSearchParams({
+    order: sort === 'time-asc' ? 'asc' : 'desc',
+    limit: String(pageSize),
+    offset: String(page * pageSize),
   });
+  const cutoff = rangeCutoff(range, Date.now());
+  if (cutoff != null) params.set('from', new Date(cutoff).toISOString());
 
-  if (sort === 'time-asc') rows = [...rows].reverse();
+  const result = await apiFetch<EventsListResponse>(
+    `/v1/projects/${projectId}/events?${params.toString()}`,
+  );
 
-  const total = rows.length;
-  const start = page * pageSize;
-  return { events: rows.slice(start, start + pageSize), total, page, pageSize };
+  return { events: result.events.map(toActivity), total: result.total, page, pageSize };
 }
 
-export function subscribeToEvents(_projectId: string, listener: ActivityListener): Unsubscribe {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let stopped = false;
+class RetriableError extends Error {}
+class FatalError extends Error {}
 
-  const deliver = (): void => {
-    const event = makeEvent(new Date().toISOString());
-    pushToStore(event);
-    listener(event);
-  };
+export function subscribeToEvents(projectId: string, listener: ActivityListener): Unsubscribe {
+  const ctrl = new AbortController();
 
-  const emit = (): void => {
-    if (stopped) return;
-    deliver();
-    if (Math.random() < 0.25) {
-      const extra = int(1, 2);
-      for (let i = 0; i < extra; i += 1) {
-        setTimeout(
-          () => {
-            if (!stopped) deliver();
-          },
-          int(60, 260),
-        );
+  void fetchEventSource(`/stream/projects/${projectId}/events`, {
+    signal: ctrl.signal,
+    openWhenHidden: false,
+    async onopen(response) {
+      if (response.ok) return;
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        throw new FatalError(`Livestream rejected the connection: ${response.status}`);
       }
-    }
-    timer = setTimeout(emit, int(350, 1700));
-  };
+      throw new RetriableError(`Livestream error: ${response.status}`);
+    },
+    onmessage(ev) {
+      // The heartbeat is a distinct event type so it doesn't masquerade as a real event.
+      if (ev.event && ev.event !== 'message') return;
+      if (!ev.data) return;
+      try {
+        const record = JSON.parse(ev.data) as EventRecord;
+        listener(toActivity(record));
+      } catch {
+        // Ignore malformed frames rather than tearing down the stream.
+      }
+    },
+    onerror(err) {
+      if (err instanceof FatalError) throw err;
+      // Returning nothing (undefined) uses the library's default backoff.
+    },
+  }).catch(() => {
+    // Aborted (unsubscribe called) or a FatalError was thrown — either way there's
+    // nothing left to retry; `Unsubscribe` has no error channel to report through.
+  });
 
-  timer = setTimeout(emit, int(300, 900));
-
-  return () => {
-    stopped = true;
-    if (timer) clearTimeout(timer);
-  };
+  return () => ctrl.abort();
 }

@@ -1,4 +1,4 @@
-import type { EventBatchJob } from '@metricyak/queue';
+import type { EventBatchJob, PublishedEvent, RedisEventBus } from '@metricyak/queue';
 import {
   type AggregatesRepository,
   type Database,
@@ -20,6 +20,7 @@ export type EventAggregationDeps = {
   events: EventsRepository;
   aggregates: AggregatesRepository;
   matcher: MetricMatcher;
+  eventBus: RedisEventBus<PublishedEvent>;
 };
 
 type NewDimensionValue = {
@@ -33,12 +34,13 @@ export async function processEventBatch(
   job: EventBatchJob,
   deps: EventAggregationDeps,
 ): Promise<void> {
-  const { db, events, aggregates, matcher } = deps;
+  const { db, events, aggregates, matcher, eventBus } = deps;
 
   const rows: InsertEventRow[] = job.events.map((event) => ({
     id: event.id,
     projectId: job.projectId,
     name: event.name,
+    source: event.source ?? null,
     timestamp: new Date(event.timestamp),
     properties: event.properties,
   }));
@@ -81,13 +83,27 @@ export async function processEventBatch(
 
   const { deltas, dirty } = buildIngestDeltas(job.events, matcherMap, resolveDim);
 
+  let batchClaimed = false;
   await db.transaction(async (tx) => {
     const claimed = await aggregates.claimBatch(job.batchId, job.projectId, tx);
     if (!claimed) return;
+    batchClaimed = true;
 
     await events.insertBatch(rows, tx);
     await aggregates.registerDimensionValues(newDimensionValues, tx);
     await aggregates.upsertBaseBuckets(deltas, tx);
     await aggregates.recordDirty(dirty, tx);
   });
+
+  if (!batchClaimed) return;
+
+  for (const row of rows) {
+    await eventBus.publish(job.projectId, {
+      id: row.id,
+      name: row.name,
+      source: row.source ?? null,
+      timestamp: row.timestamp.toISOString(),
+      properties: row.properties,
+    });
+  }
 }

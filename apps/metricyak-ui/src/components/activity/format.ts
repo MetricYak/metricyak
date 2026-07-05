@@ -1,5 +1,3 @@
-import type { PropertyValue, Severity } from '@/api/events';
-
 export function formatRelative(iso: string, nowMs: number): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return '—';
@@ -52,20 +50,18 @@ export function formatCompact(iso: string): string {
   return COMPACT_FMT.format(date);
 }
 
-export function formatValue(value: PropertyValue): string {
+/**
+ * Properties are arbitrary JSON from the caller's own events — never assume a shape.
+ * Every branch here is a fallback so an unexpected value (object, array, null) still renders.
+ */
+export function formatValue(value: unknown): string {
+  if (value === null || value === undefined) return '—';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2);
-  return value;
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
-
-export const SEVERITY_LABEL: Record<Severity, string> = {
-  info: 'Info',
-  warning: 'Warning',
-  error: 'Error',
-};
-
-export const SEVERITY_DOT: Record<Severity, string> = {
-  info: 'bg-metricyak-400',
-  warning: 'bg-yellow',
-  error: 'bg-destructive',
-};

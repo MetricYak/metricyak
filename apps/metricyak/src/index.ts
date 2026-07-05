@@ -3,6 +3,8 @@ import {
   createProducerConnectionOptions,
   type EventsProducer,
   InProcessEventsProducer,
+  type PublishedEvent,
+  RedisEventBus,
 } from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
 import { createApp } from './app.js';
@@ -19,6 +21,7 @@ import { processEventBatch } from './modules/events/events.worker.js';
 
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
+const eventBus = new RedisEventBus<PublishedEvent>(config.redisUrl);
 
 let container: Container;
 
@@ -30,15 +33,15 @@ if (config.runWorkerInline) {
       events: container.events,
       aggregates: container.aggregates,
       matcher: container.matcher,
+      eventBus: container.eventBus,
     }),
   );
   console.log(JSON.stringify({ level: 'info', msg: 'inline worker enabled (in-process events)' }));
 } else {
-  if (!config.redisUrl) throw new Error('REDIS_URL is required when RUN_WORKER_INLINE is not set.');
   producer = new BullEventsProducer(createProducerConnectionOptions(config.redisUrl));
 }
 
-container = createContainer(db, producer);
+container = createContainer(db, producer, eventBus);
 const app = createApp(container);
 
 const server = startHttpServer(app, config);
@@ -65,6 +68,7 @@ registerShutdown(async (signal) => {
   await Promise.allSettled([
     new Promise<void>((resolve) => server.close(() => resolve())),
     closeWorkers?.(),
+    eventBus.close(),
   ]);
   process.exit(0);
 });
