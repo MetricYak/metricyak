@@ -31,6 +31,7 @@ export async function processEventBatch(
   const rows: InsertEventRow[] = job.events.map((event) => ({
     id: event.id,
     projectId: job.projectId,
+    insertId: event.insertId,
     name: event.name,
     timestamp: new Date(event.timestamp),
     properties: event.properties,
@@ -38,15 +39,17 @@ export async function processEventBatch(
 
   const matcherMap = await matcher.resolve(job.projectId);
 
-  const candidates = [...collectDimensionCandidates(job.events, matcherMap).values()].sort(
-    (a, b) => a.metricId.localeCompare(b.metricId) || a.dimName.localeCompare(b.dimName),
-  );
-
   await db.transaction(async (tx) => {
     const claimed = await aggregates.claimBatch(job.batchId, job.projectId, tx);
     if (!claimed) return;
 
-    await events.insertBatch(rows, tx);
+    const insertedIds = new Set(await events.insertBatch(rows, tx));
+    const insertedEvents = job.events.filter((event) => insertedIds.has(event.id));
+    logDeduplicatedEvents(job.projectId, job.events.length, insertedEvents.length);
+
+    const candidates = [...collectDimensionCandidates(insertedEvents, matcherMap).values()].sort(
+      (a, b) => a.metricId.localeCompare(b.metricId) || a.dimName.localeCompare(b.dimName),
+    );
 
     const accepted = new Map<string, Set<string>>();
     for (const candidate of candidates) {
@@ -69,9 +72,29 @@ export async function processEventBatch(
       return values?.has(rawValue) ? rawValue : OTHER_SENTINEL;
     };
 
-    const { deltas, dirty } = buildIngestDeltas(job.events, matcherMap, resolveDim);
+    const { deltas, dirty } = buildIngestDeltas(insertedEvents, matcherMap, resolveDim);
 
     await aggregates.upsertBaseBuckets(deltas, tx);
     await aggregates.recordDirty(dirty, tx);
   });
+}
+
+function logDeduplicatedEvents(
+  projectId: string,
+  receivedCount: number,
+  insertedCount: number,
+): void {
+  const duplicateCount = receivedCount - insertedCount;
+  if (duplicateCount === 0) return;
+
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      msg: 'deduplicated events',
+      projectId,
+      received: receivedCount,
+      inserted: insertedCount,
+      duplicates: duplicateCount,
+    }),
+  );
 }

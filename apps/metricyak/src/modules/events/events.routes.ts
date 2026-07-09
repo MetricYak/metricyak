@@ -3,6 +3,7 @@ import { createRoute } from '@hono/zod-openapi';
 import { computeBatchId } from '@metricyak/queue';
 import { errorResponse, UnauthorizedError } from '../../http/errors.js';
 import { createRouter } from '../../http/router.js';
+import { dropDuplicateInsertIds } from './events.dedup.js';
 import { IngestRequest, IngestResponse } from './events.schemas.js';
 
 export const ingestRoute = createRoute({
@@ -38,12 +39,15 @@ eventsRouter.openapi(ingestRoute, async (c) => {
   const eventList = Array.isArray(events) ? events : [events];
   const now = new Date().toISOString();
 
-  const storedEvents = eventList.map((e) => ({
-    id: randomUUID(),
-    name: e.name,
-    timestamp: e.timestamp ?? now,
-    properties: e.properties ?? {},
-  }));
+  const storedEvents = dropDuplicateInsertIds(
+    eventList.map((e) => ({
+      id: randomUUID(),
+      insertId: e.insert_id ?? null,
+      name: e.name,
+      timestamp: e.timestamp ?? now,
+      properties: e.properties ?? {},
+    })),
+  );
 
   await producer.enqueue({
     projectId: keyRecord.projectId,
@@ -51,7 +55,7 @@ eventsRouter.openapi(ingestRoute, async (c) => {
     events: storedEvents,
   });
 
-  return c.json({ accepted: eventList.length }, 202);
+  return c.json({ accepted: storedEvents.length }, 202);
 });
 
 export default eventsRouter;

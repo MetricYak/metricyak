@@ -1,0 +1,2 @@
+ALTER TABLE "events" ADD COLUMN "insert_id" varchar(255);--> statement-breakpoint
+CREATE UNIQUE INDEX "events_project_id_insert_id_idx" ON "events" USING btree ("project_id","insert_id") WHERE "events"."insert_id" is not null;

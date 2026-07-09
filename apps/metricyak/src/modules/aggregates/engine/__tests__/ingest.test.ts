@@ -29,6 +29,7 @@ const event = (
   timestamp = '2025-01-15T12:00:30.000Z',
 ): StoredEvent => ({
   id: 'e1',
+  insertId: null,
   name: 'purchase',
   timestamp,
   properties,
