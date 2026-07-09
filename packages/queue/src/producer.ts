@@ -18,6 +18,8 @@ export class BullEventsProducer implements EventsProducer {
       jobId: job.batchId,
       attempts: 3,
       backoff: { type: 'exponential', delay: 1000 },
+      removeOnComplete: { age: 3600, count: 10_000 },
+      removeOnFail: { age: 7 * 24 * 3600 },
     });
   }
 }
