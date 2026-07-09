@@ -417,7 +417,7 @@ export class AggregatesRepository {
     const dim = sql`coalesce(properties ->> ${dimField}, ${OTHER_SENTINEL})`;
     const value =
       valuePath && valuePath.length > 0
-        ? sql`(${jsonTextAccessor(valuePath)})::double precision`
+        ? sql`case when ${jsonTextAccessor(valuePath)} ~ '^-?[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?$' then (${jsonTextAccessor(valuePath)})::double precision end`
         : sql`null::double precision`;
 
     const result = await executor.execute<RawBreakdownRow>(sql`
