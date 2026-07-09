@@ -71,6 +71,46 @@ export type RawBreakdownRow = {
   max: number | null;
 };
 
+type DimensionValueEntry = {
+  metricId: string;
+  metricVersion: number;
+  dimName: string;
+  dimValue: string;
+};
+
+function compareStrings(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function compareBucketDeltas(a: BucketPartialDelta, b: BucketPartialDelta): number {
+  return (
+    compareStrings(a.metricId, b.metricId) ||
+    a.metricVersion - b.metricVersion ||
+    compareStrings(a.granularity, b.granularity) ||
+    a.bucketStart.getTime() - b.bucketStart.getTime() ||
+    compareStrings(a.seriesKey, b.seriesKey) ||
+    compareStrings(a.dimName, b.dimName) ||
+    compareStrings(a.dimValue, b.dimValue)
+  );
+}
+
+function compareDimensionEntries(a: DimensionValueEntry, b: DimensionValueEntry): number {
+  return (
+    compareStrings(a.metricId, b.metricId) ||
+    a.metricVersion - b.metricVersion ||
+    compareStrings(a.dimName, b.dimName) ||
+    compareStrings(a.dimValue, b.dimValue)
+  );
+}
+
+export function sortBucketDeltas(deltas: readonly BucketPartialDelta[]): BucketPartialDelta[] {
+  return [...deltas].sort(compareBucketDeltas);
+}
+
+export function sortDimensionEntries<T extends DimensionValueEntry>(entries: readonly T[]): T[] {
+  return [...entries].sort(compareDimensionEntries);
+}
+
 function jsonTextAccessor(path: readonly string[]): SQL {
   let accessor: SQL = sql`properties`;
   path.forEach((segment, index) => {
@@ -105,7 +145,7 @@ export class AggregatesRepository {
 
     await executor
       .insert(metricBuckets)
-      .values(deltas)
+      .values(sortBucketDeltas(deltas))
       .onConflictDoUpdate({
         target: [
           metricBuckets.metricId,
@@ -139,7 +179,7 @@ export class AggregatesRepository {
 
     await executor
       .insert(metricDimensionValues)
-      .values(entries.map((entry) => ({ ...entry })))
+      .values(sortDimensionEntries(entries).map((entry) => ({ ...entry })))
       .onConflictDoNothing();
   }
 

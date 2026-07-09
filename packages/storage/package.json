@@ -20,6 +20,7 @@
     "dev": "tsc --watch --preserveWatchOutput",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -32,10 +33,12 @@
   },
   "devDependencies": {
     "@metricyak/typescript-config": "workspace:*",
+    "@metricyak/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "drizzle-kit": "catalog:",
     "tsx": "^4.19.2",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
