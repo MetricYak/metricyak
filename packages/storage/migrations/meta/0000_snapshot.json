@@ -1,0 +1,1083 @@
+{
+  "id": "8b5f3791-1de1-4081-8ccf-6052b088019d",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.aggregation_batches": {
+      "name": "aggregation_batches",
+      "schema": "",
+      "columns": {
+        "batch_id": {
+          "name": "batch_id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applied_at": {
+          "name": "applied_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dirty_buckets": {
+      "name": "dirty_buckets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "byDefault",
+            "name": "dirty_buckets_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "metric_id": {
+          "name": "metric_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric_version": {
+          "name": "metric_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day_start": {
+          "name": "day_start",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "dirty_buckets_metric_idx": {
+          "name": "dirty_buckets_metric_idx",
+          "columns": [
+            {
+              "expression": "metric_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "metric_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.metric_buckets": {
+      "name": "metric_buckets",
+      "schema": "",
+      "columns": {
+        "metric_id": {
+          "name": "metric_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric_version": {
+          "name": "metric_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "granularity": {
+          "name": "granularity",
+          "type": "bucket_granularity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_start": {
+          "name": "bucket_start",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "series_key": {
+          "name": "series_key",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dim_name": {
+          "name": "dim_name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'$total'"
+        },
+        "dim_value": {
+          "name": "dim_value",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'$total'"
+        },
+        "count": {
+          "name": "count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "sum": {
+          "name": "sum",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "min": {
+          "name": "min",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max": {
+          "name": "max",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value": {
+          "name": "value",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "metric_buckets_series_idx": {
+          "name": "metric_buckets_series_idx",
+          "columns": [
+            {
+              "expression": "metric_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "metric_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dim_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dim_value",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "granularity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "metric_buckets_breakdown_idx": {
+          "name": "metric_buckets_breakdown_idx",
+          "columns": [
+            {
+              "expression": "metric_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "metric_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "granularity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dim_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "metric_buckets_metric_id_metric_version_granularity_bucket_start_series_key_dim_name_dim_value_pk": {
+          "name": "metric_buckets_metric_id_metric_version_granularity_bucket_start_series_key_dim_name_dim_value_pk",
+          "columns": [
+            "metric_id",
+            "metric_version",
+            "granularity",
+            "bucket_start",
+            "series_key",
+            "dim_name",
+            "dim_value"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.metric_dimension_values": {
+      "name": "metric_dimension_values",
+      "schema": "",
+      "columns": {
+        "metric_id": {
+          "name": "metric_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric_version": {
+          "name": "metric_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dim_name": {
+          "name": "dim_name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dim_value": {
+          "name": "dim_value",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_seen_at": {
+          "name": "first_seen_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "metric_dimension_values_metric_id_metric_version_dim_name_dim_value_pk": {
+          "name": "metric_dimension_values_metric_id_metric_version_dim_name_dim_value_pk",
+          "columns": [
+            "metric_id",
+            "metric_version",
+            "dim_name",
+            "dim_value"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.events": {
+      "name": "events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "properties": {
+          "name": "properties",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "events_project_id_name_timestamp_idx": {
+          "name": "events_project_id_name_timestamp_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "timestamp",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "events_project_id_projects_id_fk": {
+          "name": "events_project_id_projects_id_fk",
+          "tableFrom": "events",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.failed_events": {
+      "name": "failed_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "queue": {
+          "name": "queue",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "job_id": {
+          "name": "job_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempts_made": {
+          "name": "attempts_made",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "failed_at": {
+          "name": "failed_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.metric_definition_versions": {
+      "name": "metric_definition_versions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "metric_definition_id": {
+          "name": "metric_definition_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "definition": {
+          "name": "definition",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "metric_definition_versions_metric_id_version_idx": {
+          "name": "metric_definition_versions_metric_id_version_idx",
+          "columns": [
+            {
+              "expression": "metric_definition_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "metric_definition_versions_metric_definition_id_metric_definitions_id_fk": {
+          "name": "metric_definition_versions_metric_definition_id_metric_definitions_id_fk",
+          "tableFrom": "metric_definition_versions",
+          "tableTo": "metric_definitions",
+          "columnsFrom": [
+            "metric_definition_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.metric_definitions": {
+      "name": "metric_definitions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_version_id": {
+          "name": "current_version_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "metric_definitions_project_id_idx": {
+          "name": "metric_definitions_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "metric_definitions_project_id_projects_id_fk": {
+          "name": "metric_definitions_project_id_projects_id_fk",
+          "tableFrom": "metric_definitions",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "metric_definitions_current_version_id_metric_definition_versions_id_fk": {
+          "name": "metric_definitions_current_version_id_metric_definition_versions_id_fk",
+          "tableFrom": "metric_definitions",
+          "tableTo": "metric_definition_versions",
+          "columnsFrom": [
+            "current_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.monitors": {
+      "name": "monitors",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric_id": {
+          "name": "metric_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "condition": {
+          "name": "condition",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "window": {
+          "name": "window",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hold_for": {
+          "name": "hold_for",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "workflow_id": {
+          "name": "workflow_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "monitors_project_id_idx": {
+          "name": "monitors_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "monitors_project_id_projects_id_fk": {
+          "name": "monitors_project_id_projects_id_fk",
+          "tableFrom": "monitors",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "monitors_metric_id_metric_definitions_id_fk": {
+          "name": "monitors_metric_id_metric_definitions_id_fk",
+          "tableFrom": "monitors",
+          "tableTo": "metric_definitions",
+          "columnsFrom": [
+            "metric_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.organizations": {
+      "name": "organizations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "organizations_slug_unique": {
+          "name": "organizations_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.project_keys": {
+      "name": "project_keys",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "project_keys_key_idx": {
+          "name": "project_keys_key_idx",
+          "columns": [
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "project_keys_project_id_idx": {
+          "name": "project_keys_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "project_keys_project_id_projects_id_fk": {
+          "name": "project_keys_project_id_projects_id_fk",
+          "tableFrom": "project_keys",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.projects": {
+      "name": "projects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "projects_organization_id_idx": {
+          "name": "projects_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "projects_organization_id_organizations_id_fk": {
+          "name": "projects_organization_id_organizations_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.bucket_granularity": {
+      "name": "bucket_granularity",
+      "schema": "public",
+      "values": [
+        "minute",
+        "hour",
+        "day"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
