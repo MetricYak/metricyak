@@ -120,6 +120,8 @@ function jsonTextAccessor(path: readonly string[]): SQL {
   return accessor;
 }
 
+const DIMENSION_LOCK_NAMESPACE = 1;
+
 export class AggregatesRepository {
   constructor(private readonly db: Database) {}
 
@@ -221,6 +223,40 @@ export class AggregatesRepository {
       );
 
     return new Set(rows.map((row) => row.dimValue));
+  }
+
+  async admitDimensionValues(
+    metricId: string,
+    metricVersion: number,
+    dimName: string,
+    candidates: readonly string[],
+    cap: number,
+    executor: Executor = this.db,
+  ): Promise<Set<string>> {
+    await executor.execute(
+      sql`select pg_advisory_xact_lock(${DIMENSION_LOCK_NAMESPACE}, hashtext(${metricId}))`,
+    );
+
+    const known = await this.knownDimensionValues(metricId, metricVersion, dimName, executor);
+
+    const admitted: string[] = [];
+    let remaining = cap - known.size;
+    for (const value of candidates) {
+      if (known.has(value)) continue;
+      if (remaining <= 0) continue;
+      admitted.push(value);
+      remaining -= 1;
+    }
+
+    if (admitted.length > 0) {
+      await this.registerDimensionValues(
+        admitted.map((dimValue) => ({ metricId, metricVersion, dimName, dimValue })),
+        executor,
+      );
+      for (const value of admitted) known.add(value);
+    }
+
+    return known;
   }
 
   async recordDirty(entries: readonly DirtyEntry[], executor: Executor = this.db): Promise<void> {
