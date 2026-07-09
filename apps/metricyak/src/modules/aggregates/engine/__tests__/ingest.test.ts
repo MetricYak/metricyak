@@ -121,4 +121,14 @@ describe('collectDimensionCandidates', () => {
     expect(candidate?.dimName).toBe('country');
     expect([...(candidate?.values ?? [])].sort()).toEqual(['CA', 'US']);
   });
+
+  it('truncates oversized dimension values to the column width', () => {
+    const candidates = collectDimensionCandidates(
+      [event({ country: 'x'.repeat(300) })],
+      matcher([target({ dimensions: ['country'] })]),
+    );
+    const [candidate] = [...candidates.values()];
+    const [value] = [...(candidate?.values ?? [])];
+    expect(value?.length).toBe(256);
+  });
 });
