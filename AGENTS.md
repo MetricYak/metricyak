@@ -30,8 +30,40 @@ packages/
 - **Dependency versions** for shared libs (vitest, zod, drizzle-orm, …) are pinned in the **pnpm `catalog:`** in `pnpm-workspace.yaml`. Reference them as `"vitest": "catalog:"` rather than hardcoding versions.
 
 ## Code Quality
-- Do not write comments on the code.
-- Ensure code is idiomatic and self documenting
+
+The goal: a reader understands exactly what the code does from names and flow
+alone — no comments, no decoding.
+
+- **No comments.** Names carry the meaning. A comment explaining *what* code
+  does is a signal to rename or split it instead. (OpenAPI `description` fields
+  and similar API-contract metadata are data, not code comments — those stay.)
+- **Intention-revealing names.** A name says what the thing is or does:
+  `insertedEvents`, `dropDuplicateInsertIds`, `duplicateCount` — never `res`,
+  `tmp`, `data`, `xs`. No jargon in internal names; a newcomer should read them
+  without a glossary. Established public/domain terms (`insert_id`) are fine —
+  they're what callers already know.
+- **Small functions, one job each.** If a function filters *and* aggregates
+  *and* logs, split it. One idea per function.
+- **Split by concern, not by line count.** A distinct, reusable, independently
+  testable concern earns its own file — the module `*.ts` split and the engine's
+  `bucketing.ts` / `matcher.ts` / `ingest.ts` are the pattern. But don't
+  fragment a straight sequential flow across files; that makes it *harder* to
+  follow. Test: distinct testable concern → own file; the caller's own
+  step-by-step flow → inline.
+- **Readable top-to-bottom flow.** A function body should read like a sentence
+  describing its steps. Don't make a reader jump around or mentally execute
+  clever expressions to work out the order of operations.
+- **Make intent visible; don't lean on hidden subtleties.** Prefer an explicit,
+  named guard over trusting a framework or DB quirk the reader can't see — e.g.
+  an explicit `dropDuplicateInsertIds` rather than silently relying on
+  `ON CONFLICT DO NOTHING` to collapse intra-batch duplicates.
+- **Pure at the boundary; no shared mutable state.** A function's result
+  depends only on its arguments — it doesn't read or mutate module-level or
+  global state, and it doesn't mutate its inputs (hence `readonly` params).
+  Local mutation *inside* a function (building up a `Map`/array in a loop) is
+  fine and often the clearest form; the ban is on *shared* mutable state.
+  Deliberate encapsulated state (e.g. `MetricMatcher`'s cache) is not a global —
+  it's owned, injected, and testable.
 
 ## Architecture
 
