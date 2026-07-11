@@ -72,10 +72,9 @@ export async function processEventBatch(
       return values?.has(rawValue) ? rawValue : OTHER_SENTINEL;
     };
 
-    const { deltas, dirty } = buildIngestDeltas(insertedEvents, matcherMap, resolveDim);
+    const deltas = buildIngestDeltas(insertedEvents, matcherMap, resolveDim);
 
     await aggregates.upsertBaseBuckets(deltas, tx);
-    await aggregates.recordDirty(dirty, tx);
   });
 }
 

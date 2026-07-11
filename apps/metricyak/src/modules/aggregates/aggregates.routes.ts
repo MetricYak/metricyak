@@ -12,26 +12,11 @@ import {
   BreakdownQuery,
   BreakdownResponse,
   MetricParams,
-  TimeseriesQuery,
-  TimeseriesResponse,
   ValueQuery,
   ValueResponse,
 } from './aggregates.schemas.js';
 import { fieldPath } from './engine/ingest.js';
 import { aggregateScalar, windowValues } from './engine/materialize.js';
-
-const timeseriesRoute = createRoute({
-  method: 'get',
-  path: '/projects/{projectId}/metrics/{metricId}/timeseries',
-  request: { params: MetricParams, query: TimeseriesQuery },
-  responses: {
-    200: {
-      content: { 'application/json': { schema: TimeseriesResponse } },
-      description: 'A time series of the metric value.',
-    },
-    404: errorResponse('The metric could not be found.'),
-  },
-});
 
 const valueRoute = createRoute({
   method: 'get',
@@ -61,34 +46,6 @@ const breakdownRoute = createRoute({
 });
 
 const router = createRouter();
-
-router.openapi(timeseriesRoute, async (c) => {
-  const { projectId, metricId } = c.req.valid('param');
-  const { from, to, granularity, splitBy } = c.req.valid('query');
-  const { aggregates, repositories } = c.var.container;
-
-  const metric = await repositories.metrics.getDefinition(metricId, projectId);
-  if (!metric) throw new NotFoundError('The metric could not be found');
-
-  const points = await aggregates.getValueTimeseries({
-    metricId,
-    metricVersion: metric.version,
-    granularity,
-    from: new Date(from),
-    to: new Date(to),
-    dimName: splitBy ?? TOTAL_SENTINEL,
-  });
-
-  const seriesByValue = new Map<string, { bucketStart: string; value: number | null }[]>();
-  for (const point of points) {
-    const list = seriesByValue.get(point.dimValue) ?? [];
-    list.push({ bucketStart: point.bucketStart.toISOString(), value: point.value });
-    seriesByValue.set(point.dimValue, list);
-  }
-
-  const series = [...seriesByValue.entries()].map(([dimValue, pts]) => ({ dimValue, points: pts }));
-  return c.json(TimeseriesResponse.parse({ series }), 200);
-});
 
 router.openapi(valueRoute, async (c) => {
   const { projectId, metricId } = c.req.valid('param');
