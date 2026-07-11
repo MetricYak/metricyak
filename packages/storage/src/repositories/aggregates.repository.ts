@@ -1,9 +1,8 @@
-import { and, eq, gte, inArray, lt, lte, type SQL, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, lt, type SQL, sql } from 'drizzle-orm';
 import type { Database, Executor } from '../client.js';
 import {
   aggregationBatches,
   type BucketGranularity,
-  dirtyBuckets,
   metricBuckets,
   metricDimensionValues,
   OTHER_SENTINEL,
@@ -25,16 +24,6 @@ export type BucketPartialDelta = {
   max: number | null;
 };
 
-export type ValueBucketRow = {
-  metricId: string;
-  metricVersion: number;
-  granularity: BucketGranularity;
-  bucketStart: Date;
-  dimName: string;
-  dimValue: string;
-  value: number | null;
-};
-
 export type PartialRow = {
   bucketStart: Date;
   seriesKey: string;
@@ -44,23 +33,6 @@ export type PartialRow = {
   sum: number;
   min: number | null;
   max: number | null;
-};
-
-export type DirtyEntry = {
-  metricId: string;
-  metricVersion: number;
-  dayStart: Date;
-};
-
-export type DirtyClaim = {
-  highWaterMark: number;
-  entries: DirtyEntry[];
-};
-
-export type TimeseriesPoint = {
-  bucketStart: Date;
-  dimValue: string;
-  value: number | null;
 };
 
 export type RawBreakdownRow = {
@@ -259,86 +231,6 @@ export class AggregatesRepository {
     return known;
   }
 
-  async recordDirty(entries: readonly DirtyEntry[], executor: Executor = this.db): Promise<void> {
-    if (entries.length === 0) return;
-
-    await executor.insert(dirtyBuckets).values(entries.map((entry) => ({ ...entry })));
-  }
-
-  async claimDirty(executor: Executor = this.db): Promise<DirtyClaim> {
-    const [head] = await executor
-      .select({ highWaterMark: sql<number | null>`max(${dirtyBuckets.id})` })
-      .from(dirtyBuckets);
-
-    const highWaterMark = head?.highWaterMark ?? null;
-    if (highWaterMark === null) {
-      return { highWaterMark: 0, entries: [] };
-    }
-
-    const entries = await executor
-      .selectDistinct({
-        metricId: dirtyBuckets.metricId,
-        metricVersion: dirtyBuckets.metricVersion,
-        dayStart: dirtyBuckets.dayStart,
-      })
-      .from(dirtyBuckets)
-      .where(lte(dirtyBuckets.id, highWaterMark));
-
-    return { highWaterMark, entries };
-  }
-
-  async deleteDirtyUpTo(highWaterMark: number, executor: Executor = this.db): Promise<void> {
-    await executor.delete(dirtyBuckets).where(lte(dirtyBuckets.id, highWaterMark));
-  }
-
-  async acquireMetricLock(metricId: string, executor: Executor = this.db): Promise<void> {
-    await executor.execute(sql`select pg_advisory_xact_lock(hashtext(${metricId}))`);
-  }
-
-  async recomputeTier(
-    params: {
-      metricId: string;
-      metricVersion: number;
-      from: BucketGranularity;
-      to: BucketGranularity;
-      truncUnit: 'hour' | 'day';
-      rangeStart: Date;
-      rangeEnd: Date;
-    },
-    executor: Executor = this.db,
-  ): Promise<void> {
-    const { metricId, metricVersion, from, to, truncUnit, rangeStart, rangeEnd } = params;
-    const trunc = sql.raw(
-      `date_trunc('${truncUnit}', bucket_start at time zone 'UTC') at time zone 'UTC'`,
-    );
-
-    await executor.execute(sql`
-      insert into metric_buckets (
-        metric_id, metric_version, granularity, bucket_start, series_key, dim_name, dim_value,
-        count, sum, min, max, value, updated_at
-      )
-      select
-        metric_id, metric_version, ${to}::bucket_granularity, ${trunc},
-        series_key, dim_name, dim_value,
-        sum(count), sum(sum), min(min), max(max), null::double precision, now()
-      from metric_buckets
-      where metric_id = ${metricId}::uuid
-        and metric_version = ${metricVersion}
-        and granularity = ${from}::bucket_granularity
-        and series_key <> ${VALUE_SERIES}
-        and bucket_start >= ${rangeStart}
-        and bucket_start < ${rangeEnd}
-      group by metric_id, metric_version, ${trunc}, series_key, dim_name, dim_value
-      on conflict (metric_id, metric_version, granularity, bucket_start, series_key, dim_name, dim_value)
-      do update set
-        count = excluded.count,
-        sum = excluded.sum,
-        min = excluded.min,
-        max = excluded.max,
-        updated_at = now()
-    `);
-  }
-
   async getPartials(
     params: {
       metricId: string;
@@ -373,67 +265,6 @@ export class AggregatesRepository {
           lt(metricBuckets.bucketStart, rangeEnd),
         ),
       );
-  }
-
-  async upsertValueBuckets(rows: ValueBucketRow[], executor: Executor = this.db): Promise<void> {
-    if (rows.length === 0) return;
-
-    await executor
-      .insert(metricBuckets)
-      .values(rows.map((row) => ({ ...row, seriesKey: VALUE_SERIES })))
-      .onConflictDoUpdate({
-        target: [
-          metricBuckets.metricId,
-          metricBuckets.metricVersion,
-          metricBuckets.granularity,
-          metricBuckets.bucketStart,
-          metricBuckets.seriesKey,
-          metricBuckets.dimName,
-          metricBuckets.dimValue,
-        ],
-        set: {
-          value: sql`excluded.value`,
-          updatedAt: sql`now()`,
-        },
-      });
-  }
-
-  async getValueTimeseries(
-    params: {
-      metricId: string;
-      metricVersion: number;
-      granularity: BucketGranularity;
-      from: Date;
-      to: Date;
-      dimName: string;
-      dimValues?: readonly string[];
-    },
-    executor: Executor = this.db,
-  ): Promise<TimeseriesPoint[]> {
-    const { metricId, metricVersion, granularity, from, to, dimName, dimValues } = params;
-
-    const filters = [
-      eq(metricBuckets.metricId, metricId),
-      eq(metricBuckets.metricVersion, metricVersion),
-      eq(metricBuckets.granularity, granularity),
-      eq(metricBuckets.seriesKey, VALUE_SERIES),
-      eq(metricBuckets.dimName, dimName),
-      gte(metricBuckets.bucketStart, from),
-      lt(metricBuckets.bucketStart, to),
-    ];
-    if (dimValues && dimValues.length > 0) {
-      filters.push(inArray(metricBuckets.dimValue, [...dimValues]));
-    }
-
-    return executor
-      .select({
-        bucketStart: metricBuckets.bucketStart,
-        dimValue: metricBuckets.dimValue,
-        value: metricBuckets.value,
-      })
-      .from(metricBuckets)
-      .where(and(...filters))
-      .orderBy(metricBuckets.bucketStart);
   }
 
   async rawBreakdown(

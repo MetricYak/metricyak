@@ -1,10 +1,4 @@
-import type {
-  BucketGranularity,
-  MetricAggregation,
-  MetricDefinition,
-  PartialRow,
-  ValueBucketRow,
-} from '@metricyak/storage';
+import type { MetricAggregation, MetricDefinition, PartialRow } from '@metricyak/storage';
 import { evaluateExpression, parseExpression } from './expression.js';
 
 export type AggregateSample = {
@@ -39,13 +33,6 @@ export function aggregateScalar(
     }
   }
 }
-
-type Group = {
-  bucketStart: Date;
-  dimName: string;
-  dimValue: string;
-  rows: Map<string, PartialRow>;
-};
 
 export type DimensionValue = {
   dimName: string;
@@ -109,56 +96,4 @@ export function windowValues(
       return aggregateScalar(aggregation, group.rows.get(identifier));
     }),
   }));
-}
-
-export function materializeValues(
-  definition: MetricDefinition,
-  granularity: BucketGranularity,
-  metricId: string,
-  metricVersion: number,
-  partials: readonly PartialRow[],
-): ValueBucketRow[] {
-  const aggregationByKey = new Map(
-    definition.events.map((event) => [event.key, event.aggregation]),
-  );
-  const exprSource = definition.value ?? definition.events[0]?.key;
-  if (exprSource == null) return [];
-  const expression = parseExpression(exprSource);
-
-  const groups = new Map<string, Group>();
-  for (const partial of partials) {
-    const key = JSON.stringify([partial.bucketStart.getTime(), partial.dimName, partial.dimValue]);
-    const group = groups.get(key);
-    if (group) {
-      group.rows.set(partial.seriesKey, partial);
-    } else {
-      groups.set(key, {
-        bucketStart: partial.bucketStart,
-        dimName: partial.dimName,
-        dimValue: partial.dimValue,
-        rows: new Map([[partial.seriesKey, partial]]),
-      });
-    }
-  }
-
-  const result: ValueBucketRow[] = [];
-  for (const group of groups.values()) {
-    const value = evaluateExpression(expression, (identifier) => {
-      const aggregation = aggregationByKey.get(identifier);
-      if (aggregation === undefined) return null;
-      return aggregateScalar(aggregation, group.rows.get(identifier));
-    });
-
-    result.push({
-      metricId,
-      metricVersion,
-      granularity,
-      bucketStart: group.bucketStart,
-      dimName: group.dimName,
-      dimValue: group.dimValue,
-      value,
-    });
-  }
-
-  return result;
 }

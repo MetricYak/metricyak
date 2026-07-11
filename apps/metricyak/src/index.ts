@@ -11,10 +11,6 @@ import { registerShutdown } from './bootstrap/shutdown.js';
 import { startWorkers } from './bootstrap/workers.js';
 import { loadConfig } from './config.js';
 import { type Container, createContainer } from './container/container.js';
-import {
-  DEFAULT_ROLLUP_INTERVAL_MS,
-  startRollupScheduler,
-} from './modules/aggregates/rollup.worker.js';
 import { processEventBatch } from './modules/events/events.worker.js';
 
 const config = loadConfig();
@@ -48,20 +44,8 @@ const closeWorkers =
     ? await startWorkers(container, config)
     : undefined;
 
-const stopRollup = config.runWorkerInline
-  ? startRollupScheduler(
-      {
-        db: container.db,
-        aggregates: container.aggregates,
-        metrics: container.repositories.metrics,
-      },
-      DEFAULT_ROLLUP_INTERVAL_MS,
-    )
-  : undefined;
-
 registerShutdown(async (signal) => {
   console.log(JSON.stringify({ level: 'info', msg: `${signal} received, shutting down` }));
-  stopRollup?.();
   await Promise.allSettled([
     new Promise<void>((resolve) => server.close(() => resolve())),
     closeWorkers?.(),

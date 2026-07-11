@@ -1,10 +1,6 @@
 import { createWorkerConnectionOptions, type Job, type Worker } from '@metricyak/queue';
 import type { Config } from '../config.js';
 import type { Container } from '../container/container.js';
-import {
-  DEFAULT_ROLLUP_INTERVAL_MS,
-  startRollupScheduler,
-} from '../modules/aggregates/rollup.worker.js';
 import { modules } from '../modules/index.js';
 
 export async function startWorkers(
@@ -40,11 +36,6 @@ export async function startWorkers(
     });
   }
 
-  const stopRollup = startRollupScheduler(
-    { db: container.db, aggregates: container.aggregates, metrics: container.repositories.metrics },
-    DEFAULT_ROLLUP_INTERVAL_MS,
-  );
-
   console.log(
     JSON.stringify({
       level: 'info',
@@ -54,8 +45,5 @@ export async function startWorkers(
     }),
   );
 
-  return () => {
-    stopRollup();
-    return Promise.all(workers.map((w) => w.close())).then(() => undefined);
-  };
+  return () => Promise.all(workers.map((w) => w.close())).then(() => undefined);
 }

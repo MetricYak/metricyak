@@ -58,7 +58,7 @@ describe('extractField', () => {
 
 describe('buildIngestDeltas', () => {
   it('emits a total row and one row per declared dimension at minute grain', () => {
-    const { deltas } = buildIngestDeltas(
+    const deltas = buildIngestDeltas(
       [event({ country: 'US' })],
       matcher([target({ dimensions: ['country'] })]),
       keepAll,
@@ -82,7 +82,7 @@ describe('buildIngestDeltas', () => {
       events,
       matcher([target({ aggregation: 'sum', field: '$properties.amount' })]),
       keepAll,
-    ).deltas;
+    );
     expect(sum?.sum).toBe(40);
     expect(sum?.count).toBe(2);
 
@@ -90,20 +90,20 @@ describe('buildIngestDeltas', () => {
       events,
       matcher([target({ aggregation: 'min', field: '$properties.amount' })]),
       keepAll,
-    ).deltas;
+    );
     expect(min?.min).toBe(10);
 
     const [max] = buildIngestDeltas(
       events,
       matcher([target({ aggregation: 'max', field: '$properties.amount' })]),
       keepAll,
-    ).deltas;
+    );
     expect(max?.max).toBe(30);
   });
 
   it('spills dimension values the resolver rejects into the $other bucket', () => {
     const spillEverything: DimResolver = () => OTHER_SENTINEL;
-    const { deltas } = buildIngestDeltas(
+    const deltas = buildIngestDeltas(
       [event({ country: 'US' })],
       matcher([target({ dimensions: ['country'] })]),
       spillEverything,

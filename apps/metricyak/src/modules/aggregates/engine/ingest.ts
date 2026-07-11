@@ -1,6 +1,6 @@
 import type { StoredEvent } from '@metricyak/queue';
-import { type BucketPartialDelta, type DirtyEntry, TOTAL_SENTINEL } from '@metricyak/storage';
-import { dayStart, floorToGranularity } from './bucketing.js';
+import { type BucketPartialDelta, TOTAL_SENTINEL } from '@metricyak/storage';
+import { floorToGranularity } from './bucketing.js';
 import type { MatcherMap, MatchTarget } from './matcher.js';
 
 export type DimResolver = (
@@ -150,9 +150,8 @@ export function buildIngestDeltas(
   events: readonly StoredEvent[],
   matcher: MatcherMap,
   resolveDim: DimResolver,
-): { deltas: BucketPartialDelta[]; dirty: DirtyEntry[] } {
+): BucketPartialDelta[] {
   const accumulators = new Map<string, BucketPartialDelta>();
-  const dirty = new Map<string, DirtyEntry>();
 
   for (const event of events) {
     const targets = matcher.get(event.name);
@@ -173,21 +172,8 @@ export function buildIngestDeltas(
         const dimValue = resolveDim(target.metricId, target.metricVersion, dimName, rawValue);
         contribute(accumulators, target, bucketStart, dimName, dimValue, value);
       }
-
-      const day = dayStart(bucketStart);
-      const dirtyKey = compositeKey([target.metricId, target.metricVersion, day.getTime()]);
-      if (!dirty.has(dirtyKey)) {
-        dirty.set(dirtyKey, {
-          metricId: target.metricId,
-          metricVersion: target.metricVersion,
-          dayStart: day,
-        });
-      }
     }
   }
 
-  return {
-    deltas: [...accumulators.values()],
-    dirty: [...dirty.values()],
-  };
+  return [...accumulators.values()];
 }
