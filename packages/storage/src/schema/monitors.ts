@@ -1,26 +1,28 @@
-import { index, jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { metricDefinitions } from './metrics.js';
 import { projects } from './projects.js';
 
-export type MonitorBaseline = {
-  type: 'relative';
-  period: string;
-};
+export const MONITOR_MISSING_DATA = ['skip', 'zero', 'fire'] as const;
 
-export type MonitorSimpleCondition = {
-  operator: 'lt' | 'lte' | 'gt' | 'gte' | 'eq' | 'neq';
+export type MonitorMissingData = (typeof MONITOR_MISSING_DATA)[number];
+
+export const MONITOR_COMPARISON_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'eq', 'neq'] as const;
+
+export type MonitorComparisonOperator = (typeof MONITOR_COMPARISON_OPERATORS)[number];
+
+export type MonitorThresholdCondition = {
+  operator: MonitorComparisonOperator;
   value: number;
-  valueType: 'absolute' | 'percent_change';
-  baseline?: MonitorBaseline | null;
 };
-
-export type MonitorCompoundCondition = {
-  type: 'compound';
-  operator: 'and' | 'or';
-  conditions: MonitorSimpleCondition[];
-};
-
-export type MonitorCondition = MonitorCompoundCondition | MonitorSimpleCondition;
 
 export type MonitorFilter = {
   field: string;
@@ -47,10 +49,17 @@ export const monitors = pgTable(
     name: varchar('name', { length: 128 }).notNull(),
     description: text('description'),
     scope: jsonb('scope').$type<MonitorScope>(),
-    condition: jsonb('condition').$type<MonitorCondition>().notNull(),
+    condition: jsonb('condition').$type<MonitorThresholdCondition>().notNull(),
     window: varchar('window', { length: 16 }).notNull(),
     holdFor: varchar('hold_for', { length: 16 }).notNull(),
-    workflowId: varchar('workflow_id', { length: 128 }),
+    enabled: boolean('enabled').notNull().default(true),
+    missingData: varchar('missing_data', { length: 8 })
+      .$type<MonitorMissingData>()
+      .notNull()
+      .default('skip'),
+    nextEvalAt: timestamp('next_eval_at', { mode: 'date', precision: 3, withTimezone: true })
+      .defaultNow()
+      .notNull(),
     createdAt: timestamp('created_at', { mode: 'date', precision: 3, withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -59,5 +68,8 @@ export const monitors = pgTable(
       .$onUpdateFn(() => new Date())
       .notNull(),
   },
-  (table) => [index('monitors_project_id_idx').on(table.projectId)],
+  (table) => [
+    index('monitors_project_id_idx').on(table.projectId),
+    index('monitors_enabled_next_eval_at_idx').on(table.enabled, table.nextEvalAt),
+  ],
 );

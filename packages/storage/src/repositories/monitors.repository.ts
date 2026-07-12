@@ -1,5 +1,11 @@
+import { and, eq } from 'drizzle-orm';
 import type { Database } from '../client.js';
-import { type MonitorCondition, type MonitorScope, monitors } from '../schema/monitors.js';
+import {
+  type MonitorMissingData,
+  type MonitorScope,
+  type MonitorThresholdCondition,
+  monitors,
+} from '../schema/monitors.js';
 
 export type CreateMonitorInput = {
   projectId: string;
@@ -7,10 +13,23 @@ export type CreateMonitorInput = {
   name: string;
   description?: string | null;
   scope?: MonitorScope | null;
-  condition: MonitorCondition;
+  condition: MonitorThresholdCondition;
   window: string;
   holdFor: string;
-  workflowId?: string | null;
+  enabled?: boolean;
+  missingData?: MonitorMissingData;
+};
+
+export type UpdateMonitorInput = {
+  metricId?: string;
+  name?: string;
+  description?: string | null;
+  scope?: MonitorScope | null;
+  condition?: MonitorThresholdCondition;
+  window?: string;
+  holdFor?: string;
+  enabled?: boolean;
+  missingData?: MonitorMissingData;
 };
 
 export type MonitorRecord = {
@@ -20,10 +39,12 @@ export type MonitorRecord = {
   name: string;
   description: string | null;
   scope: MonitorScope | null;
-  condition: MonitorCondition;
+  condition: MonitorThresholdCondition;
   window: string;
   holdFor: string;
-  workflowId: string | null;
+  enabled: boolean;
+  missingData: MonitorMissingData;
+  nextEvalAt: Date;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -43,7 +64,8 @@ export class MonitorsRepository {
         condition: input.condition,
         window: input.window,
         holdFor: input.holdFor,
-        workflowId: input.workflowId ?? null,
+        enabled: input.enabled ?? true,
+        missingData: input.missingData ?? 'skip',
       })
       .returning();
 
@@ -52,5 +74,52 @@ export class MonitorsRepository {
     }
 
     return monitor;
+  }
+
+  async list(projectId: string): Promise<MonitorRecord[]> {
+    return this.db.select().from(monitors).where(eq(monitors.projectId, projectId));
+  }
+
+  async get(id: string, projectId: string): Promise<MonitorRecord | null> {
+    const [monitor] = await this.db
+      .select()
+      .from(monitors)
+      .where(and(eq(monitors.id, id), eq(monitors.projectId, projectId)))
+      .limit(1);
+
+    return monitor ?? null;
+  }
+
+  async update(
+    id: string,
+    projectId: string,
+    input: UpdateMonitorInput,
+  ): Promise<MonitorRecord | null> {
+    const [monitor] = await this.db
+      .update(monitors)
+      .set({
+        ...(input.metricId !== undefined ? { metricId: input.metricId } : {}),
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.scope !== undefined ? { scope: input.scope } : {}),
+        ...(input.condition !== undefined ? { condition: input.condition } : {}),
+        ...(input.window !== undefined ? { window: input.window } : {}),
+        ...(input.holdFor !== undefined ? { holdFor: input.holdFor } : {}),
+        ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+        ...(input.missingData !== undefined ? { missingData: input.missingData } : {}),
+      })
+      .where(and(eq(monitors.id, id), eq(monitors.projectId, projectId)))
+      .returning();
+
+    return monitor ?? null;
+  }
+
+  async delete(id: string, projectId: string): Promise<boolean> {
+    const deleted = await this.db
+      .delete(monitors)
+      .where(and(eq(monitors.id, id), eq(monitors.projectId, projectId)))
+      .returning({ id: monitors.id });
+
+    return deleted.length > 0;
   }
 }

@@ -1,16 +1,28 @@
 import { z } from '@hono/zod-openapi';
+import {
+  type MetricDefinition,
+  MONITOR_COMPARISON_OPERATORS,
+  MONITOR_MISSING_DATA,
+  type MonitorComparisonOperator,
+} from '@metricyak/storage';
 
-export const CreateMonitorParams = z.object({
-  projectId: z.uuid().openapi({
-    param: { name: 'projectId', in: 'path' },
-    example: 'd6ceaf26-fd71-4c38-90f1-2de20b946d00',
-  }),
+const ProjectIdParam = z.uuid().openapi({
+  param: { name: 'projectId', in: 'path' },
+  example: 'd6ceaf26-fd71-4c38-90f1-2de20b946d00',
 });
 
-export const COMPARISON_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'eq', 'neq'] as const;
-export const VALUE_TYPES = ['absolute', 'percent_change'] as const;
-export const BASELINE_TYPES = ['relative'] as const;
-export const COMPOUND_OPERATORS = ['and', 'or'] as const;
+const MonitorIdParam = z.uuid().openapi({
+  param: { name: 'monitorId', in: 'path' },
+  example: 'a1b2c3d4-5678-90ab-cdef-1234567890ab',
+});
+
+export const ProjectScopedParams = z.object({ projectId: ProjectIdParam });
+
+export const MonitorScopedParams = z.object({
+  projectId: ProjectIdParam,
+  monitorId: MonitorIdParam,
+});
+
 export const FIRE_WHEN = ['any', 'all'] as const;
 export const FILTER_OPERATORS = ['eq', 'neq', 'in', 'not_in'] as const;
 
@@ -18,39 +30,14 @@ const DURATION = z
   .string()
   .regex(/^\d+(s|m|h|d|w)$/, 'Must be a duration such as "0m", "1h", or "1d".');
 
-const Baseline = z.object({
-  type: z.enum(BASELINE_TYPES, {
-    error: `Invalid baseline type. Valid values are: ${BASELINE_TYPES.join(', ')}.`,
-  }),
-  period: DURATION.openapi({ example: '1w' }),
-});
-
-const SimpleCondition = z.object({
+const Condition = z.object({
   operator: z
-    .enum(COMPARISON_OPERATORS, {
-      error: `Invalid operator. Valid values are: ${COMPARISON_OPERATORS.join(', ')}.`,
+    .enum(MONITOR_COMPARISON_OPERATORS, {
+      error: `Invalid operator. Valid values are: ${MONITOR_COMPARISON_OPERATORS.join(', ')}.`,
     })
     .openapi({ example: 'lt' }),
   value: z.number().openapi({ example: 5000 }),
-  valueType: z
-    .enum(VALUE_TYPES, {
-      error: `Invalid value type. Valid values are: ${VALUE_TYPES.join(', ')}.`,
-    })
-    .openapi({ example: 'absolute' }),
-  baseline: Baseline.nullish(),
 });
-
-const CompoundCondition = z.object({
-  type: z.literal('compound'),
-  operator: z.enum(COMPOUND_OPERATORS, {
-    error: `Invalid operator. Valid values are: ${COMPOUND_OPERATORS.join(', ')}.`,
-  }),
-  conditions: z
-    .array(SimpleCondition)
-    .min(2, 'A compound condition must have at least two conditions.'),
-});
-
-const Condition = z.union([CompoundCondition, SimpleCondition]);
 
 const Filter = z.object({
   field: z.string().min(1, 'The filter field must not be empty.').openapi({ example: 'user_type' }),
@@ -77,6 +64,12 @@ const Scope = z.object({
   filter: Filter.nullish(),
 });
 
+const MissingData = z
+  .enum(MONITOR_MISSING_DATA, {
+    error: `Invalid missingData. Valid values are: ${MONITOR_MISSING_DATA.join(', ')}.`,
+  })
+  .openapi({ example: 'skip' });
+
 export const CreateMonitorRequest = z.object({
   name: z.string().min(1, 'The name must not be empty.').openapi({
     example: 'Daily revenue floor',
@@ -92,12 +85,23 @@ export const CreateMonitorRequest = z.object({
   condition: Condition,
   window: DURATION.openapi({ example: '1d' }),
   holdFor: DURATION.openapi({ example: '0m' }),
-  workflowId: z.string().min(1, 'The workflowId must not be empty.').nullish().openapi({
-    example: 'wf_revenue_alert',
-  }),
+  enabled: z.boolean().default(true).openapi({ example: true }),
+  missingData: MissingData.default('skip'),
 });
 
-export const CreateMonitorResponse = z.object({
+export const UpdateMonitorRequest = z.object({
+  name: z.string().min(1, 'The name must not be empty.').optional(),
+  description: z.string().nullish(),
+  metricId: z.uuid().optional(),
+  scope: Scope.nullish(),
+  condition: Condition.optional(),
+  window: DURATION.optional(),
+  holdFor: DURATION.optional(),
+  enabled: z.boolean().optional(),
+  missingData: MissingData.optional(),
+});
+
+export const MonitorResponse = z.object({
   monitorId: z.uuid(),
   name: z.string(),
   description: z.string().nullish(),
@@ -106,6 +110,26 @@ export const CreateMonitorResponse = z.object({
   condition: Condition,
   window: z.string(),
   holdFor: z.string(),
-  workflowId: z.string().nullish(),
+  enabled: z.boolean(),
+  missingData: MissingData,
   createdOn: z.iso.datetime(),
+  updatedOn: z.iso.datetime(),
 });
+
+export const ListMonitorsResponse = z.array(MonitorResponse);
+
+export const DeleteMonitorResponse = z.object({ deleted: z.literal(true) });
+
+export function isEqualityOperator(operator: MonitorComparisonOperator): boolean {
+  return operator === 'eq' || operator === 'neq';
+}
+
+function valueExpressionCanDivide(expression: string): boolean {
+  return expression.includes('/');
+}
+
+export function metricYieldsIntegerValues(definition: MetricDefinition): boolean {
+  const everyEventIsACount = definition.events.every((event) => event.aggregation === 'count');
+  if (!everyEventIsACount) return false;
+  return definition.value == null || !valueExpressionCanDivide(definition.value);
+}
