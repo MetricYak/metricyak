@@ -15,6 +15,13 @@
       "when": 1783630898523,
       "tag": "0001_lying_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783853014917,
+      "tag": "0002_large_elektra",
+      "breakpoints": true
     }
   ]
 }

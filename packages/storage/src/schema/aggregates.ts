@@ -19,7 +19,6 @@ export const bucketGranularity = pgEnum('bucket_granularity', BUCKET_GRANULARITI
 
 export const TOTAL_SENTINEL = '$total';
 export const OTHER_SENTINEL = '$other';
-export const VALUE_SERIES = '$value';
 
 export const metricBuckets = pgTable(
   'metric_buckets',
@@ -39,7 +38,6 @@ export const metricBuckets = pgTable(
     sum: doublePrecision('sum').notNull().default(0),
     min: doublePrecision('min'),
     max: doublePrecision('max'),
-    value: doublePrecision('value'),
     updatedAt: timestamp('updated_at', { mode: 'date', precision: 3, withTimezone: true })
       .defaultNow()
       .$onUpdateFn(() => new Date())
@@ -82,17 +80,6 @@ export const aggregationBatches = pgTable('aggregation_batches', {
     .defaultNow()
     .notNull(),
 });
-
-export const dirtyBuckets = pgTable(
-  'dirty_buckets',
-  {
-    id: bigint('id', { mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
-    metricId: uuid('metric_id').notNull(),
-    metricVersion: integer('metric_version').notNull(),
-    dayStart: timestamp('day_start', { mode: 'date', precision: 3, withTimezone: true }).notNull(),
-  },
-  (table) => [index('dirty_buckets_metric_idx').on(table.metricId, table.metricVersion)],
-);
 
 export const metricDimensionValues = pgTable(
   'metric_dimension_values',

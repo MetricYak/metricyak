@@ -6,7 +6,6 @@ import {
   metricBuckets,
   metricDimensionValues,
   OTHER_SENTINEL,
-  VALUE_SERIES,
 } from '../schema/aggregates.js';
 import { events } from '../schema/events.js';
 
@@ -260,7 +259,6 @@ export class AggregatesRepository {
           eq(metricBuckets.metricId, metricId),
           eq(metricBuckets.metricVersion, metricVersion),
           eq(metricBuckets.granularity, granularity),
-          sql`${metricBuckets.seriesKey} <> ${VALUE_SERIES}`,
           gte(metricBuckets.bucketStart, rangeStart),
           lt(metricBuckets.bucketStart, rangeEnd),
         ),
