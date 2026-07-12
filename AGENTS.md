@@ -6,19 +6,6 @@ This file provides guidance on how to work with the metricyak repository.
 
 MetricYak is an open-source platform for **metric-powered autonomous workflows**: declare metrics over an event stream, define monitors that watch those metrics, and fire automated steps when a metric crosses a threshold.
 
-## Monorepo layout
-
-```
-apps/
-  metricyak/          # @metricyak/app — the HTTP API + BullMQ worker process
-  metricyak-ui/       # @metricyak/ui — Vite + React 19 SPA (Tailwind v4, shadcn). Port 3001
-packages/
-  storage/            # @metricyak/storage — Drizzle ORM + PostgreSQL (repositories, schema, migrations)
-  queue/              # @metricyak/queue — BullMQ producer/worker abstractions
-  typescript-config/  # @metricyak/typescript-config — shared tsconfig presets
-  vitest-config/      # @metricyak/vitest-config — shared vitest config
-```
-
 ## Technology
 
 - **Runtime:** Node `>=24`, pnpm `>=11` (see root `engines`). ESM throughout.
@@ -29,7 +16,7 @@ packages/
 - **Linter/formatter:** Biome (`pnpm lint` / `pnpm check:fix`). Single-quote strings, 100-char line width, trailing commas always.
 - **Dependency versions** for shared libs (vitest, zod, drizzle-orm, …) are pinned in the **pnpm `catalog:`** in `pnpm-workspace.yaml`. Reference them as `"vitest": "catalog:"` rather than hardcoding versions.
 
-## Code Quality
+## Code Style
 
 The goal: a reader understands exactly what the code does from names and flow
 alone — no comments, no decoding.
@@ -65,18 +52,6 @@ alone — no comments, no decoding.
   Deliberate encapsulated state (e.g. `MetricMatcher`'s cache) is not a global —
   it's owned, injected, and testable.
 
-## Architecture
-
-### App modules (`apps/metricyak/src/modules/`)
-
-Feature work is organized into modules. Each module is a directory with:
-- `*.routes.ts` — Hono `OpenAPIHono` router with `createRoute` / `openapi` handlers
-- `*.schemas.ts` — Zod schemas for request/response bodies
-- `*.module.ts` — exports an `AppModule` (`{ routes?, workers?: WorkerFactory[] }`)
-
-Current modules: **events**, **keys**, **metrics**, **monitors**.
-
-All module routes are mounted under `/v1` by `createApp`. The `/health` route is registered directly on the root app.
 
 ### Container / dependency injection (`src/container/container.ts`)
 
@@ -86,19 +61,6 @@ A `Container` object is created at startup and injected into every Hono handler 
 
 One class per domain entity: `EventsRepository`, `FailedEventsRepository`, `MetricsRepository`, `MonitorsRepository`, `ProjectKeysRepository`, `ProjectsRepository`. Each takes a `Database` (Drizzle `NodePgDatabase` instance) in its constructor.
 
-### Queue / worker architecture
-
-Events are ingested synchronously by the API, which hands them off to an `EventsProducer`. Three concrete producers exist:
-
-| Class | When used |
-|---|---|
-| `InProcessEventsProducer` | `RUN_WORKER_INLINE=true` — processes jobs in-process, no Redis needed |
-| `BullEventsProducer` | Default — enqueues to Redis; a separate worker process dequeues |
-| `InMemoryEventsProducer` | Tests only — accumulates jobs for assertions |
-
-Worker factories are declared in each module's `*.module.ts` and collected at startup in `bootstrap/workers.ts`.
-
-Failed jobs that exhaust all retries are written to the `failed_events` table (`FailedEventsRepository`).
 
 ## TypeScript conventions
 
@@ -120,52 +82,6 @@ Strict by default. The shared `@metricyak/typescript-config/base` enables `stric
 - **Prefer narrow return types** (`'push' | 'pull'`) over wide ones (`string`).
 - **Error handling:** narrow `unknown` errors with a type guard; predicate-style verifiers return `false` rather than throwing.
 
-### Deliberate deviations (don't "fix" these)
-
-- **Types are co-located with their Zod schemas / implementation**, not in separate `types.ts` files. `export type X = z.infer<typeof X>` next to the schema is the idiom here.
-- **Zod-inferred domain types are left mutable** (no deep-`readonly` wrapper). The parse boundary returns fresh objects and the code doesn't mutate them.
-
-
-## Frontend (`apps/metricyak-ui`)
-
-Vite + React 19 SPA, Tailwind v4, shadcn (new-york), `react-router-dom`, `motion`, `lucide-react`. The goal of these rules is that the next component is built on the foundation, not bolted onto it.
-
-### Design tokens are the single source of truth for style
-
-- **All color comes from semantic CSS variables** defined in `src/styles/globals.css` and exposed through `@theme inline` (`bg-background`, `text-muted-foreground`, `bg-primary`, `bg-sidebar-accent`, `ring`, …). **Never reach into the raw `metricyak-*` ramp from a component** (`text-metricyak-900`, `bg-yellow`) — if you need a new role, add a semantic token (light + dark) and a matching `--color-*` entry, then use that. Raw-ramp usage in a component is a smell that a token is missing.
-- **One role, one token.** Don't introduce a second color for the same concept (e.g. an "active/accent" that's orange in one place and yellow in another). Pick the existing semantic token.
-- **shadcn must stay real.** `components.json` declares shadcn, so the full standard token set (`primary`, `secondary`, `accent`, `card`, `popover`, `destructive`, `border`, `input`, `ring`, plus `-foreground` pairs) must exist in both `:root` and `.dark`, each mirrored in `@theme inline`. Before adding a shadcn component, confirm the tokens it references resolve — a missing token renders as broken styling with no error. Don't let the config promise a setup the CSS doesn't back.
-- **Every token defined for `:root` gets a `.dark` counterpart.** Dark-mode tokens exist and must be kept complete even while there's no theme toggle yet, so the switch is a one-line change later.
-
-### Tailwind
-
-- **Arbitrary values must be valid CSS.** `transition-[colors,width]` is a silent bug — `colors` is not a CSS property; the intended transition never runs. Name real properties (`transition-[width,background-color]`) or use the canonical utility (`transition-colors`). When in doubt, check the generated CSS, not the class name.
-- **Take Biome's `suggestCanonicalClasses` hints** (`w-[3px]` → `w-0.75`). Prefer canonical utilities over arbitrary values.
-- `pnpm --filter @metricyak/ui check-types` and `pnpm build` must both pass; run Biome (root `pnpm check:fix`) — the UI app is part of CI.
-
-### Components & state — one owner per fact
-
-- **Don't bookkeep the same fact in two systems.** If state lives in React, let React render the DOM/`data-*` attribute from it — don't *also* write that attribute imperatively. The legitimate exception is a performance hot path (e.g. per-frame width during a pointer drag written straight to `el.style`); there, keep the *discrete* state (collapsed/open) in React and sync it the instant it changes, so anything reading it can't lag the live UI. Imperative DOM writes that drift from React state are the default source of UI glitches here.
-- **Don't overload one mechanism to mean two things.** "Collapsed" is not "closed"; a resize affordance is not a dismiss button. Model open/close with an explicit prop, not by dragging a panel to width 0. Overloaded mechanisms (and `key`-forced remounts to paper over them) are the kind of hack to avoid.
-- **Be consistent across siblings.** If one resizable panel persists its size to `localStorage`, its siblings should too (or there should be a stated reason they don't).
-- **No dead code or impossible branches** (a fallback for a prop that's always provided, an unused export). Remove it rather than leaving it to mislead.
-
-### Accessibility — don't ship the appearance of it
-
-- If you give an element a `role`, `tabIndex`, or ARIA attributes, **implement the interaction and value attributes that role implies.** A focusable `role="separator"` needs keyboard resize (arrow keys) and `aria-valuemin/max/now`; an "accessible-looking" widget that does nothing on focus is worse than none.
-
-## Environment variables
-
-| Variable | Required | Default | Notes |
-|---|---|---|---|
-| `DATABASE_URL` | yes | — | PostgreSQL connection string |
-| `REDIS_URL` | conditional | — | Required unless `RUN_WORKER_INLINE=true` |
-| `PORT` | no | `3000` | HTTP listen port |
-| `WORKER_CONCURRENCY` | no | `1` | BullMQ worker concurrency |
-| `RUN_WORKER_INLINE` | no | `false` | Process events in-process; no Redis required |
-| `RUN_WORKERS_IN_API` | no | `true` | Start BullMQ workers alongside the API in the same process |
-
-The app auto-loads `../../.env` (repo root) if it exists.
 
 ## Testing
 
