@@ -675,11 +675,26 @@ describe('assertSchemaReady', () => {
     await expect(assertSchemaReady(db)).resolves.toBeUndefined();
   });
 
-  it('throws a migrate hint when the table is missing (42P01)', async () => {
+  it('throws a migrate hint when the pg code is directly on the error (42P01)', async () => {
     const db = {
       execute: async () => {
         throw Object.assign(new Error('relation "organizations" does not exist'), {
           code: '42P01',
+        });
+      },
+    };
+    await expect(assertSchemaReady(db)).rejects.toThrow(/db:migrate/);
+  });
+
+  it('throws a migrate hint when 42P01 is wrapped in a DrizzleQueryError cause', async () => {
+    const db = {
+      execute: async () => {
+        const pgError = Object.assign(new Error('relation "organizations" does not exist'), {
+          code: '42P01',
+        });
+        // Real drizzle-orm/node-postgres shape: DrizzleQueryError with the pg error on .cause
+        throw Object.assign(new Error('Failed query: select 1 from "organizations" limit 1'), {
+          cause: pgError,
         });
       },
     };
@@ -705,23 +720,30 @@ Expected: FAIL — cannot find module `../schema.js`.
 - [ ] **Step 3: Write minimal implementation**
 
 `apps/metricyak/src/bootstrap/schema.ts`
+
+> **Important:** `drizzle-orm/node-postgres` wraps the raw pg error in a `DrizzleQueryError`, so the Postgres `code` (`42P01`) is on `error.cause`, not `error.code`. The check must walk the `.cause` chain (bounded), exactly as Task 2's `isUniqueViolation` does for `23505`.
+
 ```ts
 import { sql } from 'drizzle-orm';
 
 const UNDEFINED_TABLE = '42P01';
+const MAX_CAUSE_DEPTH = 10;
 
 type SchemaProbe = { execute: (query: ReturnType<typeof sql>) => Promise<unknown> };
+
+function hasPgCode(error: unknown, code: string, depth = 0): boolean {
+  if (depth > MAX_CAUSE_DEPTH || typeof error !== 'object' || error === null) return false;
+  if ('code' in error && (error as { code?: unknown }).code === code) return true;
+  return 'cause' in error
+    ? hasPgCode((error as { cause?: unknown }).cause, code, depth + 1)
+    : false;
+}
 
 export async function assertSchemaReady(db: SchemaProbe): Promise<void> {
   try {
     await db.execute(sql`select 1 from "organizations" limit 1`);
   } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code?: unknown }).code === UNDEFINED_TABLE
-    ) {
+    if (hasPgCode(error, UNDEFINED_TABLE)) {
       throw new Error(
         'Database schema is missing. Run migrations first: `pnpm --filter @metricyak/storage db:migrate`.',
       );
@@ -734,7 +756,7 @@ export async function assertSchemaReady(db: SchemaProbe): Promise<void> {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @metricyak/app exec vitest run src/bootstrap/__tests__/schema.test.ts`
-Expected: PASS (3 tests).
+Expected: PASS (4 tests).
 
 - [ ] **Step 5: Wire into startup**
 
