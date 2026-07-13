@@ -1,5 +1,6 @@
 import { InProcessEventsProducer } from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
+import { assertSchemaReady } from './bootstrap/schema.js';
 import { registerShutdown } from './bootstrap/shutdown.js';
 import { startWorkers } from './bootstrap/workers.js';
 import { loadConfig } from './config.js';
@@ -7,6 +8,7 @@ import { createContainer } from './container/container.js';
 
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
+await assertSchemaReady(db);
 const producer = new InProcessEventsProducer(async () => {});
 const container = createContainer(db, producer);
 

@@ -7,6 +7,7 @@ import {
 import { createDatabase } from '@metricyak/storage';
 import { createApp } from './app.js';
 import { startHttpServer } from './bootstrap/http.js';
+import { assertSchemaReady } from './bootstrap/schema.js';
 import { registerShutdown } from './bootstrap/shutdown.js';
 import { startWorkers } from './bootstrap/workers.js';
 import { loadConfig } from './config.js';
@@ -15,6 +16,7 @@ import { processEventBatch } from './modules/events/events.worker.js';
 
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
+await assertSchemaReady(db);
 
 let container: Container;
 

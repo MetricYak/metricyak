@@ -19,6 +19,7 @@
     "@hono/zod-openapi": "^1.4.0",
     "@metricyak/queue": "workspace:*",
     "@metricyak/storage": "workspace:*",
+    "drizzle-orm": "catalog:",
     "expr-eval-fork": "^3.0.3",
     "hono": "^4.7.11",
     "zod": "catalog:"
