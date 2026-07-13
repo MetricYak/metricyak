@@ -2,11 +2,15 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useS
 import { listOrganizations, type Organization } from '@/api/organizations';
 import { listProjects, type Project } from '@/api/projects';
 
+export type BootstrapStatus = 'loading' | 'needs-onboarding' | 'ready' | 'error';
+
 type ProjectContextValue = {
+  status: BootstrapStatus;
   activeOrg: Organization | null;
   activeProject: Project | null;
   setActiveProject: (project: Project, org: Organization) => void;
   updateActiveProject: (project: Project) => void;
+  refresh: () => void;
 };
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -29,6 +33,8 @@ function writeStorage(key: string, value: unknown): void {
 }
 
 export function ProjectProvider({ children }: { children: ReactNode }): React.JSX.Element {
+  const [status, setStatus] = useState<BootstrapStatus>('loading');
+  const [nonce, setNonce] = useState(0);
   const [activeOrg, setActiveOrgState] = useState<Organization | null>(() =>
     readStorage<Organization>('metricyak.active-org'),
   );
@@ -41,6 +47,7 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     setActiveOrgState(org);
     writeStorage('metricyak.active-project', project);
     writeStorage('metricyak.active-org', org);
+    setStatus('ready');
   }, []);
 
   const updateActiveProject = useCallback((project: Project): void => {
@@ -51,26 +58,41 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     });
   }, []);
 
+  const refresh = useCallback((): void => {
+    setNonce((n) => n + 1);
+  }, []);
+
   useEffect(() => {
-    if (activeProject) return;
+    let cancelled = false;
 
     listOrganizations()
       .then(async (orgs) => {
+        if (cancelled) return;
         const org = orgs[0];
-        if (!org) return;
+        if (!org) {
+          setStatus('needs-onboarding');
+          return;
+        }
         const projects = await listProjects(org.id);
+        if (cancelled) return;
         const project = projects[0];
-        if (!project) return;
-        setActiveProject(project, org);
+        if (project && !activeProject) {
+          setActiveProject(project, org);
+        }
+        setStatus('ready');
       })
       .catch(() => {
-        // Backend not running yet — silently skip
+        if (!cancelled) setStatus('error');
       });
-  }, [activeProject, setActiveProject]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject, setActiveProject, nonce]);
 
   return (
     <ProjectContext.Provider
-      value={{ activeOrg, activeProject, setActiveProject, updateActiveProject }}
+      value={{ status, activeOrg, activeProject, setActiveProject, updateActiveProject, refresh }}
     >
       {children}
     </ProjectContext.Provider>
