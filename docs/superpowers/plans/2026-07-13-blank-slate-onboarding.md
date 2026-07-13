@@ -386,7 +386,7 @@ describe('organizations routes', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @metricyak/metricyak exec vitest run src/modules/organizations/__tests__/organizations.routes.test.ts`
+Run: `pnpm --filter @metricyak/app exec vitest run src/modules/organizations/__tests__/organizations.routes.test.ts`
 Expected: FAIL — route `/v1/organizations` returns 404 (module not registered yet).
 
 - [ ] **Step 3a: Create the schemas**
@@ -533,7 +533,7 @@ export const modules: readonly AppModule[] = [
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @metricyak/metricyak exec vitest run src/modules/organizations/__tests__/organizations.routes.test.ts`
+Run: `pnpm --filter @metricyak/app exec vitest run src/modules/organizations/__tests__/organizations.routes.test.ts`
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
@@ -588,7 +588,7 @@ describe('parseConfig DATABASE_URL', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @metricyak/metricyak exec vitest run src/__tests__/config.test.ts`
+Run: `pnpm --filter @metricyak/app exec vitest run src/__tests__/config.test.ts`
 Expected: FAIL — `parseConfig` is not exported.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -639,7 +639,7 @@ export function loadConfig(): Config {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @metricyak/metricyak exec vitest run src/__tests__/config.test.ts`
+Run: `pnpm --filter @metricyak/app exec vitest run src/__tests__/config.test.ts`
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
@@ -699,7 +699,7 @@ describe('assertSchemaReady', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @metricyak/metricyak exec vitest run src/bootstrap/__tests__/schema.test.ts`
+Run: `pnpm --filter @metricyak/app exec vitest run src/bootstrap/__tests__/schema.test.ts`
 Expected: FAIL — cannot find module `../schema.js`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -733,7 +733,7 @@ export async function assertSchemaReady(db: SchemaProbe): Promise<void> {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @metricyak/metricyak exec vitest run src/bootstrap/__tests__/schema.test.ts`
+Run: `pnpm --filter @metricyak/app exec vitest run src/bootstrap/__tests__/schema.test.ts`
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Wire into startup**
@@ -750,7 +750,7 @@ Do the same in `apps/metricyak/src/worker.ts` (after its `createDatabase` call, 
 
 - [ ] **Step 6: Verify build + full app test suite**
 
-Run: `pnpm --filter @metricyak/metricyak check-types && pnpm --filter @metricyak/metricyak test`
+Run: `pnpm --filter @metricyak/app check-types && pnpm --filter @metricyak/app test`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
