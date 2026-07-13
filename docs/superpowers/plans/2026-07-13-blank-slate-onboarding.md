@@ -800,7 +800,7 @@ export function createOrganization(name: string): Promise<Organization> {
 
 - [ ] **Step 2: Type-check**
 
-Run: `pnpm --filter @metricyak/metricyak-ui check-types`
+Run: `pnpm --filter @metricyak/ui check-types`
 Expected: PASS (no consumers break — `ProjectSwitcher` and `ProjectContext` import the same names).
 
 - [ ] **Step 3: Commit**
@@ -935,7 +935,7 @@ export function useProjectContext(): ProjectContextValue {
 
 - [ ] **Step 2: Type-check**
 
-Run: `pnpm --filter @metricyak/metricyak-ui check-types`
+Run: `pnpm --filter @metricyak/ui check-types`
 Expected: PASS. (Existing consumers use `activeOrg`/`activeProject`/`setActiveProject`/`updateActiveProject`, all still present.)
 
 - [ ] **Step 3: Commit**
@@ -1094,7 +1094,7 @@ export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
 
 - [ ] **Step 3: Type-check + build**
 
-Run: `pnpm --filter @metricyak/metricyak-ui check-types && pnpm --filter @metricyak/metricyak-ui build`
+Run: `pnpm --filter @metricyak/ui check-types && pnpm --filter @metricyak/ui build`
 Expected: PASS.
 
 - [ ] **Step 4: Commit**
