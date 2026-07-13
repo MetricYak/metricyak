@@ -19,10 +19,13 @@ export type CreateOrganizationInput = {
 const UNIQUE_VIOLATION = '23505';
 const MAX_SLUG_ATTEMPTS = 25;
 
-function isUniqueViolation(error: unknown): boolean {
+const MAX_CAUSE_DEPTH = 10;
+
+function isUniqueViolation(error: unknown, depth = 0): boolean {
+  if (depth > MAX_CAUSE_DEPTH) return false;
   if (typeof error !== 'object' || error === null) return false;
   if ('code' in error && (error as { code?: unknown }).code === UNIQUE_VIOLATION) return true;
-  if ('cause' in error) return isUniqueViolation((error as { cause?: unknown }).cause);
+  if ('cause' in error) return isUniqueViolation((error as { cause?: unknown }).cause, depth + 1);
   return false;
 }
 
@@ -47,7 +50,8 @@ export class OrganizationsRepository {
     const base = slugify(input.name);
 
     for (let attempt = 1; attempt <= MAX_SLUG_ATTEMPTS; attempt++) {
-      const slug = attempt === 1 ? base : `${base}-${attempt}`.slice(0, 64);
+      const suffix = attempt === 1 ? '' : `-${attempt}`;
+      const slug = `${base.slice(0, 64 - suffix.length)}${suffix}`;
       try {
         const [org] = await this.db
           .insert(organizations)
@@ -56,7 +60,7 @@ export class OrganizationsRepository {
         if (!org) throw new Error('Failed to insert organization.');
         return org;
       } catch (error) {
-        if (isUniqueViolation(error) && attempt < MAX_SLUG_ATTEMPTS) continue;
+        if (isUniqueViolation(error)) continue;
         throw error;
       }
     }

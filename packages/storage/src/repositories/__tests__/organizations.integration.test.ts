@@ -49,6 +49,15 @@ describe('OrganizationsRepository', () => {
     expect(second.slug).toBe('acme-2');
   });
 
+  it('disambiguates a colliding slug when the base is already at max length', async () => {
+    const name = 'x'.repeat(64);
+    const first = await repo.create({ name });
+    const second = await repo.create({ name });
+    expect(first.slug).toBe('x'.repeat(64));
+    expect(second.slug).toBe(`${'x'.repeat(62)}-2`);
+    expect(second.slug.length).toBeLessThanOrEqual(64);
+  });
+
   it('lists all organizations', async () => {
     await repo.create({ name: 'One' });
     await repo.create({ name: 'Two' });
