@@ -1,9 +1,9 @@
 import { type ReactNode, useState } from 'react';
+import { OnboardingPage } from '@/components/onboarding/OnboardingPage';
 import { navItems } from '@/components/sidebar/nav.config';
 import { SidePanel } from '@/components/sidebar/SidePanel';
 import { SubMenuPanel } from '@/components/sidebar/SubMenuPanel';
 import { useProjectContext } from '@/contexts/ProjectContext';
-import { OnboardingPage } from '@/components/onboarding/OnboardingPage';
 import { MainContent } from './MainContent';
 
 interface AppLayoutProps {

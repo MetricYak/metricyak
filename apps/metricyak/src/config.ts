@@ -15,13 +15,10 @@ function isPostgresUrlWithPassword(value: string): boolean {
 
 const ConfigSchema = z
   .object({
-    DATABASE_URL: z
-      .string()
-      .min(1, 'DATABASE_URL is required.')
-      .refine(isPostgresUrlWithPassword, {
-        message:
-          'DATABASE_URL must be a postgres://user:password@host:port/db URL (with a password).',
-      }),
+    DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.').refine(isPostgresUrlWithPassword, {
+      message:
+        'DATABASE_URL must be a postgres://user:password@host:port/db URL (with a password).',
+    }),
     REDIS_URL: z.string().min(1).optional(),
     PORT: z.coerce.number().int().positive().default(3000),
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),

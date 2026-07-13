@@ -72,6 +72,7 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     setNonce((n) => n + 1);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: nonce is an intentional refetch trigger for refresh(); it is not read inside the effect body.
   useEffect(() => {
     let cancelled = false;
 
