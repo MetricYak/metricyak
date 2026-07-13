@@ -1,4 +1,12 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { listOrganizations, type Organization } from '@/api/organizations';
 import { listProjects, type Project } from '@/api/projects';
 
@@ -41,6 +49,8 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
   const [activeProject, setActiveProjectState] = useState<Project | null>(() =>
     readStorage<Project>('metricyak.active-project'),
   );
+  const activeProjectRef = useRef(activeProject);
+  activeProjectRef.current = activeProject;
 
   const setActiveProject = useCallback((project: Project, org: Organization): void => {
     setActiveProjectState(project);
@@ -76,7 +86,7 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
         const projects = await listProjects(org.id);
         if (cancelled) return;
         const project = projects[0];
-        if (project && !activeProject) {
+        if (project && !activeProjectRef.current) {
           setActiveProject(project, org);
         }
         setStatus('ready');
@@ -88,7 +98,7 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     return () => {
       cancelled = true;
     };
-  }, [activeProject, setActiveProject, nonce]);
+  }, [setActiveProject, nonce]);
 
   return (
     <ProjectContext.Provider
