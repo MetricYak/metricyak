@@ -145,13 +145,20 @@ git commit -m "feat(storage): add slugify helper for organization slugs"
 
 `packages/storage/src/repositories/__tests__/organizations.integration.test.ts`
 ```ts
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '../../schema/index.js';
 import { OrganizationsRepository } from '../organizations.repository.js';
+
+const migrationsFolder = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../migrations',
+);
 
 let container: StartedPostgreSqlContainer;
 let pool: Pool;
@@ -161,7 +168,7 @@ beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:17-alpine').start();
   pool = new Pool({ connectionString: container.getConnectionUri() });
   const db = drizzle({ client: pool, schema, casing: 'snake_case' });
-  await migrate(db, { migrationsFolder: 'migrations' });
+  await migrate(db, { migrationsFolder });
   repo = new OrganizationsRepository(db);
 }, 120_000);
 
