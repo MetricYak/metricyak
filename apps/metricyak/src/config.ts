@@ -3,9 +3,25 @@ import { z } from 'zod';
 
 const ROOT_ENV = '../../.env';
 
+function isPostgresUrlWithPassword(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') return false;
+    return url.password.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 const ConfigSchema = z
   .object({
-    DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.'),
+    DATABASE_URL: z
+      .string()
+      .min(1, 'DATABASE_URL is required.')
+      .refine(isPostgresUrlWithPassword, {
+        message:
+          'DATABASE_URL must be a postgres://user:password@host:port/db URL (with a password).',
+      }),
     REDIS_URL: z.string().min(1).optional(),
     PORT: z.coerce.number().int().positive().default(3000),
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
@@ -37,19 +53,21 @@ export type Config = {
   readonly runWorkersInApi: boolean;
 };
 
+export function parseConfig(env: NodeJS.ProcessEnv): Config {
+  const parsed = ConfigSchema.parse(env);
+  return {
+    databaseUrl: parsed.DATABASE_URL,
+    redisUrl: parsed.REDIS_URL,
+    port: parsed.PORT,
+    workerConcurrency: parsed.WORKER_CONCURRENCY,
+    runWorkerInline: parsed.RUN_WORKER_INLINE,
+    runWorkersInApi: parsed.RUN_WORKERS_IN_API,
+  };
+}
+
 export function loadConfig(): Config {
   if (existsSync(ROOT_ENV)) {
     process.loadEnvFile(ROOT_ENV);
   }
-
-  const env = ConfigSchema.parse(process.env);
-
-  return {
-    databaseUrl: env.DATABASE_URL,
-    redisUrl: env.REDIS_URL,
-    port: env.PORT,
-    workerConcurrency: env.WORKER_CONCURRENCY,
-    runWorkerInline: env.RUN_WORKER_INLINE,
-    runWorkersInApi: env.RUN_WORKERS_IN_API,
-  };
+  return parseConfig(process.env);
 }
