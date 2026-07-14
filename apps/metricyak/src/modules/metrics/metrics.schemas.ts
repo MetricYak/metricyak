@@ -112,3 +112,7 @@ export const CreateMetricResponse = z.object({
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
+
+export const ListMetricsParams = CreateMetricParams;
+
+export const ListMetricsResponse = z.array(CreateMetricResponse);

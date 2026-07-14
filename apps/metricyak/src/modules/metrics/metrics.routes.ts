@@ -7,7 +7,24 @@ import {
   CreateMetricParams,
   CreateMetricRequest,
   CreateMetricResponse,
+  ListMetricsParams,
+  ListMetricsResponse,
 } from './metrics.schemas.js';
+
+export const listMetricsRoute = createRoute({
+  method: 'get',
+  path: '/projects/{projectId}/metrics',
+  request: {
+    params: ListMetricsParams,
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: ListMetricsResponse } },
+      description: 'Metrics defined for the project.',
+    },
+    404: errorResponse('The project could not be found.'),
+  },
+});
 
 export const createMetricRoute = createRoute({
   method: 'post',
@@ -30,6 +47,29 @@ export const createMetricRoute = createRoute({
 });
 
 const metricsRouter = createRouter();
+
+metricsRouter.openapi(listMetricsRoute, async (c) => {
+  const { projectId } = c.req.valid('param');
+  const { metrics, projects } = c.var.container.repos;
+
+  await requireProject(projects, projectId);
+
+  const records = await metrics.listForProject(projectId);
+
+  return respond(
+    c,
+    ListMetricsResponse,
+    records.map((record) => ({
+      id: record.id,
+      name: record.name,
+      description: record.description,
+      definition: record.definition,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    })),
+    200,
+  );
+});
 
 metricsRouter.openapi(createMetricRoute, async (c) => {
   const { projectId } = c.req.valid('param');
