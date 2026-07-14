@@ -3,8 +3,10 @@ import { Queue, Worker } from 'bullmq';
 import {
   EVENTS_QUEUE,
   type EventBatchJob,
+  MONITOR_SIGNALS_QUEUE,
   MONITOR_TICK_INTERVAL_MS,
   MONITOR_TICK_QUEUE,
+  type MonitorSignalJob,
   type MonitorTickJob,
 } from './queues.js';
 
@@ -50,4 +52,16 @@ export async function registerMonitorTickScheduler(connection: ConnectionOptions
   } finally {
     await queue.close();
   }
+}
+
+export type MonitorSignalsWorkerOptions = {
+  concurrency: number;
+  process: (job: Job<MonitorSignalJob>) => Promise<void>;
+};
+
+export function createMonitorSignalsWorker(
+  connection: ConnectionOptions,
+  { concurrency, process }: MonitorSignalsWorkerOptions,
+): Worker<MonitorSignalJob> {
+  return new Worker<MonitorSignalJob>(MONITOR_SIGNALS_QUEUE, process, { connection, concurrency });
 }
