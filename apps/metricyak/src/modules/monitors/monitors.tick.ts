@@ -35,7 +35,17 @@ export async function runMonitorTick(
       await deps.monitorRuntime.setNextEvalAt(monitor.id, nextEvalAt, tx);
 
       const metric = await deps.metrics.getDefinition(monitor.metricId, monitor.projectId);
-      if (!metric) return 'evaluated';
+      if (!metric) {
+        console.log(
+          JSON.stringify({
+            level: 'warn',
+            msg: 'monitor metric unavailable',
+            monitorId: monitor.id,
+            metricId: monitor.metricId,
+          }),
+        );
+        return 'evaluated';
+      }
 
       const window = { from: new Date(now.getTime() - parseDuration(monitor.window)), to: now };
       const { value } = await deps.metricReads.value(metric, monitor.projectId, window);

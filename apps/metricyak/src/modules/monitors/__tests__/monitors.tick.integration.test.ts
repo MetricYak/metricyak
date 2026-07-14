@@ -7,17 +7,18 @@ import {
   MetricsRepository,
   MonitorRuntimeRepository,
   metricBuckets,
+  metricDefinitionVersions,
   monitors,
   organizations,
   projects,
 } from '@metricyak/storage';
 import * as schema from '@metricyak/storage/schema';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMetricReads } from '../../aggregates/aggregates.reads.js';
 import { type MonitorTickDeps, runMonitorTick } from '../monitors.tick.js';
 
@@ -160,5 +161,40 @@ describe('runMonitorTick (integration)', () => {
     expect(signals.jobs).toHaveLength(2);
     const finalState = await deps.monitorRuntime.getState(monitorId, '$total');
     expect(finalState?.status).toBe('firing');
+  });
+
+  it('stays on cadence and logs when the metric has no current version', async () => {
+    await db
+      .delete(metricDefinitionVersions)
+      .where(eq(metricDefinitionVersions.metricDefinitionId, metricId));
+
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const now = new Date('2026-07-13T12:00:00.000Z');
+
+    const result = await runMonitorTick(deps, now);
+    expect(result.evaluated).toBe(1);
+    expect(result.fired).toBe(0);
+    expect(result.relayed).toBe(0);
+
+    expect(consoleLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        level: 'warn',
+        msg: 'monitor metric unavailable',
+        monitorId,
+        metricId,
+      }),
+    );
+    consoleLog.mockRestore();
+
+    const state = await deps.monitorRuntime.getState(monitorId, '$total');
+    expect(state).toBeNull();
+
+    const stillDue = await deps.monitorRuntime.listDueMonitors(now, 10);
+    expect(stillDue).toHaveLength(0);
+    const dueNextTick = await deps.monitorRuntime.listDueMonitors(
+      new Date(now.getTime() + 60_000),
+      10,
+    );
+    expect(dueNextTick.map((m) => m.id)).toEqual([monitorId]);
   });
 });
