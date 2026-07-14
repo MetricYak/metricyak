@@ -1,6 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { InMemoryMonitorSignalsProducer } from '@metricyak/queue';
+import {
+  InMemoryMonitorSignalsProducer,
+  type MonitorSignalJob,
+  type MonitorSignalsProducer,
+} from '@metricyak/queue';
 import {
   type Database,
   MonitorRuntimeRepository,
@@ -103,5 +107,60 @@ describe('relayMonitorSignals (integration)', () => {
     const again = await relayMonitorSignals({ db, monitorRuntime, signals }, new Date());
     expect(again.relayed).toBe(0);
     expect(signals.jobs.length).toBe(2);
+  });
+
+  it('durably relays earlier events when a later enqueue in the same pass fails', async () => {
+    const id1 = await monitorRuntime.insertEvent({
+      monitorId,
+      series: '$total',
+      type: 'fired',
+      value: 3000,
+      threshold: { operator: 'lt', value: 5000 },
+      occurredAt: new Date('2026-07-13T00:01:00.000Z'),
+    });
+    const id2 = await monitorRuntime.insertEvent({
+      monitorId,
+      series: '$total',
+      type: 'fired',
+      value: 2500,
+      threshold: { operator: 'lt', value: 5000 },
+      occurredAt: new Date('2026-07-13T00:02:00.000Z'),
+    });
+    const id3 = await monitorRuntime.insertEvent({
+      monitorId,
+      series: '$total',
+      type: 'fired',
+      value: 2000,
+      threshold: { operator: 'lt', value: 5000 },
+      occurredAt: new Date('2026-07-13T00:03:00.000Z'),
+    });
+
+    class FlakyMonitorSignalsProducer implements MonitorSignalsProducer {
+      readonly jobs: MonitorSignalJob[] = [];
+
+      constructor(private readonly failOnEventId: string) {}
+
+      async enqueue(job: MonitorSignalJob): Promise<void> {
+        if (job.eventId === this.failOnEventId) {
+          throw new Error('simulated enqueue failure');
+        }
+        this.jobs.push(job);
+      }
+    }
+
+    const flaky = new FlakyMonitorSignalsProducer(id2);
+    await expect(
+      relayMonitorSignals({ db, monitorRuntime, signals: flaky }, new Date()),
+    ).rejects.toThrow('simulated enqueue failure');
+
+    expect(flaky.jobs.map((job) => job.eventId)).toEqual([id1]);
+
+    const stillUnrelayed = await monitorRuntime.findUnrelayedEvents(10);
+    expect(stillUnrelayed.map((event) => event.id).sort()).toEqual([id2, id3].sort());
+
+    const recovered = new InMemoryMonitorSignalsProducer();
+    const retry = await relayMonitorSignals({ db, monitorRuntime, signals: recovered }, new Date());
+    expect(retry.relayed).toBe(2);
+    expect(recovered.jobs.map((job) => job.eventId).sort()).toEqual([id2, id3].sort());
   });
 });
