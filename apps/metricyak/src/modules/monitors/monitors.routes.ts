@@ -11,7 +11,9 @@ import {
   NotFoundError,
   ValidationError,
 } from '../../http/errors.js';
+import { respond } from '../../http/respond.js';
 import { createRouter } from '../../http/router.js';
+import { orNotFound, requireProject } from '../../http/scope.js';
 import {
   CreateMonitorRequest,
   DeleteMonitorResponse,
@@ -150,15 +152,11 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
     c.req.valid('json');
   const { monitors, metrics, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found');
-  }
-
-  const metric = await metrics.getDefinition(metricId, projectId);
-  if (!metric) {
-    throw new NotFoundError('The metric could not be found');
-  }
+  await requireProject(projects, projectId);
+  const metric = orNotFound(
+    await metrics.getDefinition(metricId, projectId),
+    'The metric could not be found.',
+  );
 
   rejectEqualityOnFractionalMetric(condition.operator, metric.definition);
 
@@ -175,38 +173,31 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
     missingData,
   });
 
-  return c.json(MonitorResponse.parse(toMonitorResponse(record)), 201);
+  return respond(c, MonitorResponse, toMonitorResponse(record), 201);
 });
 
 monitorsRouter.openapi(listMonitorsRoute, async (c) => {
   const { projectId } = c.req.valid('param');
   const { monitors, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found');
-  }
+  await requireProject(projects, projectId);
 
   const records = await monitors.list(projectId);
 
-  return c.json(ListMonitorsResponse.parse(records.map(toMonitorResponse)), 200);
+  return respond(c, ListMonitorsResponse, records.map(toMonitorResponse), 200);
 });
 
 monitorsRouter.openapi(getMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
   const { monitors, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found');
-  }
+  await requireProject(projects, projectId);
+  const record = orNotFound(
+    await monitors.get(monitorId, projectId),
+    'The monitor could not be found.',
+  );
 
-  const record = await monitors.get(monitorId, projectId);
-  if (!record) {
-    throw new NotFoundError('The monitor could not be found');
-  }
-
-  return c.json(MonitorResponse.parse(toMonitorResponse(record)), 200);
+  return respond(c, MonitorResponse, toMonitorResponse(record), 200);
 });
 
 monitorsRouter.openapi(updateMonitorRoute, async (c) => {
@@ -214,59 +205,52 @@ monitorsRouter.openapi(updateMonitorRoute, async (c) => {
   const input = c.req.valid('json');
   const { monitors, metrics, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found');
-  }
-
-  const existing = await monitors.get(monitorId, projectId);
-  if (!existing) {
-    throw new NotFoundError('The monitor could not be found');
-  }
+  await requireProject(projects, projectId);
+  const existing = orNotFound(
+    await monitors.get(monitorId, projectId),
+    'The monitor could not be found.',
+  );
 
   const watchedMetricId = input.metricId ?? existing.metricId;
   if (input.metricId !== undefined || input.condition !== undefined) {
-    const metric = await metrics.getDefinition(watchedMetricId, projectId);
-    if (!metric) {
-      throw new NotFoundError('The metric could not be found');
-    }
+    const metric = orNotFound(
+      await metrics.getDefinition(watchedMetricId, projectId),
+      'The metric could not be found.',
+    );
     const operator = input.condition?.operator ?? existing.condition.operator;
     rejectEqualityOnFractionalMetric(operator, metric.definition);
   }
 
-  const record = await monitors.update(monitorId, projectId, {
-    metricId: input.metricId,
-    name: input.name,
-    description: input.description,
-    scope: input.scope,
-    condition: input.condition,
-    window: input.window,
-    holdFor: input.holdFor,
-    enabled: input.enabled,
-    missingData: input.missingData,
-  });
-  if (!record) {
-    throw new NotFoundError('The monitor could not be found');
-  }
+  const record = orNotFound(
+    await monitors.update(monitorId, projectId, {
+      metricId: input.metricId,
+      name: input.name,
+      description: input.description,
+      scope: input.scope,
+      condition: input.condition,
+      window: input.window,
+      holdFor: input.holdFor,
+      enabled: input.enabled,
+      missingData: input.missingData,
+    }),
+    'The monitor could not be found.',
+  );
 
-  return c.json(MonitorResponse.parse(toMonitorResponse(record)), 200);
+  return respond(c, MonitorResponse, toMonitorResponse(record), 200);
 });
 
 monitorsRouter.openapi(deleteMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
   const { monitors, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found');
-  }
+  await requireProject(projects, projectId);
 
   const deleted = await monitors.delete(monitorId, projectId);
   if (!deleted) {
-    throw new NotFoundError('The monitor could not be found');
+    throw new NotFoundError('The monitor could not be found.');
   }
 
-  return c.json({ deleted: true } as const, 200);
+  return respond(c, DeleteMonitorResponse, { deleted: true }, 200);
 });
 
 export default monitorsRouter;

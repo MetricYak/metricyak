@@ -1,6 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse, NotFoundError } from '../../http/errors.js';
+import { errorResponse } from '../../http/errors.js';
+import { respond } from '../../http/respond.js';
 import { createRouter } from '../../http/router.js';
+import { requireProject } from '../../http/scope.js';
 import {
   CreateMetricParams,
   CreateMetricRequest,
@@ -34,22 +36,23 @@ metricsRouter.openapi(createMetricRoute, async (c) => {
   const { name, description, definition } = c.req.valid('json');
   const { metrics, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found');
-  }
+  await requireProject(projects, projectId);
 
   const record = await metrics.create({ projectId, name, description, definition });
 
-  const metric = CreateMetricResponse.parse({
-    id: record.id,
-    name: record.name,
-    description: record.description,
-    definition: record.definition,
-    createdAt: record.createdAt.toISOString(),
-    updatedAt: record.updatedAt.toISOString(),
-  });
-  return c.json(metric, 201);
+  return respond(
+    c,
+    CreateMetricResponse,
+    {
+      id: record.id,
+      name: record.name,
+      description: record.description,
+      definition: record.definition,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    },
+    201,
+  );
 });
 
 export default metricsRouter;

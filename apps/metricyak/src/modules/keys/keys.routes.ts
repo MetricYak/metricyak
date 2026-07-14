@@ -1,6 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponse, NotFoundError } from '../../http/errors.js';
+import { respond } from '../../http/respond.js';
 import { createRouter } from '../../http/router.js';
+import { requireProject } from '../../http/scope.js';
 import {
   CreateProjectKeyParams,
   CreateProjectKeyRequest,
@@ -68,21 +70,20 @@ keysRouter.openapi(createProjectKeyRoute, async (c) => {
   const { name } = c.req.valid('json');
   const { projectKeys, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found.');
-  }
+  await requireProject(projects, projectId);
 
   const record = await projectKeys.create({ projectId, name });
 
-  return c.json(
-    CreateProjectKeyResponse.parse({
+  return respond(
+    c,
+    CreateProjectKeyResponse,
+    {
       id: record.id,
       projectId: record.projectId,
       name: record.name,
       key: record.key,
       createdAt: record.createdAt.toISOString(),
-    }),
+    },
     201,
   );
 });
@@ -91,23 +92,20 @@ keysRouter.openapi(listProjectKeysRoute, async (c) => {
   const { projectId } = c.req.valid('param');
   const { projectKeys, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found.');
-  }
+  await requireProject(projects, projectId);
 
   const records = await projectKeys.listByProject(projectId);
 
-  return c.json(
-    ListProjectKeysResponse.parse(
-      records.map((r) => ({
-        id: r.id,
-        projectId: r.projectId,
-        name: r.name,
-        createdAt: r.createdAt.toISOString(),
-        revokedAt: r.revokedAt ? r.revokedAt.toISOString() : null,
-      })),
-    ),
+  return respond(
+    c,
+    ListProjectKeysResponse,
+    records.map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      name: r.name,
+      createdAt: r.createdAt.toISOString(),
+      revokedAt: r.revokedAt ? r.revokedAt.toISOString() : null,
+    })),
     200,
   );
 });
@@ -116,17 +114,14 @@ keysRouter.openapi(revokeProjectKeyRoute, async (c) => {
   const { projectId, keyId } = c.req.valid('param');
   const { projectKeys, projects } = c.var.container.repos;
 
-  const project = await projects.get(projectId);
-  if (!project) {
-    throw new NotFoundError('The project could not be found.');
-  }
+  await requireProject(projects, projectId);
 
   const revoked = await projectKeys.revoke(projectId, keyId);
   if (!revoked) {
     throw new NotFoundError('The project key could not be found.');
   }
 
-  return c.json({ revoked: true }, 200);
+  return respond(c, RevokeProjectKeyResponse, { revoked: true }, 200);
 });
 
 export default keysRouter;

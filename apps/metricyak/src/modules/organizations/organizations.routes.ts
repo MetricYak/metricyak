@@ -1,5 +1,6 @@
 import { createRoute } from '@hono/zod-openapi';
 import { errorResponse } from '../../http/errors.js';
+import { respond } from '../../http/respond.js';
 import { createRouter } from '../../http/router.js';
 import {
   CreateOrganizationRequest,
@@ -42,16 +43,16 @@ organizationsRouter.openapi(listOrganizationsRoute, async (c) => {
   const { organizations } = c.var.container.repos;
   const records = await organizations.list();
 
-  return c.json(
-    ListOrganizationsResponse.parse(
-      records.map((r) => ({
-        id: r.id,
-        slug: r.slug,
-        name: r.name,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      })),
-    ),
+  return respond(
+    c,
+    ListOrganizationsResponse,
+    records.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.name,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    })),
     200,
   );
 });
@@ -61,14 +62,16 @@ organizationsRouter.openapi(createOrganizationRoute, async (c) => {
   const { organizations } = c.var.container.repos;
   const record = await organizations.create({ name });
 
-  return c.json(
-    CreateOrganizationResponse.parse({
+  return respond(
+    c,
+    CreateOrganizationResponse,
+    {
       id: record.id,
       slug: record.slug,
       name: record.name,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
-    }),
+    },
     201,
   );
 });
