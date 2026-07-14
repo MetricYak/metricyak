@@ -40,6 +40,26 @@ function writeStorage(key: string, value: unknown): void {
   }
 }
 
+// Prefer the previously-selected org if it still exists; otherwise the first one.
+// Guards against a stored org that has since been deleted (e.g. a DB reset).
+function pickOrg(orgs: Organization[], storedOrgId: string | undefined): Organization | null {
+  return orgs.find((o) => o.id === storedOrgId) ?? orgs[0] ?? null;
+}
+
+// Keep the stored project only if it still belongs to the chosen org AND still
+// exists; otherwise fall back to the org's first project (or none).
+function pickProject(
+  projects: Project[],
+  storedProject: Project | null,
+  orgId: string,
+): Project | null {
+  const storedStillValid =
+    !!storedProject &&
+    storedProject.organizationId === orgId &&
+    projects.some((p) => p.id === storedProject.id);
+  return storedStillValid ? storedProject : (projects[0] ?? null);
+}
+
 export function ProjectProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [status, setStatus] = useState<BootstrapStatus>('loading');
   const [nonce, setNonce] = useState(0);
@@ -51,6 +71,8 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
   );
   const activeProjectRef = useRef(activeProject);
   activeProjectRef.current = activeProject;
+  const activeOrgRef = useRef(activeOrg);
+  activeOrgRef.current = activeOrg;
 
   const setActiveProject = useCallback((project: Project, org: Organization): void => {
     setActiveProjectState(project);
@@ -58,6 +80,17 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     writeStorage('metricyak.active-project', project);
     writeStorage('metricyak.active-org', org);
     setStatus('ready');
+  }, []);
+
+  const clearActiveSelection = useCallback((): void => {
+    setActiveProjectState(null);
+    setActiveOrgState(null);
+    try {
+      localStorage.removeItem('metricyak.active-project');
+      localStorage.removeItem('metricyak.active-org');
+    } catch {
+      // storage unavailable
+    }
   }, []);
 
   const updateActiveProject = useCallback((project: Project): void => {
@@ -79,18 +112,59 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     listOrganizations()
       .then(async (orgs) => {
         if (cancelled) return;
-        const org = orgs[0];
+
+        // Capture the selection as it was when this pass began, so we can detect
+        // a concurrent user switch — the shell (and switcher) is interactive
+        // during the 'loading' status, so the user may pick while we fetch.
+        const startOrg = activeOrgRef.current;
+        const startProject = activeProjectRef.current;
+
+        // Reconcile the stored selection against what actually exists. A stale
+        // org/project (e.g. after a DB reset) must never be marked ready, or
+        // downstream pages keep querying deleted resources.
+        const org = pickOrg(orgs, startOrg?.id);
         if (!org) {
+          clearActiveSelection();
           setStatus('needs-onboarding');
           return;
         }
+
         const projects = await listProjects(org.id);
         if (cancelled) return;
-        const project = projects[0];
-        if (project && !activeProjectRef.current) {
-          setActiveProject(project, org);
+
+        // The user switched to a different org/project while projects loaded —
+        // their choice wins; don't clobber it with this (now outdated) bootstrap
+        // pass. Compare by id, not reference: a same-project field refresh
+        // (updateActiveProject) swaps the object but isn't a competing choice.
+        if (
+          activeProjectRef.current?.id !== startProject?.id ||
+          activeOrgRef.current?.id !== startOrg?.id
+        ) {
+          return;
         }
-        setStatus('ready');
+
+        const chosen = pickProject(projects, startProject, org.id);
+        if (!chosen) {
+          // Org is valid but has no project yet: keep the org, drop only the
+          // stale project so pages don't query a deleted one. The switcher can
+          // create the first project against this org.
+          setActiveOrgState(org);
+          setActiveProjectState(null);
+          writeStorage('metricyak.active-org', org);
+          try {
+            localStorage.removeItem('metricyak.active-project');
+          } catch {
+            // storage unavailable
+          }
+          setStatus('ready');
+          return;
+        }
+
+        // Use the fresh server objects so display fields stay current, and
+        // replace the stored selection when it was stale. setActiveProject sets
+        // status to 'ready'.
+        const freshProject = projects.find((p) => p.id === chosen.id) ?? chosen;
+        setActiveProject(freshProject, org);
       })
       .catch(() => {
         if (!cancelled) setStatus('error');
@@ -99,7 +173,7 @@ export function ProjectProvider({ children }: { children: ReactNode }): React.JS
     return () => {
       cancelled = true;
     };
-  }, [setActiveProject, nonce]);
+  }, [setActiveProject, clearActiveSelection, nonce]);
 
   return (
     <ProjectContext.Provider
