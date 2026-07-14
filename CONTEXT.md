@@ -9,7 +9,7 @@ A single raw fact ingested into a project — a name, a timestamp, and a bag of 
 _Avoid_: message, record, datapoint
 
 **Metric**:
-A declared aggregation over matching events (count, sum, average, min, max), optionally combined by an expression and split by dimensions. A metric is versioned; changing its definition mints a new version.
+A declared aggregation over matching events (count, sum, average, min, max), optionally combined by an expression and split by dimensions. A metric is versioned — each definition is a distinct, numbered version.
 _Avoid_: measure, KPI, stat
 
 **Monitor**:
@@ -17,7 +17,7 @@ A rule that watches one metric and fires when its value crosses a threshold cond
 _Avoid_: alert (that's what a monitor *emits*), alarm, check
 
 **Workflow**:
-The investigation or automation a firing monitor routes into (Slack, email, …). The final stage of the flow.
+Where a firing monitor is meant to route — an investigation or automation (Slack, email, …), the final stage of the flow.
 _Avoid_: action, notification, hook
 
 ## Aggregation
