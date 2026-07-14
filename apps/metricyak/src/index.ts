@@ -1,8 +1,11 @@
 import {
   BullEventsProducer,
+  BullMonitorSignalsProducer,
   createProducerConnectionOptions,
   type EventsProducer,
+  InMemoryMonitorSignalsProducer,
   InProcessEventsProducer,
+  type MonitorSignalsProducer,
 } from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
 import { createApp } from './app.js';
@@ -28,7 +31,11 @@ if (config.runWorkerInline) {
   producer = new BullEventsProducer(createProducerConnectionOptions(config.redisUrl));
 }
 
-container = createContainer(db, producer);
+const signals: MonitorSignalsProducer = config.redisUrl
+  ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
+  : new InMemoryMonitorSignalsProducer();
+
+container = createContainer(db, producer, signals);
 const app = createApp(container);
 
 const server = startHttpServer(app, config);

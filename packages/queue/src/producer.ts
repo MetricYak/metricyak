@@ -1,6 +1,11 @@
 import type { ConnectionOptions } from 'bullmq';
 import { Queue } from 'bullmq';
-import { EVENTS_QUEUE, type EventBatchJob } from './queues.js';
+import {
+  EVENTS_QUEUE,
+  type EventBatchJob,
+  MONITOR_SIGNALS_QUEUE,
+  type MonitorSignalJob,
+} from './queues.js';
 
 export interface EventsProducer {
   enqueue(job: EventBatchJob): Promise<void>;
@@ -48,5 +53,35 @@ export class InProcessEventsProducer implements EventsProducer {
         }),
       );
     });
+  }
+}
+
+export interface MonitorSignalsProducer {
+  enqueue(job: MonitorSignalJob): Promise<void>;
+}
+
+export class BullMonitorSignalsProducer implements MonitorSignalsProducer {
+  private readonly queue: Queue<MonitorSignalJob>;
+
+  constructor(connection: ConnectionOptions) {
+    this.queue = new Queue<MonitorSignalJob>(MONITOR_SIGNALS_QUEUE, { connection });
+  }
+
+  async enqueue(job: MonitorSignalJob): Promise<void> {
+    await this.queue.add(MONITOR_SIGNALS_QUEUE, job, {
+      jobId: job.eventId,
+      attempts: 5,
+      backoff: { type: 'exponential', delay: 1000 },
+      removeOnComplete: { age: 7 * 24 * 3600, count: 10_000 },
+      removeOnFail: { age: 30 * 24 * 3600 },
+    });
+  }
+}
+
+export class InMemoryMonitorSignalsProducer implements MonitorSignalsProducer {
+  readonly jobs: MonitorSignalJob[] = [];
+
+  async enqueue(job: MonitorSignalJob): Promise<void> {
+    this.jobs.push(job);
   }
 }

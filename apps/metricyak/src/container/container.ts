@@ -1,10 +1,11 @@
-import type { EventsProducer } from '@metricyak/queue';
+import type { EventsProducer, MonitorSignalsProducer } from '@metricyak/queue';
 import {
   AggregatesRepository,
   type Database,
   EventsRepository,
   FailedEventsRepository,
   MetricsRepository,
+  MonitorRuntimeRepository,
   MonitorsRepository,
   OrganizationsRepository,
   ProjectKeysRepository,
@@ -25,6 +26,7 @@ export type Repositories = {
   readonly aggregates: AggregatesRepository;
   readonly metrics: MetricsRepository;
   readonly monitors: MonitorsRepository;
+  readonly monitorRuntime: MonitorRuntimeRepository;
   readonly organizations: OrganizationsRepository;
   readonly projects: ProjectsRepository;
 };
@@ -32,6 +34,7 @@ export type Repositories = {
 export type Container = {
   readonly db: Database;
   readonly producer: EventsProducer;
+  readonly signals: MonitorSignalsProducer;
   readonly matcher: MetricMatcher;
   readonly runInTransaction: RunInTransaction;
   readonly repos: Repositories;
@@ -45,7 +48,11 @@ export type AppEnv = {
   };
 };
 
-export function createContainer(db: Database, producer: EventsProducer): Container {
+export function createContainer(
+  db: Database,
+  producer: EventsProducer,
+  signals: MonitorSignalsProducer,
+): Container {
   const metrics = new MetricsRepository(db);
   const events = new EventsRepository(db);
   const aggregates = new AggregatesRepository(db);
@@ -59,6 +66,7 @@ export function createContainer(db: Database, producer: EventsProducer): Contain
     aggregates,
     metrics,
     monitors: new MonitorsRepository(db),
+    monitorRuntime: new MonitorRuntimeRepository(db),
     organizations: new OrganizationsRepository(db),
     projects: new ProjectsRepository(db),
   };
@@ -66,5 +74,5 @@ export function createContainer(db: Database, producer: EventsProducer): Contain
   const ingest = createIngestPipeline({ events, aggregates, matcher, runInTransaction });
   const reads = createMetricReads({ aggregates });
 
-  return { db, producer, matcher, runInTransaction, repos, ingest, reads };
+  return { db, producer, signals, matcher, runInTransaction, repos, ingest, reads };
 }

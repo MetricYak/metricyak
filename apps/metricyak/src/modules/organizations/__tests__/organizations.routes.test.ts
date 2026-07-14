@@ -1,4 +1,4 @@
-import { InMemoryEventsProducer } from '@metricyak/queue';
+import { InMemoryEventsProducer, InMemoryMonitorSignalsProducer } from '@metricyak/queue';
 import {
   type CreateOrganizationInput,
   type Database,
@@ -40,7 +40,11 @@ class StubOrganizations extends OrganizationsRepository {
 }
 
 function buildApp(store: OrganizationRecord[]) {
-  const base = createContainer(fakeDatabase, new InMemoryEventsProducer());
+  const base = createContainer(
+    fakeDatabase,
+    new InMemoryEventsProducer(),
+    new InMemoryMonitorSignalsProducer(),
+  );
   const container: Container = {
     ...base,
     repos: { ...base.repos, organizations: new StubOrganizations(store) },
