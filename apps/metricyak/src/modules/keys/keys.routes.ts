@@ -66,9 +66,9 @@ const keysRouter = createRouter();
 keysRouter.openapi(createProjectKeyRoute, async (c) => {
   const { projectId } = c.req.valid('param');
   const { name } = c.req.valid('json');
-  const { projectKeys, repositories } = c.var.container;
+  const { projectKeys, projects } = c.var.container.repos;
 
-  const project = await repositories.projects.get(projectId);
+  const project = await projects.get(projectId);
   if (!project) {
     throw new NotFoundError('The project could not be found.');
   }
@@ -89,9 +89,9 @@ keysRouter.openapi(createProjectKeyRoute, async (c) => {
 
 keysRouter.openapi(listProjectKeysRoute, async (c) => {
   const { projectId } = c.req.valid('param');
-  const { projectKeys, repositories } = c.var.container;
+  const { projectKeys, projects } = c.var.container.repos;
 
-  const project = await repositories.projects.get(projectId);
+  const project = await projects.get(projectId);
   if (!project) {
     throw new NotFoundError('The project could not be found.');
   }
@@ -114,9 +114,9 @@ keysRouter.openapi(listProjectKeysRoute, async (c) => {
 
 keysRouter.openapi(revokeProjectKeyRoute, async (c) => {
   const { projectId, keyId } = c.req.valid('param');
-  const { projectKeys, repositories } = c.var.container;
+  const { projectKeys, projects } = c.var.container.repos;
 
-  const project = await repositories.projects.get(projectId);
+  const project = await projects.get(projectId);
   if (!project) {
     throw new NotFoundError('The project could not be found.');
   }

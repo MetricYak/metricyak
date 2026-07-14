@@ -32,7 +32,7 @@ const metricsRouter = createRouter();
 metricsRouter.openapi(createMetricRoute, async (c) => {
   const { projectId } = c.req.valid('param');
   const { name, description, definition } = c.req.valid('json');
-  const { metrics, projects } = c.var.container.repositories;
+  const { metrics, projects } = c.var.container.repos;
 
   const project = await projects.get(projectId);
   if (!project) {

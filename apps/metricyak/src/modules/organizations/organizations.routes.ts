@@ -39,7 +39,7 @@ export const createOrganizationRoute = createRoute({
 const organizationsRouter = createRouter();
 
 organizationsRouter.openapi(listOrganizationsRoute, async (c) => {
-  const { organizations } = c.var.container.repositories;
+  const { organizations } = c.var.container.repos;
   const records = await organizations.list();
 
   return c.json(
@@ -58,7 +58,7 @@ organizationsRouter.openapi(listOrganizationsRoute, async (c) => {
 
 organizationsRouter.openapi(createOrganizationRoute, async (c) => {
   const { name } = c.req.valid('json');
-  const { organizations } = c.var.container.repositories;
+  const { organizations } = c.var.container.repos;
   const record = await organizations.create({ name });
 
   return c.json(

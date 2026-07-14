@@ -7,7 +7,6 @@ import {
   NotFoundError,
 } from '../../http/errors.js';
 import { createRouter } from '../../http/router.js';
-import { createMetricReads } from './aggregates.reads.js';
 import {
   BreakdownQuery,
   BreakdownResponse,
@@ -48,12 +47,11 @@ const router = createRouter();
 router.openapi(valueRoute, async (c) => {
   const { projectId, metricId } = c.req.valid('param');
   const { from, to, splitBy } = c.req.valid('query');
-  const { aggregates, repositories } = c.var.container;
+  const { reads, repos } = c.var.container;
 
-  const metric = await repositories.metrics.getDefinition(metricId, projectId);
+  const metric = await repos.metrics.getDefinition(metricId, projectId);
   if (!metric) throw new NotFoundError('The metric could not be found');
 
-  const reads = createMetricReads({ aggregates });
   const result = await reads.value(
     metric,
     projectId,
@@ -67,12 +65,11 @@ router.openapi(valueRoute, async (c) => {
 router.openapi(breakdownRoute, async (c) => {
   const { projectId, metricId } = c.req.valid('param');
   const { from, to, compareFrom, compareTo, dimension, limit } = c.req.valid('query');
-  const { aggregates, repositories } = c.var.container;
+  const { reads, repos } = c.var.container;
 
-  const metric = await repositories.metrics.getDefinition(metricId, projectId);
+  const metric = await repos.metrics.getDefinition(metricId, projectId);
   if (!metric) throw new NotFoundError('The metric could not be found');
 
-  const reads = createMetricReads({ aggregates });
   const result = await reads.breakdown(
     metric,
     projectId,

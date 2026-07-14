@@ -71,7 +71,7 @@ const projectsRouter = createRouter();
 
 projectsRouter.openapi(listProjectsRoute, async (c) => {
   const { organizationId } = c.req.valid('param');
-  const { organizations, projects } = c.var.container.repositories;
+  const { organizations, projects } = c.var.container.repos;
 
   const organization = await organizations.get(organizationId);
   if (!organization) {
@@ -97,7 +97,7 @@ projectsRouter.openapi(listProjectsRoute, async (c) => {
 projectsRouter.openapi(createProjectRoute, async (c) => {
   const { organizationId } = c.req.valid('param');
   const { name } = c.req.valid('json');
-  const { organizations, projects } = c.var.container.repositories;
+  const { organizations, projects } = c.var.container.repos;
 
   const organization = await organizations.get(organizationId);
   if (!organization) {
@@ -121,7 +121,7 @@ projectsRouter.openapi(createProjectRoute, async (c) => {
 projectsRouter.openapi(updateProjectRoute, async (c) => {
   const { organizationId, projectId } = c.req.valid('param');
   const { name } = c.req.valid('json');
-  const { organizations, projects } = c.var.container.repositories;
+  const { organizations, projects } = c.var.container.repos;
 
   const organization = await organizations.get(organizationId);
   if (!organization) {
