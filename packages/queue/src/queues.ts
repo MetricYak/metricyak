@@ -21,3 +21,10 @@ export function computeBatchId(eventIds: readonly string[]): string {
     .update([...eventIds].sort().join(','))
     .digest('hex');
 }
+
+export const MONITOR_TICK_QUEUE = 'monitor-tick' as const;
+export const MONITOR_TICK_INTERVAL_MS = 60_000;
+
+export type MonitorTickJob = {
+  tickAt: string;
+};
