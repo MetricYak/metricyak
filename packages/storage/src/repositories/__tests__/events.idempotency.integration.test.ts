@@ -9,8 +9,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from '../../client.js';
 import * as schema from '../../schema/index.js';
-import { events, organizations, projects, TOTAL_SENTINEL } from '../../schema/index.js';
-import { AggregatesRepository, type BucketPartialDelta } from '../aggregates.repository.js';
+import { events, organizations, projects } from '../../schema/index.js';
 import { EventsRepository, type InsertEventRow } from '../events.repository.js';
 
 const migrationsFolder = path.resolve(
@@ -19,16 +18,12 @@ const migrationsFolder = path.resolve(
 );
 
 const MINUTE = new Date('2026-01-01T00:00:00.000Z');
-const RANGE_START = new Date('2026-01-01T00:00:00.000Z');
-const RANGE_END = new Date('2026-01-02T00:00:00.000Z');
-const METRIC_ID = randomUUID();
 
 describe('event insert_id idempotency (integration)', () => {
   let container: StartedPostgreSqlContainer;
   let pool: Pool;
   let db: Database;
   let eventsRepo: EventsRepository;
-  let aggregates: AggregatesRepository;
   let projectId: string;
 
   beforeAll(async () => {
@@ -37,7 +32,6 @@ describe('event insert_id idempotency (integration)', () => {
     db = drizzle({ client: pool, schema, casing: 'snake_case' });
     await migrate(db, { migrationsFolder });
     eventsRepo = new EventsRepository(db);
-    aggregates = new AggregatesRepository(db);
   }, 120_000);
 
   afterAll(async () => {
@@ -46,9 +40,7 @@ describe('event insert_id idempotency (integration)', () => {
   });
 
   beforeEach(async () => {
-    await db.execute(
-      sql`truncate table events, metric_buckets, projects, organizations restart identity cascade`,
-    );
+    await db.execute(sql`truncate table events, projects, organizations restart identity cascade`);
     const [org] = await db.insert(organizations).values({ slug: 'acme', name: 'Acme' }).returning();
     if (!org) throw new Error('failed to seed organization');
     const [project] = await db
@@ -70,67 +62,38 @@ describe('event insert_id idempotency (integration)', () => {
     };
   }
 
-  function countDelta(count: number): BucketPartialDelta {
-    return {
-      metricId: METRIC_ID,
-      metricVersion: 1,
-      granularity: 'minute',
-      bucketStart: MINUTE,
-      seriesKey: 'purchases',
-      dimName: TOTAL_SENTINEL,
-      dimValue: TOTAL_SENTINEL,
-      count,
-      sum: 0,
-      min: null,
-      max: null,
-    };
-  }
-
-  async function ingest(rows: InsertEventRow[]): Promise<void> {
-    await db.transaction(async (tx) => {
-      const insertedIds = new Set(await eventsRepo.insertBatch(rows, tx));
-      const insertedCount = rows.filter((row) => insertedIds.has(row.id)).length;
-      const deltas = insertedCount === 0 ? [] : [countDelta(insertedCount)];
-      await aggregates.upsertBaseBuckets(deltas, tx);
-    });
-  }
-
   async function storedEventCount(): Promise<number> {
     const [row] = await db.select({ count: sql<number>`cast(count(*) as int)` }).from(events);
     return row?.count ?? 0;
   }
 
-  async function bucketCount(): Promise<number> {
-    const partials = await aggregates.getPartials({
-      metricId: METRIC_ID,
-      metricVersion: 1,
-      granularity: 'minute',
-      rangeStart: RANGE_START,
-      rangeEnd: RANGE_END,
-    });
-    return partials.reduce((total, partial) => total + partial.count, 0);
-  }
+  it('inserts every row of a first batch and reports their ids', async () => {
+    const inserted = await eventsRepo.insertBatch([eventRow('a'), eventRow('b')]);
 
-  it('counts a retried batch with the same insert_id only once', async () => {
-    await ingest([eventRow('a'), eventRow('b')]);
-    await ingest([eventRow('a'), eventRow('b')]);
-
+    expect(inserted).toHaveLength(2);
     expect(await storedEventCount()).toBe(2);
-    expect(await bucketCount()).toBe(2);
   });
 
-  it('counts only the new rows in a partially duplicate batch', async () => {
-    await ingest([eventRow('a'), eventRow('b')]);
-    await ingest([eventRow('b'), eventRow('c')]);
+  it('skips rows whose insert_id already exists and reports none inserted', async () => {
+    await eventsRepo.insertBatch([eventRow('a'), eventRow('b')]);
+    const retried = await eventsRepo.insertBatch([eventRow('a'), eventRow('b')]);
 
+    expect(retried).toHaveLength(0);
+    expect(await storedEventCount()).toBe(2);
+  });
+
+  it('inserts only the new insert_ids in a partially duplicate batch', async () => {
+    await eventsRepo.insertBatch([eventRow('a'), eventRow('b')]);
+    const mixed = await eventsRepo.insertBatch([eventRow('b'), eventRow('c')]);
+
+    expect(mixed).toHaveLength(1);
     expect(await storedEventCount()).toBe(3);
-    expect(await bucketCount()).toBe(3);
   });
 
   it('never deduplicates events without an insert_id', async () => {
-    await ingest([eventRow(null), eventRow(null)]);
+    const inserted = await eventsRepo.insertBatch([eventRow(null), eventRow(null)]);
 
+    expect(inserted).toHaveLength(2);
     expect(await storedEventCount()).toBe(2);
-    expect(await bucketCount()).toBe(2);
   });
 });

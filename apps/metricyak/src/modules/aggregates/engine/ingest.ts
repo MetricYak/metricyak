@@ -12,8 +12,6 @@ export type DimResolver = (
 
 const FIELD_PREFIX = '$properties.';
 
-export const MAX_DECLARED_DIM_CARDINALITY = 1000;
-
 const MAX_DIM_VALUE_LENGTH = 256;
 
 function compositeKey(parts: ReadonlyArray<string | number>): string {
@@ -47,7 +45,7 @@ function dimValueOf(properties: Record<string, unknown>, dimName: string): strin
   return String(raw).slice(0, MAX_DIM_VALUE_LENGTH);
 }
 
-export function dimensionKey(metricId: string, metricVersion: number, dimName: string): string {
+function dimensionKey(metricId: string, metricVersion: number, dimName: string): string {
   return compositeKey([metricId, metricVersion, dimName]);
 }
 
