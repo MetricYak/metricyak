@@ -96,11 +96,11 @@ describe('relayMonitorSignals (integration)', () => {
     });
 
     const signals = new InMemoryMonitorSignalsProducer();
-    const result = await relayMonitorSignals({ monitorRuntime, signals }, new Date());
+    const result = await relayMonitorSignals({ db, monitorRuntime, signals }, new Date());
     expect(result.relayed).toBe(2);
     expect(signals.jobs.map((j) => j.eventId).sort()).toEqual([id1, id2].sort());
 
-    const again = await relayMonitorSignals({ monitorRuntime, signals }, new Date());
+    const again = await relayMonitorSignals({ db, monitorRuntime, signals }, new Date());
     expect(again.relayed).toBe(0);
     expect(signals.jobs.length).toBe(2);
   });

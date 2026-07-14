@@ -149,6 +149,7 @@ export class MonitorRuntimeRepository {
       .from(monitorEvents)
       .where(isNull(monitorEvents.relayedAt))
       .orderBy(asc(monitorEvents.occurredAt))
+      .for('update', { skipLocked: true })
       .limit(limit);
   }
 

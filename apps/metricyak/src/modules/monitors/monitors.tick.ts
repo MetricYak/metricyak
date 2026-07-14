@@ -89,7 +89,7 @@ export async function runMonitorTick(
   }
 
   const { relayed } = await relayMonitorSignals(
-    { monitorRuntime: deps.monitorRuntime, signals: deps.signals },
+    { db: deps.db, monitorRuntime: deps.monitorRuntime, signals: deps.signals },
     now,
   );
 
