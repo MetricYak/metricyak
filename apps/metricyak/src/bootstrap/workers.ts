@@ -45,5 +45,8 @@ export async function startWorkers(
     }),
   );
 
+  const schedulerFactories = modules.flatMap((mod) => mod.schedulers ?? []);
+  await Promise.all(schedulerFactories.map((register) => register(connection)));
+
   return () => Promise.all(workers.map((w) => w.close())).then(() => undefined);
 }

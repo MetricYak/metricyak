@@ -8,7 +8,10 @@ export type WorkerFactory = (
   concurrency: number,
 ) => Worker;
 
+export type SchedulerFactory = (connection: ConnectionOptions) => Promise<void>;
+
 export type AppModule = {
   readonly routes?: OpenAPIHono<AppEnv>;
   readonly workers?: readonly WorkerFactory[];
+  readonly schedulers?: readonly SchedulerFactory[];
 };
