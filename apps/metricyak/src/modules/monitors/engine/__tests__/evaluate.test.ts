@@ -7,7 +7,9 @@ const ok: MonitorEvalState = { status: 'ok', breachedSince: null };
 const t0 = new Date('2026-07-13T00:00:00.000Z');
 const later = (ms: number) => new Date(t0.getTime() + ms);
 
-function input(overrides: Partial<{ holdForMs: number; missingData: 'skip' | 'zero' | 'fire' }> = {}) {
+function input(
+  overrides: Partial<{ holdForMs: number; missingData: 'skip' | 'zero' | 'fire' }> = {},
+) {
   return { condition: lt5000, holdForMs: 0, missingData: 'skip' as const, ...overrides };
 }
 
