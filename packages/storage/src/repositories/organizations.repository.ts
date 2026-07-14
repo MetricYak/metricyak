@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { Database } from '../client.js';
+import { PG_CODES, pgErrorCode } from '../lib/pg-error.js';
 import { slugify } from '../lib/slug.js';
 import { organizations } from '../schema/organizations.js';
 
@@ -16,18 +17,7 @@ export type CreateOrganizationInput = {
   name: string;
 };
 
-const UNIQUE_VIOLATION = '23505';
 const MAX_SLUG_ATTEMPTS = 25;
-
-const MAX_CAUSE_DEPTH = 10;
-
-function isUniqueViolation(error: unknown, depth = 0): boolean {
-  if (depth > MAX_CAUSE_DEPTH) return false;
-  if (typeof error !== 'object' || error === null) return false;
-  if ('code' in error && (error as { code?: unknown }).code === UNIQUE_VIOLATION) return true;
-  if ('cause' in error) return isUniqueViolation((error as { cause?: unknown }).cause, depth + 1);
-  return false;
-}
 
 export class OrganizationsRepository {
   constructor(private readonly db: Database) {}
@@ -60,7 +50,7 @@ export class OrganizationsRepository {
         if (!org) throw new Error('Failed to insert organization.');
         return org;
       } catch (error) {
-        if (isUniqueViolation(error)) continue;
+        if (pgErrorCode(error) === PG_CODES.uniqueViolation) continue;
         throw error;
       }
     }
