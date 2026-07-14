@@ -15,6 +15,20 @@ describe('pgErrorCode', () => {
     expect(pgErrorCode(wrapped)).toBe('42P01');
   });
 
+  it('skips a wrapper code that is not a SQLSTATE and reaches the pg cause', () => {
+    const pgError = Object.assign(new Error('duplicate key'), { code: '23505' });
+    const wrapped = Object.assign(new Error('driver failure'), {
+      code: 'ERR_WRAPPED',
+      cause: pgError,
+    });
+    expect(pgErrorCode(wrapped)).toBe('23505');
+  });
+
+  it('returns null when a code is not a SQLSTATE', () => {
+    const error = Object.assign(new Error('socket closed'), { code: 'ECONNREFUSED' });
+    expect(pgErrorCode(error)).toBeNull();
+  });
+
   it('returns null when no error in the chain carries a code', () => {
     const wrapped = new Error('connection refused', { cause: new Error('socket closed') });
     expect(pgErrorCode(wrapped)).toBeNull();
