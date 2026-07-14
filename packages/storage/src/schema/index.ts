@@ -2,6 +2,8 @@ export * from './aggregates.js';
 export * from './events.js';
 export * from './failed-events.js';
 export * from './metrics.js';
+export * from './monitor-events.js';
+export * from './monitor-state.js';
 export * from './monitors.js';
 export * from './organizations.js';
 export * from './project-keys.js';
