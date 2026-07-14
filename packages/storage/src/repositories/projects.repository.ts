@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Database } from '../client.js';
 import { projects } from '../schema/projects.js';
 
@@ -22,8 +22,11 @@ export type ProjectRecord = {
 export class ProjectsRepository {
   constructor(private readonly db: Database) {}
 
-  async get(id: string): Promise<ProjectRecord | null> {
-    const [project] = await this.db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  async get(id: string, organizationId?: string): Promise<ProjectRecord | null> {
+    const where = organizationId
+      ? and(eq(projects.id, id), eq(projects.organizationId, organizationId))
+      : eq(projects.id, id);
+    const [project] = await this.db.select().from(projects).where(where).limit(1);
 
     return project ?? null;
   }

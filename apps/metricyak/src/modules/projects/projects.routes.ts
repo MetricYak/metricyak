@@ -1,6 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse, NotFoundError } from '../../http/errors.js';
+import { errorResponse } from '../../http/errors.js';
+import { respond } from '../../http/respond.js';
 import { createRouter } from '../../http/router.js';
+import { orNotFound } from '../../http/scope.js';
 import {
   CreateProjectParams,
   CreateProjectRequest,
@@ -73,23 +75,20 @@ projectsRouter.openapi(listProjectsRoute, async (c) => {
   const { organizationId } = c.req.valid('param');
   const { organizations, projects } = c.var.container.repos;
 
-  const organization = await organizations.get(organizationId);
-  if (!organization) {
-    throw new NotFoundError('The organization could not be found.');
-  }
+  orNotFound(await organizations.get(organizationId), 'The organization could not be found.');
 
   const records = await projects.listByOrganization(organizationId);
 
-  return c.json(
-    ListProjectsResponse.parse(
-      records.map((r) => ({
-        id: r.id,
-        organizationId: r.organizationId,
-        name: r.name,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      })),
-    ),
+  return respond(
+    c,
+    ListProjectsResponse,
+    records.map((r) => ({
+      id: r.id,
+      organizationId: r.organizationId,
+      name: r.name,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    })),
     200,
   );
 });
@@ -99,21 +98,20 @@ projectsRouter.openapi(createProjectRoute, async (c) => {
   const { name } = c.req.valid('json');
   const { organizations, projects } = c.var.container.repos;
 
-  const organization = await organizations.get(organizationId);
-  if (!organization) {
-    throw new NotFoundError('The organization could not be found.');
-  }
+  orNotFound(await organizations.get(organizationId), 'The organization could not be found.');
 
   const record = await projects.create({ organizationId, name });
 
-  return c.json(
-    CreateProjectResponse.parse({
+  return respond(
+    c,
+    CreateProjectResponse,
+    {
       id: record.id,
       organizationId: record.organizationId,
       name: record.name,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
-    }),
+    },
     201,
   );
 });
@@ -123,29 +121,24 @@ projectsRouter.openapi(updateProjectRoute, async (c) => {
   const { name } = c.req.valid('json');
   const { organizations, projects } = c.var.container.repos;
 
-  const organization = await organizations.get(organizationId);
-  if (!organization) {
-    throw new NotFoundError('The organization could not be found.');
-  }
+  orNotFound(await organizations.get(organizationId), 'The organization could not be found.');
+  orNotFound(await projects.get(projectId, organizationId), 'The project could not be found.');
 
-  const existing = await projects.get(projectId);
-  if (!existing || existing.organizationId !== organizationId) {
-    throw new NotFoundError('The project could not be found.');
-  }
+  const record = orNotFound(
+    await projects.update(projectId, { name }),
+    'The project could not be found.',
+  );
 
-  const record = await projects.update(projectId, { name });
-  if (!record) {
-    throw new NotFoundError('The project could not be found.');
-  }
-
-  return c.json(
-    UpdateProjectResponse.parse({
+  return respond(
+    c,
+    UpdateProjectResponse,
+    {
       id: record.id,
       organizationId: record.organizationId,
       name: record.name,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
-    }),
+    },
     200,
   );
 });

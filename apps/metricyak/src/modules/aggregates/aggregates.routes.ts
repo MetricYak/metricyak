@@ -1,12 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
-import {
-  AppError,
-  ERROR_TYPES,
-  errorItem,
-  errorResponse,
-  NotFoundError,
-} from '../../http/errors.js';
+import { AppError, ERROR_TYPES, errorItem, errorResponse } from '../../http/errors.js';
+import { respond } from '../../http/respond.js';
 import { createRouter } from '../../http/router.js';
+import { orNotFound } from '../../http/scope.js';
 import {
   BreakdownQuery,
   BreakdownResponse,
@@ -49,8 +45,10 @@ router.openapi(valueRoute, async (c) => {
   const { from, to, splitBy } = c.req.valid('query');
   const { reads, repos } = c.var.container;
 
-  const metric = await repos.metrics.getDefinition(metricId, projectId);
-  if (!metric) throw new NotFoundError('The metric could not be found');
+  const metric = orNotFound(
+    await repos.metrics.getDefinition(metricId, projectId),
+    'The metric could not be found.',
+  );
 
   const result = await reads.value(
     metric,
@@ -59,7 +57,7 @@ router.openapi(valueRoute, async (c) => {
     splitBy,
   );
 
-  return c.json(ValueResponse.parse(result), 200);
+  return respond(c, ValueResponse, result, 200);
 });
 
 router.openapi(breakdownRoute, async (c) => {
@@ -67,8 +65,10 @@ router.openapi(breakdownRoute, async (c) => {
   const { from, to, compareFrom, compareTo, dimension, limit } = c.req.valid('query');
   const { reads, repos } = c.var.container;
 
-  const metric = await repos.metrics.getDefinition(metricId, projectId);
-  if (!metric) throw new NotFoundError('The metric could not be found');
+  const metric = orNotFound(
+    await repos.metrics.getDefinition(metricId, projectId),
+    'The metric could not be found.',
+  );
 
   const result = await reads.breakdown(
     metric,
@@ -92,7 +92,7 @@ router.openapi(breakdownRoute, async (c) => {
     ]);
   }
 
-  return c.json(BreakdownResponse.parse({ movers: result.movers }), 200);
+  return respond(c, BreakdownResponse, { movers: result.movers }, 200);
 });
 
 export default router;
