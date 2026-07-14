@@ -1,18 +1,19 @@
 import { createEventsWorker, EVENTS_QUEUE } from '@metricyak/queue';
 import type { AppModule, WorkerFactory } from '../module.js';
+import { createIngestPipeline } from './events.ingest.js';
 import eventsRouter from './events.routes.js';
-import { processEventBatch } from './events.worker.js';
 
 const eventsWorkerFactory: WorkerFactory = (connection, container, concurrency) => {
+  const pipeline = createIngestPipeline({
+    events: container.events,
+    aggregates: container.aggregates,
+    matcher: container.matcher,
+    runInTransaction: (fn) => container.db.transaction(fn),
+  });
+
   const worker = createEventsWorker(connection, {
     concurrency,
-    process: (job) =>
-      processEventBatch(job.data, {
-        db: container.db,
-        events: container.events,
-        aggregates: container.aggregates,
-        matcher: container.matcher,
-      }),
+    process: (job) => pipeline.ingestBatch(job.data),
   });
 
   worker.on('completed', (job) => {
