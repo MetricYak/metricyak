@@ -584,14 +584,16 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
     setRowMenu(null);
   }, []);
 
-  const loadOrgs = useCallback(async (): Promise<void> => {
+  const loadOrgs = useCallback(async (): Promise<Organization[]> => {
     setOrgsLoading(true);
     setOrgsError(null);
     try {
       const result = await listOrganizations();
       setOrgs(result);
+      return result;
     } catch {
       setOrgsError('Could not load organizations.');
+      return [];
     } finally {
       setOrgsLoading(false);
     }
@@ -613,14 +615,26 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
     }
   }, []);
 
-  const openPopup = (): void => {
+  const openPopup = async (): Promise<void> => {
     if (!triggerRef.current) return;
     setPopupRect(computePopupRect(triggerRef.current));
     setPopupOrg(activeOrg ?? null);
     setView('home');
     setOpen(true);
-    void loadOrgs();
-    if (activeOrg) void loadProjects(activeOrg.id);
+    if (activeOrg) {
+      void loadOrgs();
+      void loadProjects(activeOrg.id);
+      return;
+    }
+    // No active org yet (fresh blank-slate case) — once the org list loads,
+    // default the popup to the first org so "Browse all projects" → "New
+    // project" works without requiring a manual org click first.
+    const loadedOrgs = await loadOrgs();
+    const first = loadedOrgs[0];
+    if (first) {
+      setPopupOrg(first);
+      void loadProjects(first.id);
+    }
   };
 
   // Click-outside and Escape
@@ -734,7 +748,10 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
       <button
         ref={triggerRef}
         type="button"
-        onClick={open ? close : openPopup}
+        onClick={() => {
+          if (open) close();
+          else void openPopup();
+        }}
         aria-label="Switch project"
         aria-expanded={open}
         aria-haspopup="listbox"

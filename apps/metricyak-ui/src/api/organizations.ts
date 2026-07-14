@@ -1,9 +1,18 @@
+import { apiFetch } from '@/lib/api';
+
 export type Organization = {
   id: string;
   name: string;
   slug: string;
 };
 
-export async function listOrganizations(): Promise<Organization[]> {
-  return [{ id: '00000000-0000-4000-8000-0000000000a1', name: 'MetricYak (Dev)', slug: 'default' }];
+export function listOrganizations(): Promise<Organization[]> {
+  return apiFetch<Organization[]>('/v1/organizations');
+}
+
+export function createOrganization(name: string): Promise<Organization> {
+  return apiFetch<Organization>('/v1/organizations', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
 }
