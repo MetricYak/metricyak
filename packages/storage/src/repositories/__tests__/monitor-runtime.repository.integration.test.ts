@@ -161,4 +161,41 @@ describe('MonitorRuntimeRepository (integration)', () => {
     expect((await repo.findUnrelayedEvents(10)).length).toBe(1);
     expect(await repo.listDueMonitors(new Date('2026-07-13T01:00:30.000Z'), 10)).toEqual([]);
   });
+
+  it('returns null from lockDueMonitor when not due or disabled', async () => {
+    const now = new Date('2026-07-13T01:00:00.000Z');
+    const notYetDue = await seedMonitor({ nextEvalAt: new Date('2026-07-13T02:00:00.000Z') });
+    const disabled = await seedMonitor({
+      enabled: false,
+      nextEvalAt: new Date('2026-07-13T00:00:00.000Z'),
+    });
+
+    await db.transaction(async (tx) => {
+      expect(await repo.lockDueMonitor(notYetDue.id, now, tx)).toBeNull();
+      expect(await repo.lockDueMonitor(disabled.id, now, tx)).toBeNull();
+    });
+  });
+
+  it('skips a monitor already locked by another transaction', async () => {
+    const monitor = await seedMonitor();
+    const now = new Date('2026-07-13T01:00:00.000Z');
+
+    const lockAcquired = Promise.withResolvers<void>();
+    const releaseGate = Promise.withResolvers<void>();
+
+    const holder = db.transaction(async (txA) => {
+      const first = await repo.lockDueMonitor(monitor.id, now, txA);
+      expect(first?.id).toBe(monitor.id);
+      lockAcquired.resolve();
+      await releaseGate.promise;
+    });
+
+    await lockAcquired.promise;
+    await db.transaction(async (txB) => {
+      const second = await repo.lockDueMonitor(monitor.id, now, txB);
+      expect(second).toBeNull();
+    });
+    releaseGate.resolve();
+    await holder;
+  });
 });
