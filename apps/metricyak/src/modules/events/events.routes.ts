@@ -29,9 +29,9 @@ const eventsRouter = createRouter();
 
 eventsRouter.openapi(ingestRoute, async (c) => {
   const { project_key, events } = c.req.valid('json');
-  const { projectKeys, producer } = c.var.container;
+  const { producer, repos } = c.var.container;
 
-  const keyRecord = await projectKeys.findActiveByKey(project_key);
+  const keyRecord = await repos.projectKeys.findActiveByKey(project_key);
   if (!keyRecord) {
     throw new UnauthorizedError('You are not allowed to perform this action.');
   }
