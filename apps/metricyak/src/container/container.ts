@@ -11,24 +11,35 @@ import {
   ProjectKeysRepository,
   ProjectsRepository,
 } from '@metricyak/storage';
+import { createMetricReads, type MetricReads } from '../modules/aggregates/aggregates.reads.js';
 import { MetricMatcher } from '../modules/aggregates/engine/matcher.js';
+import {
+  createIngestPipeline,
+  type IngestPipeline,
+  type RunInTransaction,
+} from '../modules/events/events.ingest.js';
+
+export type Repositories = {
+  readonly projectKeys: ProjectKeysRepository;
+  readonly events: EventsRepository;
+  readonly failedEvents: FailedEventsRepository;
+  readonly aggregates: AggregatesRepository;
+  readonly metrics: MetricsRepository;
+  readonly monitors: MonitorsRepository;
+  readonly monitorRuntime: MonitorRuntimeRepository;
+  readonly organizations: OrganizationsRepository;
+  readonly projects: ProjectsRepository;
+};
 
 export type Container = {
   readonly db: Database;
   readonly producer: EventsProducer;
   readonly signals: MonitorSignalsProducer;
-  readonly projectKeys: ProjectKeysRepository;
-  readonly events: EventsRepository;
-  readonly failedEvents: FailedEventsRepository;
-  readonly aggregates: AggregatesRepository;
   readonly matcher: MetricMatcher;
-  readonly repositories: {
-    readonly metrics: MetricsRepository;
-    readonly monitors: MonitorsRepository;
-    readonly monitorRuntime: MonitorRuntimeRepository;
-    readonly organizations: OrganizationsRepository;
-    readonly projects: ProjectsRepository;
-  };
+  readonly runInTransaction: RunInTransaction;
+  readonly repos: Repositories;
+  readonly ingest: IngestPipeline;
+  readonly reads: MetricReads;
 };
 
 export type AppEnv = {
@@ -43,22 +54,25 @@ export function createContainer(
   signals: MonitorSignalsProducer,
 ): Container {
   const metrics = new MetricsRepository(db);
+  const events = new EventsRepository(db);
+  const aggregates = new AggregatesRepository(db);
+  const matcher = new MetricMatcher(metrics);
+  const runInTransaction: RunInTransaction = (fn) => db.transaction(fn);
 
-  return {
-    db,
-    producer,
-    signals,
+  const repos: Repositories = {
     projectKeys: new ProjectKeysRepository(db),
-    events: new EventsRepository(db),
+    events,
     failedEvents: new FailedEventsRepository(db),
-    aggregates: new AggregatesRepository(db),
-    matcher: new MetricMatcher(metrics),
-    repositories: {
-      metrics,
-      monitors: new MonitorsRepository(db),
-      monitorRuntime: new MonitorRuntimeRepository(db),
-      organizations: new OrganizationsRepository(db),
-      projects: new ProjectsRepository(db),
-    },
+    aggregates,
+    metrics,
+    monitors: new MonitorsRepository(db),
+    monitorRuntime: new MonitorRuntimeRepository(db),
+    organizations: new OrganizationsRepository(db),
+    projects: new ProjectsRepository(db),
   };
+
+  const ingest = createIngestPipeline({ events, aggregates, matcher, runInTransaction });
+  const reads = createMetricReads({ aggregates });
+
+  return { db, producer, signals, matcher, runInTransaction, repos, ingest, reads };
 }

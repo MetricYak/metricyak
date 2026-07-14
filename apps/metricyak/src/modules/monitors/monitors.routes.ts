@@ -148,7 +148,7 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
   const { projectId } = c.req.valid('param');
   const { name, description, metricId, scope, condition, window, holdFor, enabled, missingData } =
     c.req.valid('json');
-  const { monitors, metrics, projects } = c.var.container.repositories;
+  const { monitors, metrics, projects } = c.var.container.repos;
 
   const project = await projects.get(projectId);
   if (!project) {
@@ -180,7 +180,7 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
 
 monitorsRouter.openapi(listMonitorsRoute, async (c) => {
   const { projectId } = c.req.valid('param');
-  const { monitors, projects } = c.var.container.repositories;
+  const { monitors, projects } = c.var.container.repos;
 
   const project = await projects.get(projectId);
   if (!project) {
@@ -194,7 +194,7 @@ monitorsRouter.openapi(listMonitorsRoute, async (c) => {
 
 monitorsRouter.openapi(getMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
-  const { monitors, projects } = c.var.container.repositories;
+  const { monitors, projects } = c.var.container.repos;
 
   const project = await projects.get(projectId);
   if (!project) {
@@ -212,7 +212,7 @@ monitorsRouter.openapi(getMonitorRoute, async (c) => {
 monitorsRouter.openapi(updateMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
   const input = c.req.valid('json');
-  const { monitors, metrics, projects } = c.var.container.repositories;
+  const { monitors, metrics, projects } = c.var.container.repos;
 
   const project = await projects.get(projectId);
   if (!project) {
@@ -254,7 +254,7 @@ monitorsRouter.openapi(updateMonitorRoute, async (c) => {
 
 monitorsRouter.openapi(deleteMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
-  const { monitors, projects } = c.var.container.repositories;
+  const { monitors, projects } = c.var.container.repos;
 
   const project = await projects.get(projectId);
   if (!project) {

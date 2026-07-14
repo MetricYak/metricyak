@@ -3,7 +3,6 @@ import {
   createMonitorTickWorker,
   registerMonitorTickScheduler,
 } from '@metricyak/queue';
-import { createMetricReads } from '../aggregates/aggregates.reads.js';
 import type { AppModule, SchedulerFactory, WorkerFactory } from '../module.js';
 import monitorsRouter from './monitors.routes.js';
 import { processMonitorSignal } from './monitors.signals.worker.js';
@@ -16,9 +15,9 @@ const monitorTickWorkerFactory: WorkerFactory = (connection, container, concurre
       const result = await runMonitorTick(
         {
           db: container.db,
-          metrics: container.repositories.metrics,
-          metricReads: createMetricReads({ aggregates: container.aggregates }),
-          monitorRuntime: container.repositories.monitorRuntime,
+          metrics: container.repos.metrics,
+          metricReads: container.reads,
+          monitorRuntime: container.repos.monitorRuntime,
           signals: container.signals,
         },
         new Date(),

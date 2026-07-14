@@ -15,18 +15,16 @@ import { registerShutdown } from './bootstrap/shutdown.js';
 import { startWorkers } from './bootstrap/workers.js';
 import { loadConfig } from './config.js';
 import { type Container, createContainer } from './container/container.js';
-import { createIngestPipeline, type IngestPipeline } from './modules/events/events.ingest.js';
 
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
 await assertSchemaReady(db);
 
 let container: Container;
-let pipeline: IngestPipeline;
 
 let producer: EventsProducer;
 if (config.runWorkerInline) {
-  producer = new InProcessEventsProducer((job) => pipeline.ingestBatch(job));
+  producer = new InProcessEventsProducer((job) => container.ingest.ingestBatch(job));
   console.log(JSON.stringify({ level: 'info', msg: 'inline worker enabled (in-process events)' }));
 } else {
   if (!config.redisUrl) throw new Error('REDIS_URL is required when RUN_WORKER_INLINE is not set.');
@@ -38,12 +36,6 @@ const signals: MonitorSignalsProducer = config.redisUrl
   : new InMemoryMonitorSignalsProducer();
 
 container = createContainer(db, producer, signals);
-pipeline = createIngestPipeline({
-  events: container.events,
-  aggregates: container.aggregates,
-  matcher: container.matcher,
-  runInTransaction: (fn) => container.db.transaction(fn),
-});
 const app = createApp(container);
 
 const server = startHttpServer(app, config);

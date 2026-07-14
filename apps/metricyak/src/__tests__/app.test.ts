@@ -1,10 +1,16 @@
-import { InMemoryEventsProducer } from '@metricyak/queue';
+import { InMemoryEventsProducer, InMemoryMonitorSignalsProducer } from '@metricyak/queue';
 import type { Database } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { createContainer } from '../container/container.js';
 
-const app = createApp(createContainer({} as Database, new InMemoryEventsProducer()));
+const app = createApp(
+  createContainer(
+    {} as Database,
+    new InMemoryEventsProducer(),
+    new InMemoryMonitorSignalsProducer(),
+  ),
+);
 
 describe('GET /health', () => {
   it('returns 200 with status ok', async () => {
