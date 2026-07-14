@@ -39,3 +39,4 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+apps/metricyak-ui/.impeccable/hook.cache.json
