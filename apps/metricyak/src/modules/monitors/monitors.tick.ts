@@ -1,15 +1,17 @@
-import { MONITOR_TICK_INTERVAL_MS } from '@metricyak/queue';
+import { MONITOR_TICK_INTERVAL_MS, type MonitorSignalsProducer } from '@metricyak/queue';
 import type { Database, MetricsRepository, MonitorRuntimeRepository } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import type { MetricReads } from '../aggregates/aggregates.reads.js';
 import { parseDuration } from './engine/duration.js';
 import { evaluateMonitor, type MonitorEvalState } from './engine/evaluate.js';
+import { relayMonitorSignals } from './monitors.relay.js';
 
 export type MonitorTickDeps = {
   db: Database;
   metrics: MetricsRepository;
   metricReads: MetricReads;
   monitorRuntime: MonitorRuntimeRepository;
+  signals: MonitorSignalsProducer;
 };
 
 type MonitorOutcome = 'skipped' | 'evaluated' | 'fired';
@@ -19,7 +21,7 @@ const TICK_BATCH_LIMIT = 500;
 export async function runMonitorTick(
   deps: MonitorTickDeps,
   now: Date,
-): Promise<{ evaluated: number; fired: number }> {
+): Promise<{ evaluated: number; fired: number; relayed: number }> {
   const due = await deps.monitorRuntime.listDueMonitors(now, TICK_BATCH_LIMIT);
   const nextEvalAt = new Date(now.getTime() + MONITOR_TICK_INTERVAL_MS);
   let evaluated = 0;
@@ -86,5 +88,10 @@ export async function runMonitorTick(
     if (outcome === 'fired') fired += 1;
   }
 
-  return { evaluated, fired };
+  const { relayed } = await relayMonitorSignals(
+    { monitorRuntime: deps.monitorRuntime, signals: deps.signals },
+    now,
+  );
+
+  return { evaluated, fired, relayed };
 }

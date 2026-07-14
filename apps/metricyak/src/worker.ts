@@ -1,4 +1,10 @@
-import { InProcessEventsProducer } from '@metricyak/queue';
+import {
+  BullMonitorSignalsProducer,
+  createProducerConnectionOptions,
+  InMemoryMonitorSignalsProducer,
+  InProcessEventsProducer,
+  type MonitorSignalsProducer,
+} from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
 import { assertSchemaReady } from './bootstrap/schema.js';
 import { registerShutdown } from './bootstrap/shutdown.js';
@@ -10,7 +16,10 @@ const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
 await assertSchemaReady(db);
 const producer = new InProcessEventsProducer(async () => {});
-const container = createContainer(db, producer);
+const signals: MonitorSignalsProducer = config.redisUrl
+  ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
+  : new InMemoryMonitorSignalsProducer();
+const container = createContainer(db, producer, signals);
 
 const closeWorkers = await startWorkers(container, config);
 

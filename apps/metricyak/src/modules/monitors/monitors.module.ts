@@ -1,7 +1,12 @@
-import { createMonitorTickWorker, registerMonitorTickScheduler } from '@metricyak/queue';
+import {
+  createMonitorSignalsWorker,
+  createMonitorTickWorker,
+  registerMonitorTickScheduler,
+} from '@metricyak/queue';
 import { createMetricReads } from '../aggregates/aggregates.reads.js';
 import type { AppModule, SchedulerFactory, WorkerFactory } from '../module.js';
 import monitorsRouter from './monitors.routes.js';
+import { processMonitorSignal } from './monitors.signals.worker.js';
 import { runMonitorTick } from './monitors.tick.js';
 
 const monitorTickWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
@@ -14,20 +19,25 @@ const monitorTickWorkerFactory: WorkerFactory = (connection, container, concurre
           metrics: container.repositories.metrics,
           metricReads: createMetricReads({ aggregates: container.aggregates }),
           monitorRuntime: container.repositories.monitorRuntime,
+          signals: container.signals,
         },
         new Date(),
       );
-      console.log(
-        JSON.stringify({ level: 'info', msg: 'monitor tick', ...result }),
-      );
+      console.log(JSON.stringify({ level: 'info', msg: 'monitor tick', ...result }));
     },
   });
 
 const monitorTickScheduler: SchedulerFactory = (connection) =>
   registerMonitorTickScheduler(connection);
 
+const monitorSignalsWorkerFactory: WorkerFactory = (connection, _container, concurrency) =>
+  createMonitorSignalsWorker(connection, {
+    concurrency,
+    process: (job) => processMonitorSignal(job.data),
+  });
+
 export const monitorsModule: AppModule = {
   routes: monitorsRouter,
-  workers: [monitorTickWorkerFactory],
+  workers: [monitorTickWorkerFactory, monitorSignalsWorkerFactory],
   schedulers: [monitorTickScheduler],
 };

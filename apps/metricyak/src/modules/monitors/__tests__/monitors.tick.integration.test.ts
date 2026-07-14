@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { InMemoryMonitorSignalsProducer } from '@metricyak/queue';
 import {
   AggregatesRepository,
   type Database,
@@ -105,6 +106,7 @@ describe('runMonitorTick (integration)', () => {
       metrics,
       metricReads: createMetricReads({ aggregates: new AggregatesRepository(db) }),
       monitorRuntime: new MonitorRuntimeRepository(db),
+      signals: new InMemoryMonitorSignalsProducer(),
     };
   });
 
@@ -113,12 +115,16 @@ describe('runMonitorTick (integration)', () => {
 
     const first = await runMonitorTick(deps, now);
     expect(first.fired).toBe(1);
+    expect(first.relayed).toBeGreaterThanOrEqual(1);
 
     const second = await runMonitorTick(deps, new Date(now.getTime() + 60_000));
     expect(second.fired).toBe(0);
 
-    const events = await deps.monitorRuntime.findUnrelayedEvents(10);
-    expect(events).toHaveLength(1);
+    const unrelayed = await deps.monitorRuntime.findUnrelayedEvents(10);
+    expect(unrelayed).toHaveLength(0);
+    const signals = deps.signals;
+    if (!(signals instanceof InMemoryMonitorSignalsProducer)) throw new Error('expected in-memory');
+    expect(signals.jobs).toHaveLength(1);
     const state = await deps.monitorRuntime.getState(monitorId, '$total');
     expect(state?.status).toBe('firing');
   });
@@ -147,8 +153,11 @@ describe('runMonitorTick (integration)', () => {
     const third = await runMonitorTick(deps, new Date(now.getTime() + 120_000));
     expect(third.fired).toBe(1);
 
-    const events = await deps.monitorRuntime.findUnrelayedEvents(10);
-    expect(events).toHaveLength(2);
+    const unrelayed = await deps.monitorRuntime.findUnrelayedEvents(10);
+    expect(unrelayed).toHaveLength(0);
+    const signals = deps.signals;
+    if (!(signals instanceof InMemoryMonitorSignalsProducer)) throw new Error('expected in-memory');
+    expect(signals.jobs).toHaveLength(2);
     const finalState = await deps.monitorRuntime.getState(monitorId, '$total');
     expect(finalState?.status).toBe('firing');
   });
