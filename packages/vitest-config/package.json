@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "vite-tsconfig-paths": "^6.1.1"
   }
 }
