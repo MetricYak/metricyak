@@ -110,6 +110,35 @@ describe('buildIngestDeltas', () => {
     );
     expect(deltas.find((d) => d.dimName === 'country')?.dimValue).toBe(OTHER_SENTINEL);
   });
+
+  it('resolves a nested $properties path for a dimension', () => {
+    const deltas = buildIngestDeltas(
+      [event({ geo: { country: 'US' } })],
+      matcher([target({ dimensions: ['$properties.geo.country'] })]),
+      keepAll,
+    );
+    const nested = deltas.find((d) => d.dimName === '$properties.geo.country');
+    expect(nested?.dimValue).toBe('US');
+  });
+
+  it('resolves an unprefixed nested dimension path', () => {
+    const deltas = buildIngestDeltas(
+      [event({ geo: { country: 'CA' } })],
+      matcher([target({ dimensions: ['geo.country'] })]),
+      keepAll,
+    );
+    const nested = deltas.find((d) => d.dimName === 'geo.country');
+    expect(nested?.dimValue).toBe('CA');
+  });
+
+  it('skips a dimension when an intermediate path segment is missing', () => {
+    const deltas = buildIngestDeltas(
+      [event({ geo: {} })],
+      matcher([target({ dimensions: ['geo.country'] })]),
+      keepAll,
+    );
+    expect(deltas.find((d) => d.dimName === 'geo.country')).toBeUndefined();
+  });
 });
 
 describe('collectDimensionCandidates', () => {
@@ -131,5 +160,15 @@ describe('collectDimensionCandidates', () => {
     const [candidate] = [...candidates.values()];
     const [value] = [...(candidate?.values ?? [])];
     expect(value?.length).toBe(256);
+  });
+
+  it('resolves nested $properties paths when collecting candidates', () => {
+    const candidates = collectDimensionCandidates(
+      [event({ geo: { country: 'US' } }), event({ geo: { country: 'CA' } })],
+      matcher([target({ dimensions: ['$properties.geo.country'] })]),
+    );
+    const [candidate] = [...candidates.values()];
+    expect(candidate?.dimName).toBe('$properties.geo.country');
+    expect([...(candidate?.values ?? [])].sort()).toEqual(['CA', 'US']);
   });
 });

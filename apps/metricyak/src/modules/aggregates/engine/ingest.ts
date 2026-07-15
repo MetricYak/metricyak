@@ -23,24 +23,27 @@ export function fieldPath(field: string): string[] {
   return path.split('.');
 }
 
+function resolvePath(properties: Record<string, unknown>, path: string): unknown {
+  let current: unknown = properties;
+  for (const segment of fieldPath(path)) {
+    if (current == null || typeof current !== 'object') return null;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
+}
+
 export function extractField(
   properties: Record<string, unknown>,
   field: string | null,
 ): number | null {
   if (field == null) return null;
 
-  let current: unknown = properties;
-  for (const segment of fieldPath(field)) {
-    if (current == null || typeof current !== 'object') return null;
-    current = (current as Record<string, unknown>)[segment];
-  }
-
-  const value = Number(current);
+  const value = Number(resolvePath(properties, field));
   return Number.isFinite(value) ? value : null;
 }
 
 function dimValueOf(properties: Record<string, unknown>, dimName: string): string | null {
-  const raw = properties[dimName];
+  const raw = resolvePath(properties, dimName);
   if (raw == null) return null;
   return String(raw).slice(0, MAX_DIM_VALUE_LENGTH);
 }
