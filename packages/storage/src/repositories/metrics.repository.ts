@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from '@/client.js';
 import {
   type MetricDefinition,
@@ -129,6 +129,29 @@ export class MetricsRepository {
       name: row.name,
       definition: row.definition,
     }));
+  }
+
+  async listForProject(projectId: string): Promise<MetricRecord[]> {
+    const rows = await this.db
+      .select({
+        id: metricDefinitions.id,
+        projectId: metricDefinitions.projectId,
+        version: metricDefinitionVersions.version,
+        name: metricDefinitionVersions.name,
+        description: metricDefinitionVersions.description,
+        definition: metricDefinitionVersions.definition,
+        createdAt: metricDefinitions.createdAt,
+        updatedAt: metricDefinitions.updatedAt,
+      })
+      .from(metricDefinitions)
+      .innerJoin(
+        metricDefinitionVersions,
+        eq(metricDefinitions.currentVersionId, metricDefinitionVersions.id),
+      )
+      .where(eq(metricDefinitions.projectId, projectId))
+      .orderBy(desc(metricDefinitions.createdAt));
+
+    return rows;
   }
 
   async create(input: CreateMetricInput): Promise<MetricRecord> {

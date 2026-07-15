@@ -5,6 +5,10 @@ import {
   ActivityLiveView,
   ActivityPage,
 } from './components/activity/ActivityPage';
+import { CreateMetricPage } from './components/metrics/create/CreateMetricPage';
+import { MetricDefinitionDetailPage } from './components/metrics/definitions/MetricDefinitionDetailPage';
+import { MetricDefinitionsPage } from './components/metrics/definitions/MetricDefinitionsPage';
+import { MetricsPage } from './components/metrics/MetricsPage';
 import { ProjectGeneralPage } from './components/settings/pages/ProjectGeneralPage';
 import { ProjectKeysPage } from './components/settings/pages/ProjectKeysPage';
 import { SettingsPage } from './components/settings/SettingsPage';
@@ -29,11 +33,17 @@ export const router = createBrowserRouter([
       },
       {
         path: 'metrics',
-        element: <Outlet />,
         children: [
-          { index: true, element: <PlaceholderPage title="Metrics · Overview" /> },
-          { path: 'definitions', element: <PlaceholderPage title="Metrics · Definitions" /> },
-          { path: 'explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
+          {
+            element: <MetricsPage />,
+            children: [
+              { index: true, element: <Navigate to="/metrics/definitions" replace /> },
+              { path: 'definitions', element: <MetricDefinitionsPage /> },
+              { path: 'explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
+            ],
+          },
+          { path: 'definitions/new', element: <CreateMetricPage /> },
+          { path: 'definitions/:metricId', element: <MetricDefinitionDetailPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
