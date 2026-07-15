@@ -1,9 +1,9 @@
 import { and, asc, eq, inArray, isNull, lte } from 'drizzle-orm';
-import type { Database, Executor } from '../client.js';
-import { type MonitorEventType, monitorEvents } from '../schema/monitor-events.js';
-import { type MonitorStatus, monitorState } from '../schema/monitor-state.js';
-import { type MonitorThresholdCondition, monitors } from '../schema/monitors.js';
-import type { MonitorRecord } from './monitors.repository.js';
+import type { Database, Executor } from '@/client.js';
+import type { MonitorRecord } from '@/repositories/monitors.repository.js';
+import { type MonitorEventType, monitorEvents } from '@/schema/monitor-events.js';
+import { type MonitorStatus, monitorState } from '@/schema/monitor-state.js';
+import { type MonitorThresholdCondition, monitors } from '@/schema/monitors.js';
 
 export type MonitorEvalStateRow = {
   monitorId: string;

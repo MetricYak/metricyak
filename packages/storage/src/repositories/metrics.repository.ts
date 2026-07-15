@@ -1,10 +1,10 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import type { Database } from '../client.js';
+import type { Database } from '@/client.js';
 import {
   type MetricDefinition,
   metricDefinitions,
   metricDefinitionVersions,
-} from '../schema/metrics.js';
+} from '@/schema/metrics.js';
 
 export type CreateMetricInput = {
   projectId: string;

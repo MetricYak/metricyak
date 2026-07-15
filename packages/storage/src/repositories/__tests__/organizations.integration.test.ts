@@ -5,8 +5,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import * as schema from '../../schema/index.js';
-import { OrganizationsRepository } from '../organizations.repository.js';
+import { OrganizationsRepository } from '@/repositories/organizations.repository.js';
+import * as schema from '@/schema/index.js';
 
 const migrationsFolder = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

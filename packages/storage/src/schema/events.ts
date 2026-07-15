@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, jsonb, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
-import { projects } from './projects.js';
+import { projects } from '@/schema/projects.js';
 
 export const events = pgTable(
   'events',

@@ -7,7 +7,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { monitors } from './monitors.js';
+import { monitors } from '@/schema/monitors.js';
 
 export const MONITOR_STATUSES = ['ok', 'pending', 'firing'] as const;
 export type MonitorStatus = (typeof MONITOR_STATUSES)[number];

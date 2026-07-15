@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PG_CODES, pgErrorCode } from '../pg-error.js';
+import { PG_CODES, pgErrorCode } from '@/lib/pg-error.js';
 
 describe('pgErrorCode', () => {
   it('reads a pg code set directly on the error', () => {

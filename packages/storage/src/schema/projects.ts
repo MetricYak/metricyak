@@ -1,5 +1,5 @@
 import { index, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
-import { organizations } from './organizations.js';
+import { organizations } from '@/schema/organizations.js';
 
 export const projects = pgTable(
   'projects',

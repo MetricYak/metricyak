@@ -3,7 +3,7 @@ import {
   type BucketPartialDelta,
   sortBucketDeltas,
   sortDimensionEntries,
-} from '../aggregates.repository.js';
+} from '@/repositories/aggregates.repository.js';
 
 function delta(overrides: Partial<BucketPartialDelta>): BucketPartialDelta {
   return {

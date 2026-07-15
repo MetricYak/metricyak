@@ -1,5 +1,5 @@
 import { index, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
-import { projects } from './projects.js';
+import { projects } from '@/schema/projects.js';
 
 export const projectKeys = pgTable(
   'project_keys',

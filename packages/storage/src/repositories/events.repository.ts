@@ -1,5 +1,5 @@
-import type { Database, Executor } from '../client.js';
-import { events } from '../schema/events.js';
+import type { Database, Executor } from '@/client.js';
+import { events } from '@/schema/events.js';
 
 export type InsertEventRow = {
   id: string;

@@ -1,11 +1,11 @@
 import { and, eq } from 'drizzle-orm';
-import type { Database } from '../client.js';
+import type { Database } from '@/client.js';
 import {
   type MonitorMissingData,
   type MonitorScope,
   type MonitorThresholdCondition,
   monitors,
-} from '../schema/monitors.js';
+} from '@/schema/monitors.js';
 
 export type CreateMonitorInput = {
   projectId: string;

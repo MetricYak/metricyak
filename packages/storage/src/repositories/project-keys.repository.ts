@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import type { Database } from '../client.js';
-import { generatePublishableKey, hashKey } from '../lib/keys.js';
-import { projectKeys } from '../schema/project-keys.js';
+import type { Database } from '@/client.js';
+import { generatePublishableKey, hashKey } from '@/lib/keys.js';
+import { projectKeys } from '@/schema/project-keys.js';
 
 export type CreateProjectKeyInput = {
   projectId: string;
