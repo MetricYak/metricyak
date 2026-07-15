@@ -1,3 +1,3 @@
 import { defineBaseConfig } from '@metricyak/vitest-config';
 
-export default defineBaseConfig();
+export default defineBaseConfig(import.meta.dirname);

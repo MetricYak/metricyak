@@ -2,17 +2,15 @@ import path from 'node:path';
 import type { UserConfig } from 'vitest/config';
 import { defineConfig } from 'vitest/config';
 
-// `@/` resolves to the current package's own `src/`. vitest runs with the
-// package directory as cwd (via turbo / `pnpm --filter`), so this alias is
-// package-local without any per-package configuration.
-const aliasToSrc = { find: /^@\//, replacement: `${path.resolve(process.cwd(), 'src')}/` };
-
-export function defineBaseConfig(overrides?: UserConfig) {
+// `@/` resolves to the package's own `src/`. The caller passes its config
+// directory (`import.meta.dirname`), so resolution is independent of the
+// directory Vitest happens to be launched from.
+export function defineBaseConfig(packageDir: string, overrides?: UserConfig) {
   return defineConfig({
     ...overrides,
     resolve: {
       ...overrides?.resolve,
-      alias: [aliasToSrc],
+      alias: [{ find: /^@\//, replacement: `${path.resolve(packageDir, 'src')}/` }],
     },
     test: {
       environment: 'node',
