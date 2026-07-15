@@ -1,8 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse, NotFoundError } from '../../http/errors.js';
-import { respond } from '../../http/respond.js';
-import { createRouter } from '../../http/router.js';
-import { requireProject } from '../../http/scope.js';
+import { errorResponse, NotFoundError } from '@/http/errors.js';
+import { respond } from '@/http/respond.js';
+import { createRouter } from '@/http/router.js';
+import { requireProject } from '@/http/scope.js';
 import {
   CreateProjectKeyParams,
   CreateProjectKeyRequest,
@@ -11,7 +11,7 @@ import {
   ListProjectKeysResponse,
   RevokeProjectKeyParams,
   RevokeProjectKeyResponse,
-} from './keys.schemas.js';
+} from '@/modules/keys/keys.schemas.js';
 
 export const createProjectKeyRoute = createRoute({
   method: 'post',

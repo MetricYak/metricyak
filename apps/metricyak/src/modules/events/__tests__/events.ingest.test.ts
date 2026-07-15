@@ -7,8 +7,12 @@ import type {
 } from '@metricyak/storage';
 import { OTHER_SENTINEL, TOTAL_SENTINEL } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
-import type { MatcherMap, MatchTarget, MetricMatcher } from '../../aggregates/engine/matcher.js';
-import { createIngestPipeline } from '../events.ingest.js';
+import type {
+  MatcherMap,
+  MatchTarget,
+  MetricMatcher,
+} from '@/modules/aggregates/engine/matcher.js';
+import { createIngestPipeline } from '@/modules/events/events.ingest.js';
 
 type EventsStub = Pick<EventsRepository, 'insertBatch'>;
 type AggregatesStub = Pick<

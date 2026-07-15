@@ -1,7 +1,7 @@
 import type { MetricDefinition, PartialRow } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
-import { windowValues } from '../materialize.js';
+import { windowValues } from '@/modules/aggregates/engine/materialize.js';
 
 const bucket = new Date('2025-01-15T12:00:00.000Z');
 

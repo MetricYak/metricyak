@@ -1,15 +1,15 @@
 import { createRoute } from '@hono/zod-openapi';
-import { AppError, ERROR_TYPES, errorItem, errorResponse } from '../../http/errors.js';
-import { respond } from '../../http/respond.js';
-import { createRouter } from '../../http/router.js';
-import { orNotFound } from '../../http/scope.js';
+import { AppError, ERROR_TYPES, errorItem, errorResponse } from '@/http/errors.js';
+import { respond } from '@/http/respond.js';
+import { createRouter } from '@/http/router.js';
+import { orNotFound } from '@/http/scope.js';
 import {
   BreakdownQuery,
   BreakdownResponse,
   MetricParams,
   ValueQuery,
   ValueResponse,
-} from './aggregates.schemas.js';
+} from '@/modules/aggregates/aggregates.schemas.js';
 
 const valueRoute = createRoute({
   method: 'get',

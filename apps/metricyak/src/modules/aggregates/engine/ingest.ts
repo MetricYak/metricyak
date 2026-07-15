@@ -1,7 +1,7 @@
 import type { StoredEvent } from '@metricyak/queue';
 import { type BucketPartialDelta, TOTAL_SENTINEL } from '@metricyak/storage';
-import { floorToGranularity } from './bucketing.js';
-import type { MatcherMap, MatchTarget } from './matcher.js';
+import { floorToGranularity } from '@/modules/aggregates/engine/bucketing.js';
+import type { MatcherMap, MatchTarget } from '@/modules/aggregates/engine/matcher.js';
 
 export type DimResolver = (
   metricId: string,

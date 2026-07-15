@@ -7,8 +7,8 @@ import {
   type DimResolver,
   extractField,
   fieldPath,
-} from '../ingest.js';
-import type { MatcherMap, MatchTarget } from '../matcher.js';
+} from '@/modules/aggregates/engine/ingest.js';
+import type { MatcherMap, MatchTarget } from '@/modules/aggregates/engine/matcher.js';
 
 const keepAll: DimResolver = (_m, _v, _d, raw) => raw;
 

@@ -1,5 +1,5 @@
-import type { AppModule } from '../module.js';
-import aggregatesRouter from './aggregates.routes.js';
+import aggregatesRouter from '@/modules/aggregates/aggregates.routes.js';
+import type { AppModule } from '@/modules/module.js';
 
 export const aggregatesModule: AppModule = {
   routes: aggregatesRouter,

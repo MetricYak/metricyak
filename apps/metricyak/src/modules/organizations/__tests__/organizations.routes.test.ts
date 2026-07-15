@@ -6,8 +6,8 @@ import {
   OrganizationsRepository,
 } from '@metricyak/storage';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createApp } from '../../../app.js';
-import { type Container, createContainer } from '../../../container/container.js';
+import { createApp } from '@/app.js';
+import { type Container, createContainer } from '@/container/container.js';
 
 const fakeDatabase = {} as Database;
 

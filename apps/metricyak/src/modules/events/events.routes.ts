@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { createRoute } from '@hono/zod-openapi';
 import { computeBatchId } from '@metricyak/queue';
-import { errorResponse, UnauthorizedError } from '../../http/errors.js';
-import { createRouter } from '../../http/router.js';
-import { dropDuplicateInsertIds } from './events.dedup.js';
-import { IngestRequest, IngestResponse } from './events.schemas.js';
+import { errorResponse, UnauthorizedError } from '@/http/errors.js';
+import { createRouter } from '@/http/router.js';
+import { dropDuplicateInsertIds } from '@/modules/events/events.dedup.js';
+import { IngestRequest, IngestResponse } from '@/modules/events/events.schemas.js';
 
 export const ingestRoute = createRoute({
   method: 'post',

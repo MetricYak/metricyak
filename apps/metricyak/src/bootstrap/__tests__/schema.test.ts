@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertSchemaReady } from '../schema.js';
+import { assertSchemaReady } from '@/bootstrap/schema.js';
 
 describe('assertSchemaReady', () => {
   it('resolves when the query succeeds', async () => {

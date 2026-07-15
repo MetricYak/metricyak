@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreateMetricRequest } from '../metrics.schemas.js';
+import { CreateMetricRequest } from '@/modules/metrics/metrics.schemas.js';
 
 const parse = (definition: unknown) =>
   CreateMetricRequest.safeParse({ name: 'Metric', definition });

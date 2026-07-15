@@ -10,10 +10,10 @@ import {
   errorResponse,
   NotFoundError,
   ValidationError,
-} from '../../http/errors.js';
-import { respond } from '../../http/respond.js';
-import { createRouter } from '../../http/router.js';
-import { orNotFound, requireProject } from '../../http/scope.js';
+} from '@/http/errors.js';
+import { respond } from '@/http/respond.js';
+import { createRouter } from '@/http/router.js';
+import { orNotFound, requireProject } from '@/http/scope.js';
 import {
   CreateMonitorRequest,
   DeleteMonitorResponse,
@@ -24,7 +24,7 @@ import {
   metricYieldsIntegerValues,
   ProjectScopedParams,
   UpdateMonitorRequest,
-} from './monitors.schemas.js';
+} from '@/modules/monitors/monitors.schemas.js';
 
 function toMonitorResponse(record: MonitorRecord): z.input<typeof MonitorResponse> {
   return {

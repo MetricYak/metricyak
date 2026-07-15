@@ -1,12 +1,12 @@
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse } from '../../http/errors.js';
-import { respond } from '../../http/respond.js';
-import { createRouter } from '../../http/router.js';
+import { errorResponse } from '@/http/errors.js';
+import { respond } from '@/http/respond.js';
+import { createRouter } from '@/http/router.js';
 import {
   CreateOrganizationRequest,
   CreateOrganizationResponse,
   ListOrganizationsResponse,
-} from './organizations.schemas.js';
+} from '@/modules/organizations/organizations.schemas.js';
 
 export const listOrganizationsRoute = createRoute({
   method: 'get',

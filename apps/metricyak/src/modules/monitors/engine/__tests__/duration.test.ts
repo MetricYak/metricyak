@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseDuration } from '../duration.js';
+import { parseDuration } from '@/modules/monitors/engine/duration.js';
 
 describe('parseDuration', () => {
   it('parses each unit into milliseconds', () => {

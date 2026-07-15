@@ -1,13 +1,13 @@
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse } from '../../http/errors.js';
-import { respond } from '../../http/respond.js';
-import { createRouter } from '../../http/router.js';
-import { requireProject } from '../../http/scope.js';
+import { errorResponse } from '@/http/errors.js';
+import { respond } from '@/http/respond.js';
+import { createRouter } from '@/http/router.js';
+import { requireProject } from '@/http/scope.js';
 import {
   CreateMetricParams,
   CreateMetricRequest,
   CreateMetricResponse,
-} from './metrics.schemas.js';
+} from '@/modules/metrics/metrics.schemas.js';
 
 export const createMetricRoute = createRoute({
   method: 'post',

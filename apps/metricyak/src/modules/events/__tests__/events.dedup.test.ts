@@ -1,6 +1,6 @@
 import type { StoredEvent } from '@metricyak/queue';
 import { describe, expect, it } from 'vitest';
-import { dropDuplicateInsertIds } from '../events.dedup.js';
+import { dropDuplicateInsertIds } from '@/modules/events/events.dedup.js';
 
 const event = (id: string, insertId: string | null): StoredEvent => ({
   id,

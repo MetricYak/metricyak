@@ -8,13 +8,13 @@ import {
   type MonitorSignalsProducer,
 } from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
-import { createApp } from './app.js';
-import { startHttpServer } from './bootstrap/http.js';
-import { assertSchemaReady } from './bootstrap/schema.js';
-import { registerShutdown } from './bootstrap/shutdown.js';
-import { startWorkers } from './bootstrap/workers.js';
-import { loadConfig } from './config.js';
-import { type Container, createContainer } from './container/container.js';
+import { createApp } from '@/app.js';
+import { startHttpServer } from '@/bootstrap/http.js';
+import { assertSchemaReady } from '@/bootstrap/schema.js';
+import { registerShutdown } from '@/bootstrap/shutdown.js';
+import { startWorkers } from '@/bootstrap/workers.js';
+import { loadConfig } from '@/config.js';
+import { type Container, createContainer } from '@/container/container.js';
 
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);

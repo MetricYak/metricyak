@@ -1,7 +1,7 @@
 import { createWorkerConnectionOptions, type Job, type Worker } from '@metricyak/queue';
-import type { Config } from '../config.js';
-import type { Container } from '../container/container.js';
-import { modules } from '../modules/index.js';
+import type { Config } from '@/config.js';
+import type { Container } from '@/container/container.js';
+import { modules } from '@/modules/index.js';
 
 export async function startWorkers(
   container: Container,

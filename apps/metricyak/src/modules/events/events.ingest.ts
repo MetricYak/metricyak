@@ -10,8 +10,8 @@ import {
   buildIngestDeltas,
   collectDimensionCandidates,
   type DimResolver,
-} from '../aggregates/engine/ingest.js';
-import type { MetricMatcher } from '../aggregates/engine/matcher.js';
+} from '@/modules/aggregates/engine/ingest.js';
+import type { MetricMatcher } from '@/modules/aggregates/engine/matcher.js';
 
 const MAX_DECLARED_DIM_CARDINALITY = 1000;
 
