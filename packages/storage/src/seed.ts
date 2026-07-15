@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { createDatabase, type Database } from './client.js';
-import { hashKey } from './lib/keys.js';
-import { organizations, projectKeys, projects } from './schema/index.js';
+import { createDatabase, type Database } from '@/client.js';
+import { hashKey } from '@/lib/keys.js';
+import { organizations, projectKeys, projects } from '@/schema/index.js';
 
 const ROOT_ENV = '../../.env';
 

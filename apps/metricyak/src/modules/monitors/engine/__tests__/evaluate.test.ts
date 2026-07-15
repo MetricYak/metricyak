@@ -1,6 +1,6 @@
 import type { MonitorThresholdCondition } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
-import { evaluateMonitor, type MonitorEvalState } from '../evaluate.js';
+import { evaluateMonitor, type MonitorEvalState } from '@/modules/monitors/engine/evaluate.js';
 
 const lt5000: MonitorThresholdCondition = { operator: 'lt', value: 5000 };
 const ok: MonitorEvalState = { status: 'ok', breachedSince: null };

@@ -12,8 +12,8 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch --preserveWatchOutput",
+    "build": "tsc && tsc-alias",
+    "dev": "tsc-watch --onSuccess \"tsc-alias\"",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -23,6 +23,8 @@
   "devDependencies": {
     "@metricyak/typescript-config": "workspace:*",
     "@types/node": "catalog:",
+    "tsc-alias": "^1.9.1",
+    "tsc-watch": "^7.2.1",
     "typescript": "catalog:"
   }
 }

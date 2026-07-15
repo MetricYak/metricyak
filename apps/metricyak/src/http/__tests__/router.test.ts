@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRouter } from '../router.js';
+import { createRouter } from '@/http/router.js';
 
 describe('createRouter onError', () => {
   it('maps an unhandled unique-violation pg error to a 409', async () => {

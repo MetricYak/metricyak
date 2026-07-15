@@ -1,8 +1,8 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { PG_CODES, pgErrorCode } from '@metricyak/storage';
 import { HTTPException } from 'hono/http-exception';
-import type { AppEnv } from '../container/container.js';
-import { AppError, ConflictError, ERROR_TYPES, errorItem, ValidationError } from './errors.js';
+import type { AppEnv } from '@/container/container.js';
+import { AppError, ConflictError, ERROR_TYPES, errorItem, ValidationError } from '@/http/errors.js';
 
 export function createRouter() {
   const router = new OpenAPIHono<AppEnv>({

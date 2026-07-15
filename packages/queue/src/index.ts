@@ -1,5 +1,5 @@
 export type { ConnectionOptions, Job, Worker } from 'bullmq';
-export { createProducerConnectionOptions, createWorkerConnectionOptions } from './connection.js';
+export { createProducerConnectionOptions, createWorkerConnectionOptions } from '@/connection.js';
 export {
   BullEventsProducer,
   BullMonitorSignalsProducer,
@@ -9,7 +9,7 @@ export {
   InMemoryMonitorSignalsProducer,
   InProcessEventsProducer,
   type MonitorSignalsProducer,
-} from './producer.js';
+} from '@/producer.js';
 export {
   computeBatchId,
   EVENTS_QUEUE,
@@ -20,7 +20,7 @@ export {
   type MonitorSignalJob,
   type MonitorTickJob,
   type StoredEvent,
-} from './queues.js';
+} from '@/queues.js';
 export {
   createEventsWorker,
   createMonitorSignalsWorker,
@@ -29,4 +29,4 @@ export {
   type MonitorSignalsWorkerOptions,
   type MonitorTickWorkerOptions,
   registerMonitorTickScheduler,
-} from './worker-factory.js';
+} from '@/worker-factory.js';

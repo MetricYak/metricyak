@@ -19,8 +19,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMetricReads } from '../../aggregates/aggregates.reads.js';
-import { type MonitorTickDeps, runMonitorTick } from '../monitors.tick.js';
+import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
+import { type MonitorTickDeps, runMonitorTick } from '@/modules/monitors/monitors.tick.js';
 
 const migrationsFolder = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

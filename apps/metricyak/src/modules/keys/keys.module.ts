@@ -1,5 +1,5 @@
-import type { AppModule } from '../module.js';
-import keysRouter from './keys.routes.js';
+import keysRouter from '@/modules/keys/keys.routes.js';
+import type { AppModule } from '@/modules/module.js';
 
 export const keysModule: AppModule = {
   routes: keysRouter,

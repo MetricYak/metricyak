@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { addGranularity, dayStart, floorToGranularity } from '../bucketing.js';
+import {
+  addGranularity,
+  dayStart,
+  floorToGranularity,
+} from '@/modules/aggregates/engine/bucketing.js';
 
 const at = (iso: string): Date => new Date(iso);
 

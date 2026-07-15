@@ -1,7 +1,7 @@
 import type { AggregatesRepository, MetricEvent, MetricSummary } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
-import { fieldPath } from './engine/ingest.js';
-import { aggregateScalar, windowValues } from './engine/materialize.js';
+import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
+import { aggregateScalar, windowValues } from '@/modules/aggregates/engine/materialize.js';
 
 const GRANULARITY = 'minute' as const;
 

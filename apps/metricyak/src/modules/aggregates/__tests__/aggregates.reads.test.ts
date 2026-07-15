@@ -6,7 +6,7 @@ import type {
 } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
-import { createMetricReads } from '../aggregates.reads.js';
+import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
 
 type AggregatesStub = Pick<AggregatesRepository, 'getPartials' | 'rawBreakdown'>;
 

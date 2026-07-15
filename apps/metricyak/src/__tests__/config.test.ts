@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseConfig } from '../config.js';
+import { parseConfig } from '@/config.js';
 
 const base = { RUN_WORKER_INLINE: 'true' };
 

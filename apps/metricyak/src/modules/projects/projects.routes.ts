@@ -1,8 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
-import { errorResponse } from '../../http/errors.js';
-import { respond } from '../../http/respond.js';
-import { createRouter } from '../../http/router.js';
-import { orNotFound } from '../../http/scope.js';
+import { errorResponse } from '@/http/errors.js';
+import { respond } from '@/http/respond.js';
+import { createRouter } from '@/http/router.js';
+import { orNotFound } from '@/http/scope.js';
 import {
   CreateProjectParams,
   CreateProjectRequest,
@@ -12,7 +12,7 @@ import {
   UpdateProjectParams,
   UpdateProjectRequest,
   UpdateProjectResponse,
-} from './projects.schemas.js';
+} from '@/modules/projects/projects.schemas.js';
 
 export const listProjectsRoute = createRoute({
   method: 'get',

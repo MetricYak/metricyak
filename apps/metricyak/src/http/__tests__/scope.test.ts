@@ -1,7 +1,7 @@
 import type { ProjectRecord } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
-import { NotFoundError } from '../errors.js';
-import { orNotFound, requireProject } from '../scope.js';
+import { NotFoundError } from '@/http/errors.js';
+import { orNotFound, requireProject } from '@/http/scope.js';
 
 const project: ProjectRecord = {
   id: 'p1',

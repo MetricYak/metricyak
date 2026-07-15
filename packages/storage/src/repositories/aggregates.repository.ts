@@ -1,13 +1,13 @@
 import { and, eq, gte, inArray, lt, type SQL, sql } from 'drizzle-orm';
-import type { Database, Executor } from '../client.js';
+import type { Database, Executor } from '@/client.js';
 import {
   aggregationBatches,
   type BucketGranularity,
   metricBuckets,
   metricDimensionValues,
   OTHER_SENTINEL,
-} from '../schema/aggregates.js';
-import { events } from '../schema/events.js';
+} from '@/schema/aggregates.js';
+import { events } from '@/schema/events.js';
 
 export type BucketPartialDelta = {
   metricId: string;

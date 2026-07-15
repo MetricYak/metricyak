@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
-import type { Database } from '../client.js';
-import { PG_CODES, pgErrorCode } from '../lib/pg-error.js';
-import { slugify } from '../lib/slug.js';
-import { organizations } from '../schema/organizations.js';
+import type { Database } from '@/client.js';
+import { PG_CODES, pgErrorCode } from '@/lib/pg-error.js';
+import { slugify } from '@/lib/slug.js';
+import { organizations } from '@/schema/organizations.js';
 
 export type OrganizationRecord = {
   id: string;

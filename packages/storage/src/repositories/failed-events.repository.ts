@@ -1,5 +1,5 @@
-import type { Database } from '../client.js';
-import { type FailedEventPayload, failedEvents } from '../schema/failed-events.js';
+import type { Database } from '@/client.js';
+import { type FailedEventPayload, failedEvents } from '@/schema/failed-events.js';
 
 export type RecordFailedEventInput = {
   queue: string;

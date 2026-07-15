@@ -3,10 +3,10 @@ import {
   createMonitorTickWorker,
   registerMonitorTickScheduler,
 } from '@metricyak/queue';
-import type { AppModule, SchedulerFactory, WorkerFactory } from '../module.js';
-import monitorsRouter from './monitors.routes.js';
-import { processMonitorSignal } from './monitors.signals.worker.js';
-import { runMonitorTick } from './monitors.tick.js';
+import type { AppModule, SchedulerFactory, WorkerFactory } from '@/modules/module.js';
+import monitorsRouter from '@/modules/monitors/monitors.routes.js';
+import { processMonitorSignal } from '@/modules/monitors/monitors.signals.worker.js';
+import { runMonitorTick } from '@/modules/monitors/monitors.tick.js';
 
 const monitorTickWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
   createMonitorTickWorker(connection, {

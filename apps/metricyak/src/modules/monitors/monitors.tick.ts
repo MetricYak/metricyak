@@ -1,10 +1,10 @@
 import { MONITOR_TICK_INTERVAL_MS, type MonitorSignalsProducer } from '@metricyak/queue';
 import type { Database, MetricsRepository, MonitorRuntimeRepository } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
-import type { MetricReads } from '../aggregates/aggregates.reads.js';
-import { parseDuration } from './engine/duration.js';
-import { evaluateMonitor, type MonitorEvalState } from './engine/evaluate.js';
-import { relayMonitorSignals } from './monitors.relay.js';
+import type { MetricReads } from '@/modules/aggregates/aggregates.reads.js';
+import { parseDuration } from '@/modules/monitors/engine/duration.js';
+import { evaluateMonitor, type MonitorEvalState } from '@/modules/monitors/engine/evaluate.js';
+import { relayMonitorSignals } from '@/modules/monitors/monitors.relay.js';
 
 export type MonitorTickDeps = {
   db: Database;

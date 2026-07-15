@@ -1,8 +1,8 @@
 import { logger } from 'hono/logger';
-import type { Container } from './container/container.js';
-import { createRouter } from './http/router.js';
-import { modules } from './modules/index.js';
-import health from './routes/health.js';
+import type { Container } from '@/container/container.js';
+import { createRouter } from '@/http/router.js';
+import { modules } from '@/modules/index.js';
+import health from '@/routes/health.js';
 
 export function createApp(container: Container) {
   const app = createRouter();

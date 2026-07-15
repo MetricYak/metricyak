@@ -1,5 +1,5 @@
 import type { ProjectRecord, ProjectsRepository } from '@metricyak/storage';
-import { NotFoundError } from './errors.js';
+import { NotFoundError } from '@/http/errors.js';
 
 export function orNotFound<T>(value: T | null | undefined, message: string): T {
   if (value == null) throw new NotFoundError(message);

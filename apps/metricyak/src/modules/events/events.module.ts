@@ -1,6 +1,6 @@
 import { createEventsWorker, EVENTS_QUEUE } from '@metricyak/queue';
-import type { AppModule, WorkerFactory } from '../module.js';
-import eventsRouter from './events.routes.js';
+import eventsRouter from '@/modules/events/events.routes.js';
+import type { AppModule, WorkerFactory } from '@/modules/module.js';
 
 const eventsWorkerFactory: WorkerFactory = (connection, container, concurrency) => {
   const worker = createEventsWorker(connection, {

@@ -10,7 +10,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { projects } from './projects.js';
+import { projects } from '@/schema/projects.js';
 
 export const METRIC_AGGREGATIONS = ['count', 'sum', 'average', 'min', 'max'] as const;
 

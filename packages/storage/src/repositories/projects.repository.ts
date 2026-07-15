@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
-import type { Database } from '../client.js';
-import { projects } from '../schema/projects.js';
+import type { Database } from '@/client.js';
+import { projects } from '@/schema/projects.js';
 
 export type CreateProjectInput = {
   organizationId: string;

@@ -5,7 +5,7 @@ import {
   isEqualityOperator,
   metricYieldsIntegerValues,
   UpdateMonitorRequest,
-} from '../monitors.schemas.js';
+} from '@/modules/monitors/monitors.schemas.js';
 
 const metricId = 'd6ceaf26-fd71-4c38-90f1-2de20b946d00';
 

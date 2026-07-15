@@ -67,6 +67,7 @@ One class per domain entity: `EventsRepository`, `FailedEventsRepository`, `Metr
 Strict by default. The shared `@metricyak/typescript-config/base` enables `strict`, **`noUncheckedIndexedAccess`**, `noUnusedLocals`, `noUnusedParameters`, and `forceConsistentCasingInFileNames`. Every package extends it.
 
 - **ESM imports use explicit `.js` extensions** on relative paths, even from `.ts` files (`import { x } from './x.js'`) — required by `NodeNext` resolution.
+- **Intra-package imports use the `@/` alias** (`import { x } from '@/modules/foo.js'`), not relative paths, where `@/` is the current package's `src/`. The `.js` extension still applies. Cross-package imports use the package name (`@metricyak/storage`). Type-checking resolves `@/` via tsconfig `paths`; `tsc-alias` rewrites `@/` to relative paths in `dist/` at build time so `node dist/` runs with no alias resolver, and vitest resolves it via a `resolve.alias` in the shared config.
 - **No `any`.** Biome errors on it. Use `unknown` + narrowing, a proper interface, or a generic.
 - **No `as` casts**, except `as const` and a *single, documented* boundary cast centralized in a helper. Never `as unknown as`. Avoid non-null `!` (Biome warns) — guard or narrow instead.
 - **Explicit return types on all exported functions.** Don't rely on inference for the public contract.

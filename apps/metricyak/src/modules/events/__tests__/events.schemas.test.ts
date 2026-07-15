@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IngestEvent } from '../events.schemas.js';
+import { IngestEvent } from '@/modules/events/events.schemas.js';
 
 describe('IngestEvent', () => {
   it('accepts an event name at the 255-character limit', () => {

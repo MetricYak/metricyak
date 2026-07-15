@@ -8,7 +8,7 @@ import {
   MONITOR_TICK_QUEUE,
   type MonitorSignalJob,
   type MonitorTickJob,
-} from './queues.js';
+} from '@/queues.js';
 
 export type EventWorkerOptions = {
   concurrency: number;

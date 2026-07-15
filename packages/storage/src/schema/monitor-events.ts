@@ -8,8 +8,8 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import type { MonitorThresholdCondition } from './monitors.js';
-import { monitors } from './monitors.js';
+import type { MonitorThresholdCondition } from '@/schema/monitors.js';
+import { monitors } from '@/schema/monitors.js';
 
 export const MONITOR_EVENT_TYPES = ['fired'] as const;
 export type MonitorEventType = (typeof MONITOR_EVENT_TYPES)[number];

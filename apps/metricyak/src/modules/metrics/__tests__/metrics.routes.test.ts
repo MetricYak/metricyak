@@ -2,8 +2,8 @@ import { InMemoryEventsProducer, InMemoryMonitorSignalsProducer } from '@metricy
 import type { CreateMetricInput, Database, MetricRecord, ProjectRecord } from '@metricyak/storage';
 import { MetricsRepository, ProjectsRepository } from '@metricyak/storage';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createApp } from '../../../app.js';
-import { type Container, createContainer } from '../../../container/container.js';
+import { createApp } from '@/app.js';
+import { type Container, createContainer } from '@/container/container.js';
 
 const fakeDatabase = {} as Database;
 const projectId = '00000000-0000-4000-8000-0000000000f2';

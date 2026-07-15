@@ -1,5 +1,5 @@
 import type { MetricAggregation, MetricDefinition, PartialRow } from '@metricyak/storage';
-import { evaluateExpression, parseExpression } from './expression.js';
+import { evaluateExpression, parseExpression } from '@/modules/aggregates/engine/expression.js';
 
 export type AggregateSample = {
   count: number;

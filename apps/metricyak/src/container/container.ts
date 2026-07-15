@@ -11,13 +11,13 @@ import {
   ProjectKeysRepository,
   ProjectsRepository,
 } from '@metricyak/storage';
-import { createMetricReads, type MetricReads } from '../modules/aggregates/aggregates.reads.js';
-import { MetricMatcher } from '../modules/aggregates/engine/matcher.js';
+import { createMetricReads, type MetricReads } from '@/modules/aggregates/aggregates.reads.js';
+import { MetricMatcher } from '@/modules/aggregates/engine/matcher.js';
 import {
   createIngestPipeline,
   type IngestPipeline,
   type RunInTransaction,
-} from '../modules/events/events.ingest.js';
+} from '@/modules/events/events.ingest.js';
 
 export type Repositories = {
   readonly projectKeys: ProjectKeysRepository;

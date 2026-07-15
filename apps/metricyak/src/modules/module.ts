@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { ConnectionOptions, Worker } from '@metricyak/queue';
-import type { AppEnv, Container } from '../container/container.js';
+import type { AppEnv, Container } from '@/container/container.js';
 
 export type WorkerFactory = (
   connection: ConnectionOptions,

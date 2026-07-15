@@ -5,7 +5,7 @@ import {
   expressionSymbols,
   expressionVariables,
   parseExpression,
-} from '../expression.js';
+} from '@/modules/aggregates/engine/expression.js';
 
 const resolveFrom =
   (values: Record<string, number | null>) =>

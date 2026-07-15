@@ -8,8 +8,8 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { metricDefinitions } from './metrics.js';
-import { projects } from './projects.js';
+import { metricDefinitions } from '@/schema/metrics.js';
+import { projects } from '@/schema/projects.js';
 
 export const MONITOR_MISSING_DATA = ['skip', 'zero', 'fire'] as const;
 

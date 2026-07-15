@@ -5,7 +5,7 @@ import {
   type EventBatchJob,
   MONITOR_SIGNALS_QUEUE,
   type MonitorSignalJob,
-} from './queues.js';
+} from '@/queues.js';
 
 export interface EventsProducer {
   enqueue(job: EventBatchJob): Promise<void>;

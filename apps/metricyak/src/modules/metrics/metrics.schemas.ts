@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { METRIC_AGGREGATIONS } from '@metricyak/storage';
-import { expressionVariables, parseExpression } from '../aggregates/engine/expression.js';
+import { expressionVariables, parseExpression } from '@/modules/aggregates/engine/expression.js';
 
 export const CreateMetricParams = z.object({
   projectId: z.uuid().openapi({
