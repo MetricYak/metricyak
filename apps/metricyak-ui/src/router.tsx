@@ -1,17 +1,5 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { App } from './App';
-import {
-  ActivityExploreView,
-  ActivityLiveView,
-  ActivityPage,
-} from './components/activity/ActivityPage';
-import { CreateMetricPage } from './components/metrics/create/CreateMetricPage';
-import { MetricDefinitionDetailPage } from './components/metrics/definitions/MetricDefinitionDetailPage';
-import { MetricDefinitionsPage } from './components/metrics/definitions/MetricDefinitionsPage';
-import { MetricsPage } from './components/metrics/MetricsPage';
-import { ProjectGeneralPage } from './components/settings/pages/ProjectGeneralPage';
-import { ProjectKeysPage } from './components/settings/pages/ProjectKeysPage';
-import { SettingsPage } from './components/settings/SettingsPage';
 import { NotFoundPage } from './components/shell/NotFoundPage';
 import { PlaceholderPage } from './components/shell/PlaceholderPage';
 
@@ -23,11 +11,23 @@ export const router = createBrowserRouter([
       { index: true, element: <PlaceholderPage title="Dashboard" /> },
       {
         path: 'activity',
-        element: <ActivityPage />,
+        lazy: async () => ({
+          Component: (await import('./components/activity/ActivityPage')).ActivityPage,
+        }),
         children: [
           { index: true, element: <Navigate to="/activity/live" replace /> },
-          { path: 'live', element: <ActivityLiveView /> },
-          { path: 'explore', element: <ActivityExploreView /> },
+          {
+            path: 'live',
+            lazy: async () => ({
+              Component: (await import('./components/activity/ActivityPage')).ActivityLiveView,
+            }),
+          },
+          {
+            path: 'explore',
+            lazy: async () => ({
+              Component: (await import('./components/activity/ActivityPage')).ActivityExploreView,
+            }),
+          },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
@@ -35,15 +35,37 @@ export const router = createBrowserRouter([
         path: 'metrics',
         children: [
           {
-            element: <MetricsPage />,
+            lazy: async () => ({
+              Component: (await import('./components/metrics/MetricsPage')).MetricsPage,
+            }),
             children: [
               { index: true, element: <Navigate to="/metrics/definitions" replace /> },
-              { path: 'definitions', element: <MetricDefinitionsPage /> },
+              {
+                path: 'definitions',
+                lazy: async () => ({
+                  Component: (
+                    await import('./components/metrics/definitions/MetricDefinitionsPage')
+                  ).MetricDefinitionsPage,
+                }),
+              },
               { path: 'explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
             ],
           },
-          { path: 'definitions/new', element: <CreateMetricPage /> },
-          { path: 'definitions/:metricId', element: <MetricDefinitionDetailPage /> },
+          {
+            path: 'definitions/new',
+            lazy: async () => ({
+              Component: (await import('./components/metrics/create/CreateMetricPage'))
+                .CreateMetricPage,
+            }),
+          },
+          {
+            path: 'definitions/:metricId',
+            lazy: async () => ({
+              Component: (
+                await import('./components/metrics/definitions/MetricDefinitionDetailPage')
+              ).MetricDefinitionDetailPage,
+            }),
+          },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
@@ -58,15 +80,29 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <SettingsPage />,
+        lazy: async () => ({
+          Component: (await import('./components/settings/SettingsPage')).SettingsPage,
+        }),
         children: [
           { index: true, element: <Navigate to="/settings/project/general" replace /> },
           {
             path: 'project',
             children: [
               { index: true, element: <Navigate to="/settings/project/general" replace /> },
-              { path: 'general', element: <ProjectGeneralPage /> },
-              { path: 'keys', element: <ProjectKeysPage /> },
+              {
+                path: 'general',
+                lazy: async () => ({
+                  Component: (await import('./components/settings/pages/ProjectGeneralPage'))
+                    .ProjectGeneralPage,
+                }),
+              },
+              {
+                path: 'keys',
+                lazy: async () => ({
+                  Component: (await import('./components/settings/pages/ProjectKeysPage'))
+                    .ProjectKeysPage,
+                }),
+              },
             ],
           },
           { path: '*', element: <NotFoundPage /> },

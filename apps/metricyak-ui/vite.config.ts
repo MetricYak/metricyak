@@ -19,4 +19,27 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split large, rarely-changing vendors into their own cacheable chunks
+        // so an app-code change doesn't bust them, and the browser can fetch
+        // them in parallel with the entry.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('/motion/')) return 'motion';
+          if (id.includes('/radix-ui/')) return 'radix';
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/react-router') ||
+            id.includes('/scheduler/')
+          ) {
+            return 'react';
+          }
+          return undefined;
+        },
+      },
+    },
+  },
 });
