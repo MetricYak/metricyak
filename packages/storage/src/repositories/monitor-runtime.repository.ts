@@ -1,6 +1,8 @@
 import { and, asc, eq, inArray, isNull, lte } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
+import { MONITOR_EVAL_FAILURE_THRESHOLD, monitorEvalBackoffMs } from '@/lib/monitor-health.js';
 import type { MonitorRecord } from '@/repositories/monitors.repository.js';
+import { TOTAL_SENTINEL } from '@/schema/aggregates.js';
 import { type MonitorEventType, monitorEvents } from '@/schema/monitor-events.js';
 import { type MonitorStatus, monitorState } from '@/schema/monitor-state.js';
 import { type MonitorThresholdCondition, monitors } from '@/schema/monitors.js';
@@ -70,6 +72,76 @@ export class MonitorRuntimeRepository {
       .for('update')
       .limit(1);
     return monitor ?? null;
+  }
+
+  /**
+   * Record a failed eval slot. Runs in its own transaction because the eval
+   * transaction has already rolled back. If this write itself fails (e.g. a
+   * global DB outage — the same failure that broke the eval), the counter does
+   * not advance, so a global outage never produces a per-monitor incident.
+   */
+  async recordEvalFailure(monitorId: string, error: string, now: Date): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ consecutiveFailures: monitors.consecutiveFailures })
+        .from(monitors)
+        .where(eq(monitors.id, monitorId))
+        .for('update')
+        .limit(1);
+      if (!row) return;
+
+      const next = row.consecutiveFailures + 1;
+      const set: {
+        consecutiveFailures: number;
+        lastEvalError: string;
+        lastEvalErrorAt: Date;
+        evalHealth?: 'error';
+        nextEvalAt?: Date;
+      } = {
+        consecutiveFailures: next,
+        lastEvalError: error.slice(0, 2000),
+        lastEvalErrorAt: now,
+      };
+      if (next >= MONITOR_EVAL_FAILURE_THRESHOLD) {
+        set.evalHealth = 'error';
+        set.nextEvalAt = new Date(now.getTime() + monitorEvalBackoffMs(next));
+      }
+      await tx.update(monitors).set(set).where(eq(monitors.id, monitorId));
+    });
+  }
+
+  /** Clear eval-failure health after a successful eval. */
+  async resetEvalHealth(monitorId: string, executor: Executor = this.db): Promise<void> {
+    await executor
+      .update(monitors)
+      .set({
+        consecutiveFailures: 0,
+        evalHealth: 'ok',
+        lastEvalError: null,
+        lastEvalErrorAt: null,
+      })
+      .where(eq(monitors.id, monitorId));
+  }
+
+  /** Last successful eval time per monitor (the `$total` series), for staleness. */
+  async getLastEvaluatedAt(
+    monitorIds: readonly string[],
+    executor: Executor = this.db,
+  ): Promise<Map<string, Date | null>> {
+    if (monitorIds.length === 0) return new Map();
+    const rows = await executor
+      .select({
+        monitorId: monitorState.monitorId,
+        lastEvaluatedAt: monitorState.lastEvaluatedAt,
+      })
+      .from(monitorState)
+      .where(
+        and(
+          inArray(monitorState.monitorId, [...monitorIds]),
+          eq(monitorState.series, TOTAL_SENTINEL),
+        ),
+      );
+    return new Map(rows.map((r) => [r.monitorId, r.lastEvaluatedAt]));
   }
 
   async getState(
