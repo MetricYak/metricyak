@@ -1,8 +1,11 @@
 import {
+  BullMonitorEvalProducer,
   BullMonitorSignalsProducer,
   createProducerConnectionOptions,
+  InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
   InProcessEventsProducer,
+  type MonitorEvalProducer,
   type MonitorSignalsProducer,
 } from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
@@ -19,7 +22,10 @@ const producer = new InProcessEventsProducer(async () => {});
 const signals: MonitorSignalsProducer = config.redisUrl
   ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
   : new InMemoryMonitorSignalsProducer();
-const container = createContainer(db, producer, signals);
+const evalProducer: MonitorEvalProducer = config.redisUrl
+  ? new BullMonitorEvalProducer(createProducerConnectionOptions(config.redisUrl))
+  : new InMemoryMonitorEvalProducer();
+const container = createContainer(db, producer, signals, evalProducer);
 
 const closeWorkers = await startWorkers(container, config);
 

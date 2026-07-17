@@ -1,10 +1,13 @@
 import {
   BullEventsProducer,
+  BullMonitorEvalProducer,
   BullMonitorSignalsProducer,
   createProducerConnectionOptions,
   type EventsProducer,
+  InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
   InProcessEventsProducer,
+  type MonitorEvalProducer,
   type MonitorSignalsProducer,
 } from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
@@ -35,7 +38,11 @@ const signals: MonitorSignalsProducer = config.redisUrl
   ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
   : new InMemoryMonitorSignalsProducer();
 
-container = createContainer(db, producer, signals);
+const evalProducer: MonitorEvalProducer = config.redisUrl
+  ? new BullMonitorEvalProducer(createProducerConnectionOptions(config.redisUrl))
+  : new InMemoryMonitorEvalProducer();
+
+container = createContainer(db, producer, signals, evalProducer);
 const app = createApp(container);
 
 const server = startHttpServer(app, config);

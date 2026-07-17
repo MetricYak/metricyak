@@ -1,4 +1,8 @@
-import { InMemoryEventsProducer, InMemoryMonitorSignalsProducer } from '@metricyak/queue';
+import {
+  InMemoryEventsProducer,
+  InMemoryMonitorEvalProducer,
+  InMemoryMonitorSignalsProducer,
+} from '@metricyak/queue';
 import {
   type CreateOrganizationInput,
   type Database,
@@ -44,6 +48,7 @@ function buildApp(store: OrganizationRecord[]) {
     fakeDatabase,
     new InMemoryEventsProducer(),
     new InMemoryMonitorSignalsProducer(),
+    new InMemoryMonitorEvalProducer(),
   );
   const container: Container = {
     ...base,

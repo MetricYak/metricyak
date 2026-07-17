@@ -22,11 +22,17 @@ export function computeBatchId(eventIds: readonly string[]): string {
     .digest('hex');
 }
 
-export const MONITOR_TICK_QUEUE = 'monitor-tick' as const;
-export const MONITOR_TICK_INTERVAL_MS = 60_000;
+export const MONITOR_DISPATCH_QUEUE = 'monitor-dispatch' as const;
+export const MONITOR_DISPATCH_INTERVAL_MS = 60_000;
 
-export type MonitorTickJob = {
+export type MonitorDispatchJob = {
   tickAt: string;
+};
+
+export const MONITOR_EVAL_QUEUE = 'monitor-eval' as const;
+
+export type MonitorEvalJob = {
+  monitorId: string;
 };
 
 export const MONITOR_SIGNALS_QUEUE = 'monitor-signals' as const;
@@ -38,4 +44,11 @@ export type MonitorSignalJob = {
   value: number;
   threshold: { operator: string; value: number };
   occurredAt: string;
+};
+
+export const MONITOR_RELAY_QUEUE = 'monitor-relay' as const;
+export const MONITOR_RELAY_INTERVAL_MS = 10_000;
+
+export type MonitorRelayJob = {
+  tickAt: string;
 };

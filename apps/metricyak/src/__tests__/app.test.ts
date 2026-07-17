@@ -1,4 +1,8 @@
-import { InMemoryEventsProducer, InMemoryMonitorSignalsProducer } from '@metricyak/queue';
+import {
+  InMemoryEventsProducer,
+  InMemoryMonitorEvalProducer,
+  InMemoryMonitorSignalsProducer,
+} from '@metricyak/queue';
 import type { Database } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '@/app.js';
@@ -9,6 +13,7 @@ const app = createApp(
     {} as Database,
     new InMemoryEventsProducer(),
     new InMemoryMonitorSignalsProducer(),
+    new InMemoryMonitorEvalProducer(),
   ),
 );
 

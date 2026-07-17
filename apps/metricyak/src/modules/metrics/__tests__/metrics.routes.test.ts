@@ -1,4 +1,8 @@
-import { InMemoryEventsProducer, InMemoryMonitorSignalsProducer } from '@metricyak/queue';
+import {
+  InMemoryEventsProducer,
+  InMemoryMonitorEvalProducer,
+  InMemoryMonitorSignalsProducer,
+} from '@metricyak/queue';
 import type { CreateMetricInput, Database, MetricRecord, ProjectRecord } from '@metricyak/storage';
 import { MetricsRepository, ProjectsRepository } from '@metricyak/storage';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -49,6 +53,7 @@ function buildApp(store: MetricRecord[], project: ProjectRecord | null) {
     fakeDatabase,
     new InMemoryEventsProducer(),
     new InMemoryMonitorSignalsProducer(),
+    new InMemoryMonitorEvalProducer(),
   );
   const container: Container = {
     ...base,
