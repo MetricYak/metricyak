@@ -5,8 +5,10 @@ import {
   type EventBatchJob,
   MONITOR_EVAL_QUEUE,
   MONITOR_SIGNALS_QUEUE,
+  type MonitorEvalDispatch,
   type MonitorEvalJob,
   type MonitorSignalJob,
+  monitorEvalJobId,
 } from '@/queues.js';
 
 export interface EventsProducer {
@@ -89,7 +91,7 @@ export class InMemoryMonitorSignalsProducer implements MonitorSignalsProducer {
 }
 
 export interface MonitorEvalProducer {
-  enqueueBulk(monitorIds: readonly string[]): Promise<void>;
+  enqueueBulk(jobs: readonly MonitorEvalDispatch[]): Promise<void>;
 }
 
 export class BullMonitorEvalProducer implements MonitorEvalProducer {
@@ -99,18 +101,18 @@ export class BullMonitorEvalProducer implements MonitorEvalProducer {
     this.queue = new Queue<MonitorEvalJob>(MONITOR_EVAL_QUEUE, { connection });
   }
 
-  async enqueueBulk(monitorIds: readonly string[]): Promise<void> {
-    if (monitorIds.length === 0) return;
+  async enqueueBulk(jobs: readonly MonitorEvalDispatch[]): Promise<void> {
+    if (jobs.length === 0) return;
     await this.queue.addBulk(
-      monitorIds.map((monitorId) => ({
+      jobs.map((job) => ({
         name: MONITOR_EVAL_QUEUE,
-        data: { monitorId },
+        data: { monitorId: job.monitorId },
         opts: {
-          jobId: monitorId, // dedup: BullMQ rejects a duplicate active job for the same monitor
-          attempts: 3,
-          backoff: { type: 'exponential' as const, delay: 1000 },
+          // Slot-scoped id: a retained failed slot cannot block the next slot's enqueue.
+          jobId: monitorEvalJobId(job.monitorId, job.nextEvalAt),
+          attempts: 1, // transience recovers on the next slot; keeps the failure counter exact
           removeOnComplete: true, // keep Redis footprint bounded at high job rates
-          removeOnFail: { age: 24 * 3600 },
+          removeOnFail: { age: 24 * 3600 }, // retained for debugging; safe now (unique per slot)
         },
       })),
     );
@@ -120,7 +122,7 @@ export class BullMonitorEvalProducer implements MonitorEvalProducer {
 export class InMemoryMonitorEvalProducer implements MonitorEvalProducer {
   readonly jobs: MonitorEvalJob[] = [];
 
-  async enqueueBulk(monitorIds: readonly string[]): Promise<void> {
-    for (const monitorId of monitorIds) this.jobs.push({ monitorId });
+  async enqueueBulk(jobs: readonly MonitorEvalDispatch[]): Promise<void> {
+    for (const job of jobs) this.jobs.push({ monitorId: job.monitorId });
   }
 }

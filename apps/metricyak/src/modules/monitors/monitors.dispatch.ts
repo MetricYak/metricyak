@@ -21,7 +21,9 @@ export async function runMonitorDispatch(
       CLAIM_BATCH,
     );
     if (claimed.length === 0) break;
-    await deps.evalProducer.enqueueBulk(claimed.map((m) => m.id));
+    await deps.evalProducer.enqueueBulk(
+      claimed.map((m) => ({ monitorId: m.id, nextEvalAt: m.nextEvalAt })),
+    );
     dispatched += claimed.length;
     if (batch === MAX_BATCHES_PER_TICK - 1) {
       console.log(
