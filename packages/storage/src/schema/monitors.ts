@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -18,6 +19,9 @@ export type MonitorMissingData = (typeof MONITOR_MISSING_DATA)[number];
 export const MONITOR_COMPARISON_OPERATORS = ['lt', 'lte', 'gt', 'gte', 'eq', 'neq'] as const;
 
 export type MonitorComparisonOperator = (typeof MONITOR_COMPARISON_OPERATORS)[number];
+
+export const MONITOR_EVAL_HEALTHS = ['ok', 'error'] as const;
+export type MonitorEvalHealth = (typeof MONITOR_EVAL_HEALTHS)[number];
 
 export type MonitorThresholdCondition = {
   operator: MonitorComparisonOperator;
@@ -57,6 +61,17 @@ export const monitors = pgTable(
       .$type<MonitorMissingData>()
       .notNull()
       .default('skip'),
+    consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+    evalHealth: varchar('eval_health', { length: 8 })
+      .$type<MonitorEvalHealth>()
+      .notNull()
+      .default('ok'),
+    lastEvalError: text('last_eval_error'),
+    lastEvalErrorAt: timestamp('last_eval_error_at', {
+      mode: 'date',
+      precision: 3,
+      withTimezone: true,
+    }),
     nextEvalAt: timestamp('next_eval_at', { mode: 'date', precision: 3, withTimezone: true })
       .defaultNow()
       .notNull(),

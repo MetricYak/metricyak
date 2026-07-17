@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { Database } from '@/client.js';
 import {
+  type MonitorEvalHealth,
   type MonitorMissingData,
   type MonitorScope,
   type MonitorThresholdCondition,
@@ -44,6 +45,10 @@ export type MonitorRecord = {
   holdFor: string;
   enabled: boolean;
   missingData: MonitorMissingData;
+  consecutiveFailures: number;
+  evalHealth: MonitorEvalHealth;
+  lastEvalError: string | null;
+  lastEvalErrorAt: Date | null;
   nextEvalAt: Date;
   createdAt: Date;
   updatedAt: Date;
