@@ -198,4 +198,40 @@ describe('MonitorRuntimeRepository (integration)', () => {
     releaseGate.resolve();
     await holder;
   });
+
+  describe('claimDueMonitors', () => {
+    it('advances next_eval_at atomically and returns only due, enabled monitors', async () => {
+      const now = new Date('2026-07-13T12:00:00.000Z');
+      const due = await seedMonitor({ enabled: true, nextEvalAt: new Date(now.getTime() - 1000) });
+      const future = await seedMonitor({ enabled: true, nextEvalAt: new Date(now.getTime() + 60_000) });
+      const disabled = await seedMonitor({ enabled: false, nextEvalAt: new Date(now.getTime() - 1000) });
+
+      const claimed = await repo.claimDueMonitors(now, 60_000, 100);
+
+      expect(claimed.map((m) => m.id)).toEqual([due.id]);
+      const rows = await db.select().from(monitors);
+      const dueRow = rows.find((r) => r.id === due.id);
+      const futureRow = rows.find((r) => r.id === future.id);
+      const disabledRow = rows.find((r) => r.id === disabled.id);
+      expect(dueRow?.nextEvalAt.toISOString()).toBe(new Date(now.getTime() + 60_000).toISOString());
+      expect(futureRow?.nextEvalAt.toISOString()).toBe(new Date(now.getTime() + 60_000).toISOString()); // untouched (was already +60s)
+      expect(disabledRow?.nextEvalAt.getTime()).toBe(now.getTime() - 1000); // untouched
+    });
+
+    it('two concurrent claims partition the due set with no overlap', async () => {
+      const now = new Date('2026-07-13T12:00:00.000Z');
+      const ids = new Set<string>();
+      for (let i = 0; i < 20; i++) {
+        const m = await seedMonitor({ enabled: true, nextEvalAt: new Date(now.getTime() - 1000) });
+        ids.add(m.id);
+      }
+      const [a, b] = await Promise.all([
+        repo.claimDueMonitors(now, 60_000, 20),
+        repo.claimDueMonitors(now, 60_000, 20),
+      ]);
+      const all = [...a, ...b].map((m) => m.id);
+      expect(new Set(all).size).toBe(all.length); // no monitor claimed twice
+      expect(all.filter((id) => ids.has(id)).length).toBe(20); // every due monitor claimed exactly once
+    });
+  });
 });

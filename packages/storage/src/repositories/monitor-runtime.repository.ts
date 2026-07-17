@@ -54,6 +54,23 @@ export class MonitorRuntimeRepository {
       .limit(limit);
   }
 
+  async claimDueMonitors(now: Date, intervalMs: number, limit: number): Promise<MonitorRecord[]> {
+    const nextEvalAt = new Date(now.getTime() + intervalMs);
+    const due = this.db
+      .select({ id: monitors.id })
+      .from(monitors)
+      .where(and(eq(monitors.enabled, true), lte(monitors.nextEvalAt, now)))
+      .orderBy(asc(monitors.nextEvalAt))
+      .limit(limit)
+      .for('update', { skipLocked: true });
+
+    return this.db
+      .update(monitors)
+      .set({ nextEvalAt })
+      .where(inArray(monitors.id, due))
+      .returning();
+  }
+
   async lockDueMonitor(monitorId: string, now: Date, tx: Executor): Promise<MonitorRecord | null> {
     const [monitor] = await tx
       .select()
