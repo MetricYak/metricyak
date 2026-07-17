@@ -26,15 +26,9 @@ export async function evaluateMonitorRecord(
 ): Promise<MonitorEvalOutcome> {
   const metric = await deps.metrics.getDefinition(monitor.metricId, monitor.projectId);
   if (!metric) {
-    console.log(
-      JSON.stringify({
-        level: 'warn',
-        msg: 'monitor metric unavailable',
-        monitorId: monitor.id,
-        metricId: monitor.metricId,
-      }),
-    );
-    return 'evaluated';
+    // A missing/deleted metric definition is a persistent, monitor-specific failure —
+    // surface it via the health counter rather than silently returning.
+    throw new Error(`monitor metric unavailable: ${monitor.metricId}`);
   }
 
   const window = { from: new Date(now.getTime() - parseDuration(monitor.window)), to: now };
@@ -68,6 +62,10 @@ export async function evaluateMonitorRecord(
     tx,
   );
 
+  if (monitor.consecutiveFailures > 0 || monitor.evalHealth !== 'ok') {
+    await deps.monitorRuntime.resetEvalHealth(monitor.id, tx);
+  }
+
   if (!result.fired) return 'evaluated';
 
   await deps.monitorRuntime.insertEvent(
@@ -96,4 +94,34 @@ export async function runMonitorEval(
     if (!monitor) return 'skipped';
     return evaluateMonitorRecord(deps, monitor, now, tx);
   });
+}
+
+/**
+ * Worker entry point: run the eval, and on failure record it out-of-band (its own
+ * transaction, since the eval transaction rolled back) before rethrowing so BullMQ
+ * still marks the job failed and the `failed` handler logs it.
+ */
+export async function processMonitorEvalJob(
+  deps: MonitorEvalDeps,
+  monitorId: string,
+  now: Date,
+): Promise<MonitorEvalOutcome | 'skipped'> {
+  try {
+    return await runMonitorEval(deps, monitorId, now);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      await deps.monitorRuntime.recordEvalFailure(monitorId, message, now);
+    } catch (recordErr) {
+      console.log(
+        JSON.stringify({
+          level: 'error',
+          msg: 'failed to record monitor eval failure',
+          monitorId,
+          error: recordErr instanceof Error ? recordErr.message : String(recordErr),
+        }),
+      );
+    }
+    throw err;
+  }
 }
