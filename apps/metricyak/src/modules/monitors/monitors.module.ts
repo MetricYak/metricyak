@@ -1,33 +1,50 @@
 import {
+  createMonitorDispatchWorker,
+  createMonitorEvalWorker,
   createMonitorSignalsWorker,
-  createMonitorTickWorker,
-  registerMonitorTickScheduler,
+  registerMonitorDispatchScheduler,
 } from '@metricyak/queue';
 import type { AppModule, SchedulerFactory, WorkerFactory } from '@/modules/module.js';
 import monitorsRouter from '@/modules/monitors/monitors.routes.js';
+import { runMonitorDispatch } from '@/modules/monitors/monitors.dispatch.js';
+import { runMonitorEval } from '@/modules/monitors/monitors.eval.js';
+import { relayMonitorSignals } from '@/modules/monitors/monitors.relay.js';
 import { processMonitorSignal } from '@/modules/monitors/monitors.signals.worker.js';
-import { runMonitorTick } from '@/modules/monitors/monitors.tick.js';
 
-const monitorTickWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
-  createMonitorTickWorker(connection, {
+const monitorDispatchWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
+  createMonitorDispatchWorker(connection, {
     concurrency,
     process: async () => {
-      const result = await runMonitorTick(
+      const now = new Date();
+      const dispatch = await runMonitorDispatch(
+        { monitorRuntime: container.repos.monitorRuntime, evalProducer: container.evalProducer },
+        now,
+      );
+      // TEMPORARY until Task 7 (PR4) moves relay to its own scheduler:
+      const relay = await relayMonitorSignals(
+        { db: container.db, monitorRuntime: container.repos.monitorRuntime, signals: container.signals },
+        now,
+      );
+      console.log(JSON.stringify({ level: 'info', msg: 'monitor dispatch', ...dispatch, ...relay }));
+    },
+  });
+
+const monitorEvalWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
+  createMonitorEvalWorker(connection, {
+    concurrency,
+    process: async (job) => {
+      await runMonitorEval(
         {
           db: container.db,
           metrics: container.repos.metrics,
           metricReads: container.reads,
           monitorRuntime: container.repos.monitorRuntime,
-          signals: container.signals,
         },
+        job.data.monitorId,
         new Date(),
       );
-      console.log(JSON.stringify({ level: 'info', msg: 'monitor tick', ...result }));
     },
   });
-
-const monitorTickScheduler: SchedulerFactory = (connection) =>
-  registerMonitorTickScheduler(connection);
 
 const monitorSignalsWorkerFactory: WorkerFactory = (connection, _container, concurrency) =>
   createMonitorSignalsWorker(connection, {
@@ -35,8 +52,11 @@ const monitorSignalsWorkerFactory: WorkerFactory = (connection, _container, conc
     process: (job) => processMonitorSignal(job.data),
   });
 
+const monitorDispatchScheduler: SchedulerFactory = (connection) =>
+  registerMonitorDispatchScheduler(connection);
+
 export const monitorsModule: AppModule = {
   routes: monitorsRouter,
-  workers: [monitorTickWorkerFactory, monitorSignalsWorkerFactory],
-  schedulers: [monitorTickScheduler],
+  workers: [monitorDispatchWorkerFactory, monitorEvalWorkerFactory, monitorSignalsWorkerFactory],
+  schedulers: [monitorDispatchScheduler],
 };

@@ -1,4 +1,8 @@
-import type { EventsProducer, MonitorSignalsProducer } from '@metricyak/queue';
+import type {
+  EventsProducer,
+  MonitorEvalProducer,
+  MonitorSignalsProducer,
+} from '@metricyak/queue';
 import {
   AggregatesRepository,
   type Database,
@@ -35,6 +39,7 @@ export type Container = {
   readonly db: Database;
   readonly producer: EventsProducer;
   readonly signals: MonitorSignalsProducer;
+  readonly evalProducer: MonitorEvalProducer;
   readonly matcher: MetricMatcher;
   readonly runInTransaction: RunInTransaction;
   readonly repos: Repositories;
@@ -52,6 +57,7 @@ export function createContainer(
   db: Database,
   producer: EventsProducer,
   signals: MonitorSignalsProducer,
+  evalProducer: MonitorEvalProducer,
 ): Container {
   const metrics = new MetricsRepository(db);
   const events = new EventsRepository(db);
@@ -74,5 +80,5 @@ export function createContainer(
   const ingest = createIngestPipeline({ events, aggregates, matcher, runInTransaction });
   const reads = createMetricReads({ aggregates });
 
-  return { db, producer, signals, matcher, runInTransaction, repos, ingest, reads };
+  return { db, producer, signals, evalProducer, matcher, runInTransaction, repos, ingest, reads };
 }
