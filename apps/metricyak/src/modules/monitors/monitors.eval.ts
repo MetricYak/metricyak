@@ -1,4 +1,10 @@
-import type { Executor, MetricsRepository, MonitorRecord, MonitorRuntimeRepository } from '@metricyak/storage';
+import type {
+  Database,
+  Executor,
+  MetricsRepository,
+  MonitorRecord,
+  MonitorRuntimeRepository,
+} from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import type { MetricReads } from '@/modules/aggregates/aggregates.reads.js';
 import { parseDuration } from '@/modules/monitors/engine/duration.js';
@@ -76,4 +82,18 @@ export async function evaluateMonitorRecord(
     tx,
   );
   return 'fired';
+}
+
+export type MonitorEvalDeps = MonitorEvalCoreDeps & { db: Database };
+
+export async function runMonitorEval(
+  deps: MonitorEvalDeps,
+  monitorId: string,
+  now: Date,
+): Promise<MonitorEvalOutcome | 'skipped'> {
+  return deps.db.transaction(async (tx) => {
+    const monitor = await deps.monitorRuntime.lockMonitorForEval(monitorId, tx);
+    if (!monitor) return 'skipped';
+    return evaluateMonitorRecord(deps, monitor, now, tx);
+  });
 }

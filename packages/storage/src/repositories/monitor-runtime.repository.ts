@@ -83,6 +83,16 @@ export class MonitorRuntimeRepository {
     return monitor ?? null;
   }
 
+  async lockMonitorForEval(monitorId: string, tx: Executor): Promise<MonitorRecord | null> {
+    const [monitor] = await tx
+      .select()
+      .from(monitors)
+      .where(and(eq(monitors.id, monitorId), eq(monitors.enabled, true)))
+      .for('update')
+      .limit(1);
+    return monitor ?? null;
+  }
+
   async getState(
     monitorId: string,
     series: string,

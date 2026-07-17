@@ -117,4 +117,33 @@ describe('evaluateMonitorRecord (integration)', () => {
     const [after] = await db.select().from(monitors);
     expect(after?.nextEvalAt.toISOString()).toBe(before?.nextEvalAt.toISOString()); // core never advances
   });
+
+  describe('runMonitorEval (worker wrapper)', () => {
+    it('is idempotent: two concurrent evals of the same monitor fire at most once', async () => {
+      const { runMonitorEval } = await import('@/modules/monitors/monitors.eval.js');
+      const now = new Date('2026-07-13T12:00:00.000Z');
+      const evalDeps = { ...deps, db };
+
+      const [a, b] = await Promise.all([
+        runMonitorEval(evalDeps, monitorId, now),
+        runMonitorEval(evalDeps, monitorId, now),
+      ]);
+
+      const firedCount = [a, b].filter((o) => o === 'fired').length;
+      expect(firedCount).toBe(1); // row lock serializes; second sees 'firing', no re-fire
+      const events = await db.select().from(schema.monitorEvents);
+      expect(events).toHaveLength(1);
+    });
+
+    it("returns 'skipped' for a disabled monitor", async () => {
+      const { runMonitorEval } = await import('@/modules/monitors/monitors.eval.js');
+      await db.update(monitors).set({ enabled: false }).where(sql`${monitors.id} = ${monitorId}`);
+      const outcome = await runMonitorEval(
+        { ...deps, db },
+        monitorId,
+        new Date('2026-07-13T12:00:00.000Z'),
+      );
+      expect(outcome).toBe('skipped');
+    });
+  });
 });
