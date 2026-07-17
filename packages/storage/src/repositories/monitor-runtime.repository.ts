@@ -45,15 +45,6 @@ export type MonitorEventRecord = {
 export class MonitorRuntimeRepository {
   constructor(private readonly db: Database) {}
 
-  async listDueMonitors(now: Date, limit: number): Promise<MonitorRecord[]> {
-    return this.db
-      .select()
-      .from(monitors)
-      .where(and(eq(monitors.enabled, true), lte(monitors.nextEvalAt, now)))
-      .orderBy(asc(monitors.nextEvalAt))
-      .limit(limit);
-  }
-
   async claimDueMonitors(now: Date, intervalMs: number, limit: number): Promise<MonitorRecord[]> {
     const nextEvalAt = new Date(now.getTime() + intervalMs);
     const due = this.db
@@ -69,18 +60,6 @@ export class MonitorRuntimeRepository {
       .set({ nextEvalAt })
       .where(inArray(monitors.id, due))
       .returning();
-  }
-
-  async lockDueMonitor(monitorId: string, now: Date, tx: Executor): Promise<MonitorRecord | null> {
-    const [monitor] = await tx
-      .select()
-      .from(monitors)
-      .where(
-        and(eq(monitors.id, monitorId), eq(monitors.enabled, true), lte(monitors.nextEvalAt, now)),
-      )
-      .for('update', { skipLocked: true })
-      .limit(1);
-    return monitor ?? null;
   }
 
   async lockMonitorForEval(monitorId: string, tx: Executor): Promise<MonitorRecord | null> {
@@ -149,14 +128,6 @@ export class MonitorRuntimeRepository {
       .returning({ id: monitorEvents.id });
     if (!row) throw new Error('Failed to insert monitor event.');
     return row.id;
-  }
-
-  async setNextEvalAt(
-    monitorId: string,
-    nextEvalAt: Date,
-    executor: Executor = this.db,
-  ): Promise<void> {
-    await executor.update(monitors).set({ nextEvalAt }).where(eq(monitors.id, monitorId));
   }
 
   async findUnrelayedEvents(
