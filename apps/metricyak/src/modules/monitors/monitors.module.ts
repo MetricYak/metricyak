@@ -7,10 +7,10 @@ import {
   registerMonitorRelayScheduler,
 } from '@metricyak/queue';
 import type { AppModule, SchedulerFactory, WorkerFactory } from '@/modules/module.js';
-import monitorsRouter from '@/modules/monitors/monitors.routes.js';
 import { runMonitorDispatch } from '@/modules/monitors/monitors.dispatch.js';
 import { runMonitorEval } from '@/modules/monitors/monitors.eval.js';
 import { relayMonitorSignals } from '@/modules/monitors/monitors.relay.js';
+import monitorsRouter from '@/modules/monitors/monitors.routes.js';
 import { processMonitorSignal } from '@/modules/monitors/monitors.signals.worker.js';
 
 const monitorDispatchWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
@@ -54,17 +54,23 @@ const monitorRelayWorkerFactory: WorkerFactory = (connection, container, concurr
     concurrency,
     process: async () => {
       const relay = await relayMonitorSignals(
-        { db: container.db, monitorRuntime: container.repos.monitorRuntime, signals: container.signals },
+        {
+          db: container.db,
+          monitorRuntime: container.repos.monitorRuntime,
+          signals: container.signals,
+        },
         new Date(),
       );
-      if (relay.relayed > 0) console.log(JSON.stringify({ level: 'info', msg: 'monitor relay', ...relay }));
+      if (relay.relayed > 0)
+        console.log(JSON.stringify({ level: 'info', msg: 'monitor relay', ...relay }));
     },
   });
 
 const monitorDispatchScheduler: SchedulerFactory = (connection) =>
   registerMonitorDispatchScheduler(connection);
 
-const monitorRelayScheduler: SchedulerFactory = (connection) => registerMonitorRelayScheduler(connection);
+const monitorRelayScheduler: SchedulerFactory = (connection) =>
+  registerMonitorRelayScheduler(connection);
 
 export const monitorsModule: AppModule = {
   routes: monitorsRouter,

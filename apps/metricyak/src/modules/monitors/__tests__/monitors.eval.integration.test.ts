@@ -5,11 +5,11 @@ import {
   type Database,
   MetricsRepository,
   MonitorRuntimeRepository,
-  TOTAL_SENTINEL,
   metricBuckets,
   monitors,
   organizations,
   projects,
+  TOTAL_SENTINEL,
 } from '@metricyak/storage';
 import * as schema from '@metricyak/storage/schema';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -19,7 +19,10 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
-import { evaluateMonitorRecord, type MonitorEvalCoreDeps } from '@/modules/monitors/monitors.eval.js';
+import {
+  evaluateMonitorRecord,
+  type MonitorEvalCoreDeps,
+} from '@/modules/monitors/monitors.eval.js';
 
 const migrationsFolder = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

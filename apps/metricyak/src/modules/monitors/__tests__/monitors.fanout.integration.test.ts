@@ -117,10 +117,7 @@ describe('monitor fan-out (integration)', () => {
     const evalProducer = new InMemoryMonitorEvalProducer();
     const runtime = new MonitorRuntimeRepository(db);
 
-    const { dispatched } = await runMonitorDispatch(
-      { monitorRuntime: runtime, evalProducer },
-      now,
-    );
+    const { dispatched } = await runMonitorDispatch({ monitorRuntime: runtime, evalProducer }, now);
     expect(dispatched).toBeGreaterThanOrEqual(1);
 
     const evalDeps = {

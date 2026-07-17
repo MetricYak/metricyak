@@ -1,8 +1,4 @@
-import type {
-  EventsProducer,
-  MonitorEvalProducer,
-  MonitorSignalsProducer,
-} from '@metricyak/queue';
+import type { EventsProducer, MonitorEvalProducer, MonitorSignalsProducer } from '@metricyak/queue';
 import {
   AggregatesRepository,
   type Database,

@@ -150,8 +150,14 @@ describe('MonitorRuntimeRepository (integration)', () => {
     it('advances next_eval_at atomically and returns only due, enabled monitors', async () => {
       const now = new Date('2026-07-13T12:00:00.000Z');
       const due = await seedMonitor({ enabled: true, nextEvalAt: new Date(now.getTime() - 1000) });
-      const future = await seedMonitor({ enabled: true, nextEvalAt: new Date(now.getTime() + 60_000) });
-      const disabled = await seedMonitor({ enabled: false, nextEvalAt: new Date(now.getTime() - 1000) });
+      const future = await seedMonitor({
+        enabled: true,
+        nextEvalAt: new Date(now.getTime() + 60_000),
+      });
+      const disabled = await seedMonitor({
+        enabled: false,
+        nextEvalAt: new Date(now.getTime() - 1000),
+      });
 
       const claimed = await repo.claimDueMonitors(now, 60_000, 100);
 
@@ -161,7 +167,9 @@ describe('MonitorRuntimeRepository (integration)', () => {
       const futureRow = rows.find((r) => r.id === future.id);
       const disabledRow = rows.find((r) => r.id === disabled.id);
       expect(dueRow?.nextEvalAt.toISOString()).toBe(new Date(now.getTime() + 60_000).toISOString());
-      expect(futureRow?.nextEvalAt.toISOString()).toBe(new Date(now.getTime() + 60_000).toISOString()); // untouched (was already +60s)
+      expect(futureRow?.nextEvalAt.toISOString()).toBe(
+        new Date(now.getTime() + 60_000).toISOString(),
+      ); // untouched (was already +60s)
       expect(disabledRow?.nextEvalAt.getTime()).toBe(now.getTime() - 1000); // untouched
     });
 

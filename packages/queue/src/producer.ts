@@ -4,8 +4,8 @@ import {
   EVENTS_QUEUE,
   type EventBatchJob,
   MONITOR_EVAL_QUEUE,
-  type MonitorEvalJob,
   MONITOR_SIGNALS_QUEUE,
+  type MonitorEvalJob,
   type MonitorSignalJob,
 } from '@/queues.js';
 

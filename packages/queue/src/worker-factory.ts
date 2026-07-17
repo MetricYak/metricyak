@@ -6,12 +6,12 @@ import {
   MONITOR_DISPATCH_INTERVAL_MS,
   MONITOR_DISPATCH_QUEUE,
   MONITOR_EVAL_QUEUE,
-  type MonitorDispatchJob,
-  type MonitorEvalJob,
   MONITOR_RELAY_INTERVAL_MS,
   MONITOR_RELAY_QUEUE,
-  type MonitorRelayJob,
   MONITOR_SIGNALS_QUEUE,
+  type MonitorDispatchJob,
+  type MonitorEvalJob,
+  type MonitorRelayJob,
   type MonitorSignalJob,
 } from '@/queues.js';
 
@@ -39,10 +39,15 @@ export function createMonitorDispatchWorker(
   connection: ConnectionOptions,
   { concurrency, process }: MonitorDispatchWorkerOptions,
 ): Worker<MonitorDispatchJob> {
-  return new Worker<MonitorDispatchJob>(MONITOR_DISPATCH_QUEUE, process, { connection, concurrency });
+  return new Worker<MonitorDispatchJob>(MONITOR_DISPATCH_QUEUE, process, {
+    connection,
+    concurrency,
+  });
 }
 
-export async function registerMonitorDispatchScheduler(connection: ConnectionOptions): Promise<void> {
+export async function registerMonitorDispatchScheduler(
+  connection: ConnectionOptions,
+): Promise<void> {
   const queue = new Queue<MonitorDispatchJob>(MONITOR_DISPATCH_QUEUE, { connection });
   try {
     await queue.upsertJobScheduler(

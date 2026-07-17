@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { InMemoryMonitorEvalProducer } from '@metricyak/queue';
 import {
   type Database,
   MetricsRepository,
@@ -9,7 +10,6 @@ import {
   projects,
 } from '@metricyak/storage';
 import * as schema from '@metricyak/storage/schema';
-import { InMemoryMonitorEvalProducer } from '@metricyak/queue';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
