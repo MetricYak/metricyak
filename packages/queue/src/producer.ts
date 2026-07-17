@@ -3,6 +3,8 @@ import { Queue } from 'bullmq';
 import {
   EVENTS_QUEUE,
   type EventBatchJob,
+  MONITOR_EVAL_QUEUE,
+  type MonitorEvalJob,
   MONITOR_SIGNALS_QUEUE,
   type MonitorSignalJob,
 } from '@/queues.js';
@@ -83,5 +85,42 @@ export class InMemoryMonitorSignalsProducer implements MonitorSignalsProducer {
 
   async enqueue(job: MonitorSignalJob): Promise<void> {
     this.jobs.push(job);
+  }
+}
+
+export interface MonitorEvalProducer {
+  enqueueBulk(monitorIds: readonly string[]): Promise<void>;
+}
+
+export class BullMonitorEvalProducer implements MonitorEvalProducer {
+  private readonly queue: Queue<MonitorEvalJob>;
+
+  constructor(connection: ConnectionOptions) {
+    this.queue = new Queue<MonitorEvalJob>(MONITOR_EVAL_QUEUE, { connection });
+  }
+
+  async enqueueBulk(monitorIds: readonly string[]): Promise<void> {
+    if (monitorIds.length === 0) return;
+    await this.queue.addBulk(
+      monitorIds.map((monitorId) => ({
+        name: MONITOR_EVAL_QUEUE,
+        data: { monitorId },
+        opts: {
+          jobId: monitorId, // dedup: BullMQ rejects a duplicate active job for the same monitor
+          attempts: 3,
+          backoff: { type: 'exponential' as const, delay: 1000 },
+          removeOnComplete: true, // keep Redis footprint bounded at high job rates
+          removeOnFail: { age: 24 * 3600 },
+        },
+      })),
+    );
+  }
+}
+
+export class InMemoryMonitorEvalProducer implements MonitorEvalProducer {
+  readonly jobs: MonitorEvalJob[] = [];
+
+  async enqueueBulk(monitorIds: readonly string[]): Promise<void> {
+    for (const monitorId of monitorIds) this.jobs.push({ monitorId });
   }
 }
