@@ -24,9 +24,11 @@ export {
   MONITOR_RELAY_QUEUE,
   MONITOR_SIGNALS_QUEUE,
   type MonitorDispatchJob,
+  type MonitorEvalDispatch,
   type MonitorEvalJob,
   type MonitorRelayJob,
   type MonitorSignalJob,
+  monitorEvalJobId,
   type StoredEvent,
 } from '@/queues.js';
 export {

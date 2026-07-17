@@ -35,6 +35,19 @@ export type MonitorEvalJob = {
   monitorId: string;
 };
 
+// One dispatch = one monitor claimed for a specific eval slot (its advanced next_eval_at).
+export type MonitorEvalDispatch = {
+  monitorId: string;
+  nextEvalAt: Date;
+};
+
+// Slot-scoped BullMQ job id. A failed slot is retained under THIS id and can never
+// dedup-block the next slot (a distinct id). At-most-once firing is enforced by the
+// FOR UPDATE lock in runMonitorEval, not by this id.
+export function monitorEvalJobId(monitorId: string, nextEvalAt: Date): string {
+  return `${monitorId}:${nextEvalAt.getTime()}`;
+}
+
 export const MONITOR_SIGNALS_QUEUE = 'monitor-signals' as const;
 
 export type MonitorSignalJob = {

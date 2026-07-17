@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi';
 import {
   type MetricDefinition,
   MONITOR_COMPARISON_OPERATORS,
+  MONITOR_EVAL_HEALTHS,
   MONITOR_MISSING_DATA,
   type MonitorComparisonOperator,
 } from '@metricyak/storage';
@@ -112,6 +113,10 @@ export const MonitorResponse = z.object({
   holdFor: z.string(),
   enabled: z.boolean(),
   missingData: MissingData,
+  evalHealth: z.enum(MONITOR_EVAL_HEALTHS),
+  lastEvalError: z.string().nullish(),
+  lastEvalErrorAt: z.iso.datetime().nullish(),
+  lastEvaluatedAt: z.iso.datetime().nullish(),
   createdOn: z.iso.datetime(),
   updatedOn: z.iso.datetime(),
 });

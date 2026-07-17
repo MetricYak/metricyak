@@ -36,6 +36,13 @@
       "when": 1784054460475,
       "tag": "0004_black_thunderball",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784317441541,
+      "tag": "0005_mighty_network",
+      "breakpoints": true
     }
   ]
 }

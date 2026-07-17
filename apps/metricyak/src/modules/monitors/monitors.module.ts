@@ -8,7 +8,7 @@ import {
 } from '@metricyak/queue';
 import type { AppModule, SchedulerFactory, WorkerFactory } from '@/modules/module.js';
 import { runMonitorDispatch } from '@/modules/monitors/monitors.dispatch.js';
-import { runMonitorEval } from '@/modules/monitors/monitors.eval.js';
+import { processMonitorEvalJob } from '@/modules/monitors/monitors.eval.js';
 import { relayMonitorSignals } from '@/modules/monitors/monitors.relay.js';
 import monitorsRouter from '@/modules/monitors/monitors.routes.js';
 import { processMonitorSignal } from '@/modules/monitors/monitors.signals.worker.js';
@@ -30,7 +30,7 @@ const monitorEvalWorkerFactory: WorkerFactory = (connection, container, concurre
   createMonitorEvalWorker(connection, {
     concurrency,
     process: async (job) => {
-      await runMonitorEval(
+      await processMonitorEvalJob(
         {
           db: container.db,
           metrics: container.repos.metrics,

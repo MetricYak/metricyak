@@ -1,13 +1,14 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from '@/client.js';
 import { MonitorRuntimeRepository } from '@/repositories/monitor-runtime.repository.js';
+import { TOTAL_SENTINEL } from '@/schema/aggregates.js';
 import * as schema from '@/schema/index.js';
 import { metricDefinitions, monitors, organizations, projects } from '@/schema/index.js';
 
@@ -146,6 +147,25 @@ describe('MonitorRuntimeRepository (integration)', () => {
     expect((await repo.findUnrelayedEvents(10)).length).toBe(1);
   });
 
+  it('defaults new monitors to healthy', async () => {
+    const [monitor] = await db
+      .insert(monitors)
+      .values({
+        projectId,
+        metricId,
+        name: 'health-defaults',
+        condition: { operator: 'gt', value: 1 },
+        window: '1d',
+        holdFor: '0m',
+      })
+      .returning();
+    if (!monitor) throw new Error('seed monitor');
+    expect(monitor.consecutiveFailures).toBe(0);
+    expect(monitor.evalHealth).toBe('ok');
+    expect(monitor.lastEvalError).toBeNull();
+    expect(monitor.lastEvalErrorAt).toBeNull();
+  });
+
   describe('claimDueMonitors', () => {
     it('advances next_eval_at atomically and returns only due, enabled monitors', async () => {
       const now = new Date('2026-07-13T12:00:00.000Z');
@@ -188,5 +208,157 @@ describe('MonitorRuntimeRepository (integration)', () => {
       expect(new Set(all).size).toBe(all.length); // no monitor claimed twice
       expect(all.filter((id) => ids.has(id)).length).toBe(20); // every due monitor claimed exactly once
     });
+  });
+
+  it('increments the failure counter without tripping below the threshold', async () => {
+    const now = new Date('2026-07-17T00:00:00.000Z');
+    const [m] = await db
+      .insert(monitors)
+      .values({
+        projectId,
+        metricId,
+        name: 'fail-1',
+        condition: { operator: 'gt', value: 1 },
+        window: '1d',
+        holdFor: '0m',
+      })
+      .returning();
+    if (!m) throw new Error('seed');
+
+    await repo.recordEvalFailure(m.id, 'boom', now);
+
+    const [after] = await db.select().from(monitors).where(eq(monitors.id, m.id));
+    expect(after?.consecutiveFailures).toBe(1);
+    expect(after?.evalHealth).toBe('ok');
+    expect(after?.lastEvalError).toBe('boom');
+    // next_eval_at is NOT pushed out below the threshold
+    expect(after?.nextEvalAt.getTime()).toBe(m.nextEvalAt.getTime());
+  });
+
+  it('trips to error and backs off at the threshold', async () => {
+    const now = new Date('2026-07-17T00:00:00.000Z');
+    const [m] = await db
+      .insert(monitors)
+      .values({
+        projectId,
+        metricId,
+        name: 'fail-K',
+        condition: { operator: 'gt', value: 1 },
+        window: '1d',
+        holdFor: '0m',
+      })
+      .returning();
+    if (!m) throw new Error('seed');
+
+    await repo.recordEvalFailure(m.id, 'e1', now);
+    await repo.recordEvalFailure(m.id, 'e2', now);
+    await repo.recordEvalFailure(m.id, 'e3', now); // == K (3)
+
+    const [after] = await db.select().from(monitors).where(eq(monitors.id, m.id));
+    expect(after?.consecutiveFailures).toBe(3);
+    expect(after?.evalHealth).toBe('error');
+    expect(after?.lastEvalError).toBe('e3');
+    // backed off by the base interval (60s) at exactly K
+    expect(after?.nextEvalAt.getTime()).toBe(now.getTime() + 60_000);
+  });
+
+  it('resets health on success', async () => {
+    const [m] = await db
+      .insert(monitors)
+      .values({
+        projectId,
+        metricId,
+        name: 'reset',
+        evalHealth: 'error',
+        consecutiveFailures: 5,
+        lastEvalError: 'old',
+        condition: { operator: 'gt', value: 1 },
+        window: '1d',
+        holdFor: '0m',
+      })
+      .returning();
+    if (!m) throw new Error('seed');
+
+    await repo.resetEvalHealth(m.id);
+
+    const [after] = await db.select().from(monitors).where(eq(monitors.id, m.id));
+    expect(after?.consecutiveFailures).toBe(0);
+    expect(after?.evalHealth).toBe('ok');
+    expect(after?.lastEvalError).toBeNull();
+    expect(after?.lastEvalErrorAt).toBeNull();
+  });
+
+  it('reads last successful eval time for the total series', async () => {
+    const at = new Date('2026-07-17T01:02:03.000Z');
+    const [m] = await db
+      .insert(monitors)
+      .values({
+        projectId,
+        metricId,
+        name: 'staleness',
+        condition: { operator: 'gt', value: 1 },
+        window: '1d',
+        holdFor: '0m',
+      })
+      .returning();
+    if (!m) throw new Error('seed');
+    await repo.upsertState({
+      monitorId: m.id,
+      series: TOTAL_SENTINEL,
+      status: 'ok',
+      breachedSince: null,
+      lastValue: 4,
+      lastEvaluatedAt: at,
+    });
+
+    const map = await repo.getLastEvaluatedAt([m.id]);
+    expect(map.get(m.id)?.getTime()).toBe(at.getTime());
+    expect((await repo.getLastEvaluatedAt([])).size).toBe(0);
+  });
+
+  it('ignores a stale failure whose slot predates a newer successful eval', async () => {
+    // A later slot succeeded (stamping last_evaluated_at) before an earlier
+    // slot's out-of-band failure recording obtained the row lock. The stale
+    // failure must not be counted against the already-recovered monitor.
+    const failedAt = new Date('2026-07-17T00:00:00.000Z');
+    const succeededAt = new Date('2026-07-17T00:01:00.000Z');
+    const m = await seedMonitor();
+    await repo.upsertState({
+      monitorId: m.id,
+      series: TOTAL_SENTINEL,
+      status: 'ok',
+      breachedSince: null,
+      lastValue: 1,
+      lastEvaluatedAt: succeededAt,
+    });
+
+    await repo.recordEvalFailure(m.id, 'stale failure', failedAt);
+
+    const [after] = await db.select().from(monitors).where(eq(monitors.id, m.id));
+    expect(after?.consecutiveFailures).toBe(0);
+    expect(after?.evalHealth).toBe('ok');
+    expect(after?.lastEvalError).toBeNull();
+  });
+
+  it('still records a failure newer than the last successful eval', async () => {
+    // The freshness guard must only drop stale failures — a failure whose slot
+    // is newer than the last success is legitimate and must still count.
+    const succeededAt = new Date('2026-07-17T00:00:00.000Z');
+    const failedAt = new Date('2026-07-17T00:01:00.000Z');
+    const m = await seedMonitor();
+    await repo.upsertState({
+      monitorId: m.id,
+      series: TOTAL_SENTINEL,
+      status: 'ok',
+      breachedSince: null,
+      lastValue: 1,
+      lastEvaluatedAt: succeededAt,
+    });
+
+    await repo.recordEvalFailure(m.id, 'real failure', failedAt);
+
+    const [after] = await db.select().from(monitors).where(eq(monitors.id, m.id));
+    expect(after?.consecutiveFailures).toBe(1);
+    expect(after?.lastEvalError).toBe('real failure');
   });
 });
