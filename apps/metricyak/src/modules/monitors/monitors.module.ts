@@ -1,8 +1,10 @@
 import {
   createMonitorDispatchWorker,
   createMonitorEvalWorker,
+  createMonitorRelayWorker,
   createMonitorSignalsWorker,
   registerMonitorDispatchScheduler,
+  registerMonitorRelayScheduler,
 } from '@metricyak/queue';
 import type { AppModule, SchedulerFactory, WorkerFactory } from '@/modules/module.js';
 import monitorsRouter from '@/modules/monitors/monitors.routes.js';
@@ -20,12 +22,7 @@ const monitorDispatchWorkerFactory: WorkerFactory = (connection, container, conc
         { monitorRuntime: container.repos.monitorRuntime, evalProducer: container.evalProducer },
         now,
       );
-      // TEMPORARY until Task 7 (PR4) moves relay to its own scheduler:
-      const relay = await relayMonitorSignals(
-        { db: container.db, monitorRuntime: container.repos.monitorRuntime, signals: container.signals },
-        now,
-      );
-      console.log(JSON.stringify({ level: 'info', msg: 'monitor dispatch', ...dispatch, ...relay }));
+      console.log(JSON.stringify({ level: 'info', msg: 'monitor dispatch', ...dispatch }));
     },
   });
 
@@ -52,11 +49,30 @@ const monitorSignalsWorkerFactory: WorkerFactory = (connection, _container, conc
     process: (job) => processMonitorSignal(job.data),
   });
 
+const monitorRelayWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
+  createMonitorRelayWorker(connection, {
+    concurrency,
+    process: async () => {
+      const relay = await relayMonitorSignals(
+        { db: container.db, monitorRuntime: container.repos.monitorRuntime, signals: container.signals },
+        new Date(),
+      );
+      if (relay.relayed > 0) console.log(JSON.stringify({ level: 'info', msg: 'monitor relay', ...relay }));
+    },
+  });
+
 const monitorDispatchScheduler: SchedulerFactory = (connection) =>
   registerMonitorDispatchScheduler(connection);
 
+const monitorRelayScheduler: SchedulerFactory = (connection) => registerMonitorRelayScheduler(connection);
+
 export const monitorsModule: AppModule = {
   routes: monitorsRouter,
-  workers: [monitorDispatchWorkerFactory, monitorEvalWorkerFactory, monitorSignalsWorkerFactory],
-  schedulers: [monitorDispatchScheduler],
+  workers: [
+    monitorDispatchWorkerFactory,
+    monitorEvalWorkerFactory,
+    monitorRelayWorkerFactory,
+    monitorSignalsWorkerFactory,
+  ],
+  schedulers: [monitorDispatchScheduler, monitorRelayScheduler],
 };

@@ -8,6 +8,9 @@ import {
   MONITOR_EVAL_QUEUE,
   type MonitorDispatchJob,
   type MonitorEvalJob,
+  MONITOR_RELAY_INTERVAL_MS,
+  MONITOR_RELAY_QUEUE,
+  type MonitorRelayJob,
   MONITOR_SIGNALS_QUEUE,
   type MonitorSignalJob,
 } from '@/queues.js';
@@ -78,4 +81,33 @@ export function createMonitorEvalWorker(
   { concurrency, process }: MonitorEvalWorkerOptions,
 ): Worker<MonitorEvalJob> {
   return new Worker<MonitorEvalJob>(MONITOR_EVAL_QUEUE, process, { connection, concurrency });
+}
+
+export type MonitorRelayWorkerOptions = {
+  concurrency: number;
+  process: (job: Job<MonitorRelayJob>) => Promise<void>;
+};
+
+export function createMonitorRelayWorker(
+  connection: ConnectionOptions,
+  { concurrency, process }: MonitorRelayWorkerOptions,
+): Worker<MonitorRelayJob> {
+  return new Worker<MonitorRelayJob>(MONITOR_RELAY_QUEUE, process, { connection, concurrency });
+}
+
+export async function registerMonitorRelayScheduler(connection: ConnectionOptions): Promise<void> {
+  const queue = new Queue<MonitorRelayJob>(MONITOR_RELAY_QUEUE, { connection });
+  try {
+    await queue.upsertJobScheduler(
+      'monitor-relay',
+      { every: MONITOR_RELAY_INTERVAL_MS },
+      {
+        name: MONITOR_RELAY_QUEUE,
+        data: { tickAt: 'scheduled' },
+        opts: { removeOnComplete: { age: 3600, count: 100 }, removeOnFail: { age: 7 * 24 * 3600 } },
+      },
+    );
+  } finally {
+    await queue.close();
+  }
 }

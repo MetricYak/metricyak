@@ -45,3 +45,10 @@ export type MonitorSignalJob = {
   threshold: { operator: string; value: number };
   occurredAt: string;
 };
+
+export const MONITOR_RELAY_QUEUE = 'monitor-relay' as const;
+export const MONITOR_RELAY_INTERVAL_MS = 10_000;
+
+export type MonitorRelayJob = {
+  tickAt: string;
+};
