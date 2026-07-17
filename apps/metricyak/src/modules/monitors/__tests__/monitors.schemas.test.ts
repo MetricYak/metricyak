@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CreateMonitorRequest,
   isEqualityOperator,
+  MonitorResponse,
   metricYieldsIntegerValues,
   UpdateMonitorRequest,
 } from '@/modules/monitors/monitors.schemas.js';
@@ -86,6 +87,29 @@ describe('UpdateMonitorRequest', () => {
   it('rejects an unknown comparison operator', () => {
     const result = UpdateMonitorRequest.safeParse({ condition: { operator: 'between', value: 1 } });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('MonitorResponse', () => {
+  it('accepts eval health fields on a monitor response', () => {
+    const parsed = MonitorResponse.parse({
+      monitorId: '11111111-1111-1111-9111-111111111111',
+      name: 'm',
+      metricId: '22222222-2222-2222-9222-222222222222',
+      condition: { operator: 'gt', value: 1 },
+      window: '1d',
+      holdFor: '0m',
+      enabled: true,
+      missingData: 'skip',
+      evalHealth: 'error',
+      lastEvalError: 'metric unavailable',
+      lastEvalErrorAt: '2026-07-17T00:00:00.000Z',
+      lastEvaluatedAt: '2026-07-16T23:00:00.000Z',
+      createdOn: '2026-07-16T00:00:00.000Z',
+      updatedOn: '2026-07-16T00:00:00.000Z',
+    });
+    expect(parsed.evalHealth).toBe('error');
+    expect(parsed.lastEvaluatedAt).toBe('2026-07-16T23:00:00.000Z');
   });
 });
 

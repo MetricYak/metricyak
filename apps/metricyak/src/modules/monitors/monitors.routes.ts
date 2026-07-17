@@ -26,7 +26,10 @@ import {
   UpdateMonitorRequest,
 } from '@/modules/monitors/monitors.schemas.js';
 
-function toMonitorResponse(record: MonitorRecord): z.input<typeof MonitorResponse> {
+function toMonitorResponse(
+  record: MonitorRecord,
+  lastEvaluatedAt: Date | null,
+): z.input<typeof MonitorResponse> {
   return {
     monitorId: record.id,
     name: record.name,
@@ -38,6 +41,10 @@ function toMonitorResponse(record: MonitorRecord): z.input<typeof MonitorRespons
     holdFor: record.holdFor,
     enabled: record.enabled,
     missingData: record.missingData,
+    evalHealth: record.evalHealth,
+    lastEvalError: record.lastEvalError,
+    lastEvalErrorAt: record.lastEvalErrorAt?.toISOString() ?? null,
+    lastEvaluatedAt: lastEvaluatedAt?.toISOString() ?? null,
     createdOn: record.createdAt.toISOString(),
     updatedOn: record.updatedAt.toISOString(),
   };
@@ -173,23 +180,29 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
     missingData,
   });
 
-  return respond(c, MonitorResponse, toMonitorResponse(record), 201);
+  return respond(c, MonitorResponse, toMonitorResponse(record, null), 201);
 });
 
 monitorsRouter.openapi(listMonitorsRoute, async (c) => {
   const { projectId } = c.req.valid('param');
-  const { monitors, projects } = c.var.container.repos;
+  const { monitors, projects, monitorRuntime } = c.var.container.repos;
 
   await requireProject(projects, projectId);
 
   const records = await monitors.list(projectId);
+  const lastEvalMap = await monitorRuntime.getLastEvaluatedAt(records.map((r) => r.id));
 
-  return respond(c, ListMonitorsResponse, records.map(toMonitorResponse), 200);
+  return respond(
+    c,
+    ListMonitorsResponse,
+    records.map((r) => toMonitorResponse(r, lastEvalMap.get(r.id) ?? null)),
+    200,
+  );
 });
 
 monitorsRouter.openapi(getMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
-  const { monitors, projects } = c.var.container.repos;
+  const { monitors, projects, monitorRuntime } = c.var.container.repos;
 
   await requireProject(projects, projectId);
   const record = orNotFound(
@@ -197,13 +210,20 @@ monitorsRouter.openapi(getMonitorRoute, async (c) => {
     'The monitor could not be found.',
   );
 
-  return respond(c, MonitorResponse, toMonitorResponse(record), 200);
+  const lastEvalMap = await monitorRuntime.getLastEvaluatedAt([record.id]);
+
+  return respond(
+    c,
+    MonitorResponse,
+    toMonitorResponse(record, lastEvalMap.get(record.id) ?? null),
+    200,
+  );
 });
 
 monitorsRouter.openapi(updateMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
   const input = c.req.valid('json');
-  const { monitors, metrics, projects } = c.var.container.repos;
+  const { monitors, metrics, projects, monitorRuntime } = c.var.container.repos;
 
   await requireProject(projects, projectId);
   const existing = orNotFound(
@@ -236,7 +256,14 @@ monitorsRouter.openapi(updateMonitorRoute, async (c) => {
     'The monitor could not be found.',
   );
 
-  return respond(c, MonitorResponse, toMonitorResponse(record), 200);
+  const lastEvalMap = await monitorRuntime.getLastEvaluatedAt([record.id]);
+
+  return respond(
+    c,
+    MonitorResponse,
+    toMonitorResponse(record, lastEvalMap.get(record.id) ?? null),
+    200,
+  );
 });
 
 monitorsRouter.openapi(deleteMonitorRoute, async (c) => {
