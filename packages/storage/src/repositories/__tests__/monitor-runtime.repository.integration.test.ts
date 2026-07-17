@@ -315,4 +315,50 @@ describe('MonitorRuntimeRepository (integration)', () => {
     expect(map.get(m.id)?.getTime()).toBe(at.getTime());
     expect((await repo.getLastEvaluatedAt([])).size).toBe(0);
   });
+
+  it('ignores a stale failure whose slot predates a newer successful eval', async () => {
+    // A later slot succeeded (stamping last_evaluated_at) before an earlier
+    // slot's out-of-band failure recording obtained the row lock. The stale
+    // failure must not be counted against the already-recovered monitor.
+    const failedAt = new Date('2026-07-17T00:00:00.000Z');
+    const succeededAt = new Date('2026-07-17T00:01:00.000Z');
+    const m = await seedMonitor();
+    await repo.upsertState({
+      monitorId: m.id,
+      series: TOTAL_SENTINEL,
+      status: 'ok',
+      breachedSince: null,
+      lastValue: 1,
+      lastEvaluatedAt: succeededAt,
+    });
+
+    await repo.recordEvalFailure(m.id, 'stale failure', failedAt);
+
+    const [after] = await db.select().from(monitors).where(eq(monitors.id, m.id));
+    expect(after?.consecutiveFailures).toBe(0);
+    expect(after?.evalHealth).toBe('ok');
+    expect(after?.lastEvalError).toBeNull();
+  });
+
+  it('still records a failure newer than the last successful eval', async () => {
+    // The freshness guard must only drop stale failures — a failure whose slot
+    // is newer than the last success is legitimate and must still count.
+    const succeededAt = new Date('2026-07-17T00:00:00.000Z');
+    const failedAt = new Date('2026-07-17T00:01:00.000Z');
+    const m = await seedMonitor();
+    await repo.upsertState({
+      monitorId: m.id,
+      series: TOTAL_SENTINEL,
+      status: 'ok',
+      breachedSince: null,
+      lastValue: 1,
+      lastEvaluatedAt: succeededAt,
+    });
+
+    await repo.recordEvalFailure(m.id, 'real failure', failedAt);
+
+    const [after] = await db.select().from(monitors).where(eq(monitors.id, m.id));
+    expect(after?.consecutiveFailures).toBe(1);
+    expect(after?.lastEvalError).toBe('real failure');
+  });
 });

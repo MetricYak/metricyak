@@ -79,6 +79,13 @@ export class MonitorRuntimeRepository {
    * transaction has already rolled back. If this write itself fails (e.g. a
    * global DB outage — the same failure that broke the eval), the counter does
    * not advance, so a global outage never produces a per-monitor incident.
+   *
+   * `now` is the failing eval's start time. Because recording happens
+   * out-of-band, a newer slot can succeed (stamping `monitor_state.last_evaluated_at`
+   * and resetting health) before this delayed recording obtains the row lock.
+   * The freshness guard drops such stale failures: if a successful eval at or
+   * after `now` already exists, this failure has been superseded and must not
+   * be counted against the recovered monitor.
    */
   async recordEvalFailure(monitorId: string, error: string, now: Date): Promise<void> {
     await this.db.transaction(async (tx) => {
@@ -89,6 +96,14 @@ export class MonitorRuntimeRepository {
         .for('update')
         .limit(1);
       if (!row) return;
+
+      const [state] = await tx
+        .select({ lastEvaluatedAt: monitorState.lastEvaluatedAt })
+        .from(monitorState)
+        .where(and(eq(monitorState.monitorId, monitorId), eq(monitorState.series, TOTAL_SENTINEL)))
+        .limit(1);
+      // A newer (or concurrent) slot already succeeded — this failure is stale.
+      if (state?.lastEvaluatedAt && state.lastEvaluatedAt >= now) return;
 
       const next = row.consecutiveFailures + 1;
       const set: {
