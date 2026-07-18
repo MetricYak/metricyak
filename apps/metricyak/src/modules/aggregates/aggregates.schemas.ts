@@ -19,35 +19,3 @@ export const ValueResponse = z.object({
   value: z.number().nullable(),
   breakdown: z.array(z.object({ dimValue: z.string(), value: z.number().nullable() })).optional(),
 });
-
-export const BreakdownQuery = z.object({
-  from: z.iso.datetime().openapi({ param: { name: 'from', in: 'query' } }),
-  to: z.iso.datetime().openapi({ param: { name: 'to', in: 'query' } }),
-  compareFrom: z.iso.datetime().openapi({ param: { name: 'compareFrom', in: 'query' } }),
-  compareTo: z.iso.datetime().openapi({ param: { name: 'compareTo', in: 'query' } }),
-  dimension: z
-    .string()
-    .min(1)
-    .openapi({ param: { name: 'dimension', in: 'query' } }),
-  limit: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
-    .openapi({
-      param: { name: 'limit', in: 'query' },
-    }),
-});
-
-export const BreakdownResponse = z.object({
-  movers: z.array(
-    z.object({
-      dimValue: z.string(),
-      current: z.number().nullable(),
-      previous: z.number().nullable(),
-      delta: z.number(),
-      contribution: z.number().nullable(),
-    }),
-  ),
-});

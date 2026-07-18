@@ -1,5 +1,6 @@
-import type { MetricAggregation, MetricDefinition, PartialRow } from '@metricyak/storage';
+import type { MetricAggregation, MetricDefinition } from '@metricyak/storage';
 import { evaluateExpression, parseExpression } from '@/modules/aggregates/engine/expression.js';
+import type { PartialRow } from '@/modules/aggregates/types.js';
 
 export type AggregateSample = {
   count: number;

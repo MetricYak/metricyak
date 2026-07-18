@@ -44,7 +44,7 @@ describe('runMonitorDispatch (integration)', () => {
 
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table metric_buckets, monitor_events, monitor_state, monitors, metric_definition_versions, metric_definitions, projects, organizations restart identity cascade`,
+      sql`truncate table monitor_events, monitor_state, monitors, metric_definition_versions, metric_definitions, projects, organizations restart identity cascade`,
     );
     const [org] = await db.insert(organizations).values({ slug: 'acme', name: 'Acme' }).returning();
     if (!org) throw new Error('seed org');

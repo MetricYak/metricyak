@@ -1,6 +1,3 @@
-export * from '@/repositories/aggregates.repository.js';
-export * from '@/repositories/events.repository.js';
-export * from '@/repositories/failed-events.repository.js';
 export * from '@/repositories/metrics.repository.js';
 export * from '@/repositories/monitor-runtime.repository.js';
 export * from '@/repositories/monitors.repository.js';

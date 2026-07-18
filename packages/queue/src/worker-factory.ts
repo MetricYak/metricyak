@@ -1,8 +1,6 @@
 import type { ConnectionOptions, Job } from 'bullmq';
 import { Queue, Worker } from 'bullmq';
 import {
-  EVENTS_QUEUE,
-  type EventBatchJob,
   MONITOR_DISPATCH_INTERVAL_MS,
   MONITOR_DISPATCH_QUEUE,
   MONITOR_EVAL_QUEUE,
@@ -14,21 +12,6 @@ import {
   type MonitorRelayJob,
   type MonitorSignalJob,
 } from '@/queues.js';
-
-export type EventWorkerOptions = {
-  concurrency: number;
-  process: (job: Job<EventBatchJob>) => Promise<void>;
-};
-
-export function createEventsWorker(
-  connection: ConnectionOptions,
-  { concurrency, process }: EventWorkerOptions,
-): Worker<EventBatchJob> {
-  return new Worker<EventBatchJob>(EVENTS_QUEUE, process, {
-    connection,
-    concurrency,
-  });
-}
 
 export type MonitorDispatchWorkerOptions = {
   concurrency: number;

@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
 
-export const EVENTS_QUEUE = 'events' as const;
-
 export type StoredEvent = {
   id: string;
   insertId: string | null;

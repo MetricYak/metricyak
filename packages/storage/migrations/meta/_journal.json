@@ -43,6 +43,13 @@
       "when": 1784317441541,
       "tag": "0005_mighty_network",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784397635142,
+      "tag": "0006_small_dexter_bennett",
+      "breakpoints": true
     }
   ]
 }
