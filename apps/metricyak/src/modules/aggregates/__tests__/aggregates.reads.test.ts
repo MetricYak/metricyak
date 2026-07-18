@@ -16,7 +16,16 @@ const countMetric: MetricSummary = {
 const bucketStart = new Date('2026-01-01T00:00:00.000Z');
 
 function partial(dimName: string, dimValue: string, count: number): PartialRow {
-  return { bucketStart, seriesKey: 'purchases', dimName, dimValue, count, sum: 0, min: null, max: null };
+  return {
+    bucketStart,
+    seriesKey: 'purchases',
+    dimName,
+    dimValue,
+    count,
+    sum: 0,
+    min: null,
+    max: null,
+  };
 }
 
 const noRawBreakdown: ReadsAggregates['rawBreakdown'] = async () => [];

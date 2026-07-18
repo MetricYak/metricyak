@@ -102,7 +102,9 @@ export function createMetricReads(deps: { aggregates: ReadsAggregates }): Metric
     const values = windowValues(metric.definition, partials);
     const total = values.find((v) => v.dimName === TOTAL_SENTINEL)?.value ?? null;
     const breakdown = splitBy
-      ? values.filter((v) => v.dimName === splitBy).map((v) => ({ dimValue: v.dimValue, value: v.value }))
+      ? values
+          .filter((v) => v.dimName === splitBy)
+          .map((v) => ({ dimValue: v.dimValue, value: v.value }))
       : undefined;
     return { value: total, breakdown };
   }

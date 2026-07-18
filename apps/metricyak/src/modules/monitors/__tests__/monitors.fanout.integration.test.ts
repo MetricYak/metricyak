@@ -1,6 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createClickHouseClient, type ClickHouseClient, migrate as migrateClickHouse } from '@metricyak/clickhouse';
+import {
+  type ClickHouseClient,
+  createClickHouseClient,
+  migrate as migrateClickHouse,
+} from '@metricyak/clickhouse';
 import { InMemoryMonitorEvalProducer } from '@metricyak/queue';
 import {
   type Database,
@@ -45,7 +49,11 @@ describe('monitor fan-out (integration)', () => {
 
     chContainer = await new GenericContainer('clickhouse/clickhouse-server:24.8')
       .withExposedPorts(8123)
-      .withEnvironment({ CLICKHOUSE_USER: 'test', CLICKHOUSE_PASSWORD: 'test', CLICKHOUSE_DB: 'test' })
+      .withEnvironment({
+        CLICKHOUSE_USER: 'test',
+        CLICKHOUSE_PASSWORD: 'test',
+        CLICKHOUSE_DB: 'test',
+      })
       .withWaitStrategy(Wait.forHttp('/ping', 8123))
       .start();
     chClient = createClickHouseClient(

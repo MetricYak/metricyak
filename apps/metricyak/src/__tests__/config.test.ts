@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '@/config.js';
 
-const base = { RUN_WORKER_INLINE: 'true', CLICKHOUSE_URL: 'http://x:y@h:8123/d', KAFKA_BROKERS: 'a:9092' };
+const base = {
+  RUN_WORKER_INLINE: 'true',
+  CLICKHOUSE_URL: 'http://x:y@h:8123/d',
+  KAFKA_BROKERS: 'a:9092',
+};
 
 describe('parseConfig DATABASE_URL', () => {
   it('accepts a credentialed postgres URL', () => {
@@ -39,7 +43,11 @@ describe('kafka/clickhouse config', () => {
 
   it('requires CLICKHOUSE_URL', () => {
     expect(() =>
-      parseConfig({ DATABASE_URL: backendBase.DATABASE_URL, RUN_WORKER_INLINE: 'true', KAFKA_BROKERS: 'a:9092' }),
+      parseConfig({
+        DATABASE_URL: backendBase.DATABASE_URL,
+        RUN_WORKER_INLINE: 'true',
+        KAFKA_BROKERS: 'a:9092',
+      }),
     ).toThrow(/CLICKHOUSE_URL/);
   });
 
@@ -51,7 +59,11 @@ describe('kafka/clickhouse config', () => {
 
   it('rejects a missing KAFKA_BROKERS', () => {
     expect(() =>
-      parseConfig({ DATABASE_URL: backendBase.DATABASE_URL, RUN_WORKER_INLINE: 'true', CLICKHOUSE_URL: backendBase.CLICKHOUSE_URL }),
+      parseConfig({
+        DATABASE_URL: backendBase.DATABASE_URL,
+        RUN_WORKER_INLINE: 'true',
+        CLICKHOUSE_URL: backendBase.CLICKHOUSE_URL,
+      }),
     ).toThrow(/KAFKA_BROKERS/);
   });
 });

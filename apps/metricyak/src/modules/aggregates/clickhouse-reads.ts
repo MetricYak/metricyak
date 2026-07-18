@@ -1,7 +1,7 @@
 import type { ClickHouseClient } from '@metricyak/clickhouse';
 import { type MetricSummary, OTHER_SENTINEL, TOTAL_SENTINEL } from '@metricyak/storage';
-import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
 import type { ReadsAggregates, Window } from '@/modules/aggregates/aggregates.reads.js';
+import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
 import type { PartialRow, RawBreakdownRow } from '@/modules/aggregates/types.js';
 
 /** JSON accessor for a value path over the `properties` String column, as Nullable(Float64). */
@@ -61,7 +61,13 @@ export async function chRawBreakdown(
     },
     format: 'JSONEachRow',
   });
-  const raw = await rs.json<{ dimValue: string; count: string; sum: number; min: number | null; max: number | null }>();
+  const raw = await rs.json<{
+    dimValue: string;
+    count: string;
+    sum: number;
+    min: number | null;
+    max: number | null;
+  }>();
   return raw.map((r) => ({
     dimValue: r.dimValue,
     count: Number(r.count),
@@ -94,7 +100,12 @@ async function eventPartials(
     query_params: baseParams,
     format: 'JSONEachRow',
   });
-  const [t] = await totalRs.json<{ count: string; sum: number; min: number | null; max: number | null }>();
+  const [t] = await totalRs.json<{
+    count: string;
+    sum: number;
+    min: number | null;
+    max: number | null;
+  }>();
   const rows: PartialRow[] = [
     {
       bucketStart: window.from,
@@ -117,7 +128,13 @@ async function eventPartials(
       query_params: { ...baseParams, dim, other: OTHER_SENTINEL },
       format: 'JSONEachRow',
     });
-    for (const r of await rs.json<{ dimValue: string; count: string; sum: number; min: number | null; max: number | null }>()) {
+    for (const r of await rs.json<{
+      dimValue: string;
+      count: string;
+      sum: number;
+      min: number | null;
+      max: number | null;
+    }>()) {
       rows.push({
         bucketStart: window.from,
         seriesKey: event.key,

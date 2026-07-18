@@ -33,9 +33,19 @@ const ConfigSchema = z
     KAFKA_BROKERS: z
       .string()
       .min(1, 'KAFKA_BROKERS is required.')
-      .transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean))
-      .refine((brokers) => brokers.length > 0, { message: 'KAFKA_BROKERS must list at least one broker.' }),
-    CLICKHOUSE_URL: z.string().url('CLICKHOUSE_URL must be a valid URL.').min(1, 'CLICKHOUSE_URL is required.'),
+      .transform((s) =>
+        s
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean),
+      )
+      .refine((brokers) => brokers.length > 0, {
+        message: 'KAFKA_BROKERS must list at least one broker.',
+      }),
+    CLICKHOUSE_URL: z
+      .string()
+      .url('CLICKHOUSE_URL must be a valid URL.')
+      .min(1, 'CLICKHOUSE_URL is required.'),
   })
   .superRefine((data, ctx) => {
     if (!data.RUN_WORKER_INLINE && !data.REDIS_URL) {

@@ -8,9 +8,9 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from '@/client.js';
 import { MonitorRuntimeRepository } from '@/repositories/monitor-runtime.repository.js';
-import { TOTAL_SENTINEL } from '@/schema/sentinels.js';
 import * as schema from '@/schema/index.js';
 import { metricDefinitions, monitors, organizations, projects } from '@/schema/index.js';
+import { TOTAL_SENTINEL } from '@/schema/sentinels.js';
 
 const migrationsFolder = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

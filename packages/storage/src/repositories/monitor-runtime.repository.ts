@@ -2,10 +2,10 @@ import { and, asc, eq, inArray, isNull, lte } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
 import { MONITOR_EVAL_FAILURE_THRESHOLD, monitorEvalBackoffMs } from '@/lib/monitor-health.js';
 import type { MonitorRecord } from '@/repositories/monitors.repository.js';
-import { TOTAL_SENTINEL } from '@/schema/sentinels.js';
 import { type MonitorEventType, monitorEvents } from '@/schema/monitor-events.js';
 import { type MonitorStatus, monitorState } from '@/schema/monitor-state.js';
 import { type MonitorThresholdCondition, monitors } from '@/schema/monitors.js';
+import { TOTAL_SENTINEL } from '@/schema/sentinels.js';
 
 export type MonitorEvalStateRow = {
   monitorId: string;

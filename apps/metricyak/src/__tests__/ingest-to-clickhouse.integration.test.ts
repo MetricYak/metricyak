@@ -1,7 +1,13 @@
 import { createClickHouseClient, migrate, setupKafkaIngestion } from '@metricyak/clickhouse';
 import { createKafka, ensureTopics, KafkaEventsProducer } from '@metricyak/queue';
 import { KafkaContainer, type StartedKafkaContainer } from '@testcontainers/kafka';
-import { GenericContainer, Network, type StartedNetwork, type StartedTestContainer, Wait } from 'testcontainers';
+import {
+  GenericContainer,
+  Network,
+  type StartedNetwork,
+  type StartedTestContainer,
+  Wait,
+} from 'testcontainers';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
 import { createClickHouseReadsAggregates } from '@/modules/aggregates/clickhouse-reads.js';
@@ -29,7 +35,11 @@ describe('ingest -> Kafka -> ClickHouse -> MetricReads (integration)', () => {
     chContainer = await new GenericContainer('clickhouse/clickhouse-server:24.8')
       .withNetwork(network)
       .withExposedPorts(8123)
-      .withEnvironment({ CLICKHOUSE_USER: 'test', CLICKHOUSE_PASSWORD: 'test', CLICKHOUSE_DB: 'test' })
+      .withEnvironment({
+        CLICKHOUSE_USER: 'test',
+        CLICKHOUSE_PASSWORD: 'test',
+        CLICKHOUSE_DB: 'test',
+      })
       .withWaitStrategy(Wait.forHttp('/ping', 8123))
       .start();
     const chUrl = `http://test:test@${chContainer.getHost()}:${chContainer.getMappedPort(8123)}/test`;
@@ -63,7 +73,9 @@ describe('ingest -> Kafka -> ClickHouse -> MetricReads (integration)', () => {
       version: 1,
       name: 'Purchases',
       definition: {
-        events: [{ key: 'purchases', source: 'web', type: 'purchase', aggregation: 'count' as const }],
+        events: [
+          { key: 'purchases', source: 'web', type: 'purchase', aggregation: 'count' as const },
+        ],
       },
     };
 
@@ -71,7 +83,13 @@ describe('ingest -> Kafka -> ClickHouse -> MetricReads (integration)', () => {
       projectId,
       batchId: 'batch-1',
       events: [
-        { id: '00000000-0000-0000-0000-0000000000b1', insertId: 'e1', name: 'purchase', timestamp: '2026-01-01T00:00:00.000Z', properties: {} },
+        {
+          id: '00000000-0000-0000-0000-0000000000b1',
+          insertId: 'e1',
+          name: 'purchase',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          properties: {},
+        },
       ],
     });
 
