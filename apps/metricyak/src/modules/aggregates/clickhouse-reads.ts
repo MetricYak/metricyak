@@ -44,7 +44,7 @@ export async function chRawBreakdown(
         toFloat64(sum(${val})) AS sum,
         min(${val}) AS min,
         max(${val}) AS max
-      FROM events
+      FROM events FINAL
       WHERE project_id = {projectId:UUID}
         AND name IN {names:Array(String)}
         AND timestamp >= {from:DateTime64(3, 'UTC')}
@@ -90,7 +90,7 @@ async function eventPartials(
     AND timestamp >= {from:DateTime64(3, 'UTC')} AND timestamp < {to:DateTime64(3, 'UTC')}`;
 
   const totalRs = await client.query({
-    query: `SELECT toInt64(count()) AS count, toFloat64(sum(${val})) AS sum, min(${val}) AS min, max(${val}) AS max FROM events WHERE ${where}`,
+    query: `SELECT toInt64(count()) AS count, toFloat64(sum(${val})) AS sum, min(${val}) AS min, max(${val}) AS max FROM events FINAL WHERE ${where}`,
     query_params: baseParams,
     format: 'JSONEachRow',
   });
@@ -113,7 +113,7 @@ async function eventPartials(
       query: `
         SELECT if(JSONHas(properties, {dim:String}), JSONExtractString(properties, {dim:String}), {other:String}) AS dimValue,
                toInt64(count()) AS count, toFloat64(sum(${val})) AS sum, min(${val}) AS min, max(${val}) AS max
-        FROM events WHERE ${where} GROUP BY dimValue`,
+        FROM events FINAL WHERE ${where} GROUP BY dimValue`,
       query_params: { ...baseParams, dim, other: OTHER_SENTINEL },
       format: 'JSONEachRow',
     });

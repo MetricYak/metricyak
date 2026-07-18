@@ -84,6 +84,55 @@ describe('clickhouse-reads (integration)', () => {
     expect(rows).toEqual([{ dimValue: '$other', count: 1, sum: 9, min: 9, max: 9 }]);
   });
 
+  describe('FINAL deduplication', () => {
+    it('does not double-count a duplicate physical row for the same (project_id, insert_id) before a background merge runs', async () => {
+      // Simulates an at-least-once Kafka delivery where the ingestion MV's insert was retried,
+      // producing two physical rows for one logical event. ReplacingMergeTree only dedups these
+      // at background-merge time, so without `FINAL` in the read query this would double-count.
+      //
+      // `insert_deduplicate: 0` disables ClickHouse's separate insert-block dedup
+      // (`non_replicated_deduplication_window`, set on the `events` table), which would otherwise
+      // silently absorb a byte-identical duplicate block before it ever became two physical rows.
+      // That block-level dedup is a best-effort safety net, not the mechanism this system relies
+      // on for correctness — per the design comment in packages/clickhouse/src/kafka-ingestion.ts,
+      // "idempotency is handled downstream by the `events` ReplacingMergeTree deduplicating on
+      // (project_id, insert_id)". Disabling it here reproduces the real failure mode: two active
+      // parts, each holding one physical row, un-merged.
+      const duplicateRow = {
+        id: '00000000-0000-0000-0000-0000000000d1',
+        project_id: PROJECT_ID,
+        insert_id: 'dup-1',
+        name: 'purchase',
+        timestamp: '2026-01-01 00:00:00.000',
+        properties: JSON.stringify({ country: 'US', amount: '10' }),
+      };
+      await client.insert({
+        table: 'events',
+        format: 'JSONEachRow',
+        values: [duplicateRow],
+        clickhouse_settings: { insert_deduplicate: 0 },
+      });
+      await client.insert({
+        table: 'events',
+        format: 'JSONEachRow',
+        values: [duplicateRow],
+        clickhouse_settings: { insert_deduplicate: 0 },
+      });
+
+      const rows = await chRawBreakdown(client, {
+        projectId: PROJECT_ID,
+        eventNames: ['purchase'],
+        dimField: 'country',
+        valuePath: ['amount'],
+        from: new Date('2026-01-01T00:00:00Z'),
+        to: new Date('2026-01-02T00:00:00Z'),
+      });
+
+      const byDim = Object.fromEntries(rows.map((r) => [r.dimValue, r]));
+      expect(byDim.US).toMatchObject({ count: 1, sum: 10, min: 10, max: 10 });
+    });
+  });
+
   describe('chWindowPartials', () => {
     const metric: MetricSummary = {
       metricId: 'metric-1',
