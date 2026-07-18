@@ -1,7 +1,8 @@
 import type { ClickHouseClient } from '@metricyak/clickhouse';
-import { type MetricSummary, OTHER_SENTINEL, type PartialRow, type RawBreakdownRow, TOTAL_SENTINEL } from '@metricyak/storage';
+import { type MetricSummary, OTHER_SENTINEL, TOTAL_SENTINEL } from '@metricyak/storage';
 import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
 import type { ReadsAggregates, Window } from '@/modules/aggregates/aggregates.reads.js';
+import type { PartialRow, RawBreakdownRow } from '@/modules/aggregates/types.js';
 
 /** JSON accessor for a value path over the `properties` String column, as Nullable(Float64). */
 function numericExpr(valuePath: readonly string[] | null): string {

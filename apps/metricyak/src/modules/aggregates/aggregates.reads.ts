@@ -1,7 +1,8 @@
-import type { MetricEvent, MetricSummary, PartialRow, RawBreakdownRow } from '@metricyak/storage';
+import type { MetricEvent, MetricSummary } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
 import { aggregateScalar, windowValues } from '@/modules/aggregates/engine/materialize.js';
+import type { PartialRow, RawBreakdownRow } from '@/modules/aggregates/types.js';
 
 export type Window = { from: Date; to: Date };
 

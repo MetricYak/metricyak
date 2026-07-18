@@ -1,7 +1,8 @@
-import type { MetricSummary, PartialRow, RawBreakdownRow } from '@metricyak/storage';
+import type { MetricSummary } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
 import { createMetricReads, type ReadsAggregates } from '@/modules/aggregates/aggregates.reads.js';
+import type { PartialRow, RawBreakdownRow } from '@/modules/aggregates/types.js';
 
 const countMetric: MetricSummary = {
   metricId: 'metric-1',

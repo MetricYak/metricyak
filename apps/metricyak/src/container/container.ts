@@ -1,10 +1,7 @@
 import type { ClickHouseClient } from '@metricyak/clickhouse';
 import type { EventsProducer, MonitorEvalProducer, MonitorSignalsProducer } from '@metricyak/queue';
 import {
-  AggregatesRepository,
   type Database,
-  EventsRepository,
-  FailedEventsRepository,
   MetricsRepository,
   MonitorRuntimeRepository,
   MonitorsRepository,
@@ -17,9 +14,6 @@ import { createClickHouseReadsAggregates } from '@/modules/aggregates/clickhouse
 
 export type Repositories = {
   readonly projectKeys: ProjectKeysRepository;
-  readonly events: EventsRepository;
-  readonly failedEvents: FailedEventsRepository;
-  readonly aggregates: AggregatesRepository;
   readonly metrics: MetricsRepository;
   readonly monitors: MonitorsRepository;
   readonly monitorRuntime: MonitorRuntimeRepository;
@@ -51,14 +45,9 @@ export function createContainer(
   clickhouse: ClickHouseClient,
 ): Container {
   const metrics = new MetricsRepository(db);
-  const events = new EventsRepository(db);
-  const aggregates = new AggregatesRepository(db);
 
   const repos: Repositories = {
     projectKeys: new ProjectKeysRepository(db),
-    events,
-    failedEvents: new FailedEventsRepository(db),
-    aggregates,
     metrics,
     monitors: new MonitorsRepository(db),
     monitorRuntime: new MonitorRuntimeRepository(db),
