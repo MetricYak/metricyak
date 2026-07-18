@@ -1,3 +1,4 @@
+import { createClickHouseClient } from '@metricyak/clickhouse';
 import {
   BullEventsProducer,
   BullMonitorEvalProducer,
@@ -21,6 +22,7 @@ import { type Container, createContainer } from '@/container/container.js';
 
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
+const clickhouse = createClickHouseClient(config.clickhouseUrl);
 await assertSchemaReady(db);
 
 let container: Container;
@@ -42,7 +44,7 @@ const evalProducer: MonitorEvalProducer = config.redisUrl
   ? new BullMonitorEvalProducer(createProducerConnectionOptions(config.redisUrl))
   : new InMemoryMonitorEvalProducer();
 
-container = createContainer(db, producer, signals, evalProducer);
+container = createContainer(db, producer, signals, evalProducer, clickhouse);
 const app = createApp(container);
 
 const server = startHttpServer(app, config);

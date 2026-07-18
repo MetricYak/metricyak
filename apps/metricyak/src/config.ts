@@ -30,7 +30,6 @@ const ConfigSchema = z
       .string()
       .optional()
       .transform((v) => v !== 'false' && v !== '0'),
-    AGGREGATES_BACKEND: z.enum(['postgres', 'clickhouse']).default('postgres'),
     KAFKA_BROKERS: z
       .string()
       .optional()
@@ -40,7 +39,7 @@ const ConfigSchema = z
           .map((x) => x.trim())
           .filter(Boolean),
       ),
-    CLICKHOUSE_URL: z.string().url().optional(),
+    CLICKHOUSE_URL: z.string().url('CLICKHOUSE_URL must be a valid URL.').min(1, 'CLICKHOUSE_URL is required.'),
   })
   .superRefine((data, ctx) => {
     if (!data.RUN_WORKER_INLINE && !data.REDIS_URL) {
@@ -59,9 +58,8 @@ export type Config = {
   readonly workerConcurrency: number;
   readonly runWorkerInline: boolean;
   readonly runWorkersInApi: boolean;
-  readonly aggregatesBackend: 'postgres' | 'clickhouse';
   readonly kafkaBrokers: string[];
-  readonly clickhouseUrl: string | undefined;
+  readonly clickhouseUrl: string;
 };
 
 export function parseConfig(env: NodeJS.ProcessEnv): Config {
@@ -73,7 +71,6 @@ export function parseConfig(env: NodeJS.ProcessEnv): Config {
     workerConcurrency: parsed.WORKER_CONCURRENCY,
     runWorkerInline: parsed.RUN_WORKER_INLINE,
     runWorkersInApi: parsed.RUN_WORKERS_IN_API,
-    aggregatesBackend: parsed.AGGREGATES_BACKEND,
     kafkaBrokers: parsed.KAFKA_BROKERS,
     clickhouseUrl: parsed.CLICKHOUSE_URL,
   };

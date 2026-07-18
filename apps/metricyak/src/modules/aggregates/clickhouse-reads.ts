@@ -1,7 +1,7 @@
 import type { ClickHouseClient } from '@metricyak/clickhouse';
 import { type MetricSummary, OTHER_SENTINEL, type PartialRow, type RawBreakdownRow, TOTAL_SENTINEL } from '@metricyak/storage';
 import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
-import type { Window } from '@/modules/aggregates/aggregates.reads.js';
+import type { ReadsAggregates, Window } from '@/modules/aggregates/aggregates.reads.js';
 
 /** JSON accessor for a value path over the `properties` String column, as Nullable(Float64). */
 function numericExpr(valuePath: readonly string[] | null): string {
@@ -142,4 +142,11 @@ export async function chWindowPartials(
     metric.definition.events.map((e) => eventPartials(client, projectId, window, e, dims)),
   );
   return all.flat();
+}
+
+export function createClickHouseReadsAggregates(client: ClickHouseClient): ReadsAggregates {
+  return {
+    windowPartials: (params) => chWindowPartials(client, params),
+    rawBreakdown: (params) => chRawBreakdown(client, params),
+  };
 }

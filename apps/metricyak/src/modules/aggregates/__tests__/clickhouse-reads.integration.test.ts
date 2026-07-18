@@ -3,7 +3,8 @@ import { GenericContainer, type StartedTestContainer, Wait } from 'testcontainer
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { MetricSummary } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
-import { chRawBreakdown, chWindowPartials } from '@/modules/aggregates/clickhouse-reads.js';
+import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
+import { chRawBreakdown, chWindowPartials, createClickHouseReadsAggregates } from '@/modules/aggregates/clickhouse-reads.js';
 import { windowValues } from '@/modules/aggregates/engine/materialize.js';
 
 const PROJECT_ID = '00000000-0000-0000-0000-0000000000aa';
@@ -129,6 +130,41 @@ describe('clickhouse-reads (integration)', () => {
       const total = windowValues(metric.definition, partials).find((v) => v.dimName === TOTAL_SENTINEL);
 
       expect(total?.value).toBe(22);
+    });
+  });
+
+  describe('createClickHouseReadsAggregates', () => {
+    const metric: MetricSummary = {
+      metricId: 'metric-1',
+      version: 1,
+      name: 'Purchases',
+      definition: {
+        events: [{ key: 'purchases', source: 'web', type: 'purchase', aggregation: 'sum', field: '$properties.amount' }],
+        dimensions: ['country'],
+      },
+    };
+    const window = { from: new Date('2026-01-01T00:00:00Z'), to: new Date('2026-01-02T00:00:00Z') };
+    const emptyWindow = { from: new Date('2025-01-01T00:00:00Z'), to: new Date('2025-01-02T00:00:00Z') };
+
+    it('value() returns the $total scalar and a splitBy breakdown from ClickHouse', async () => {
+      await seedPurchases();
+      const reads = createMetricReads({ aggregates: createClickHouseReadsAggregates(client) });
+
+      const res = await reads.value(metric, PROJECT_ID, window, 'country');
+
+      expect(res.value).toBe(22);
+      const byDim = Object.fromEntries((res.breakdown ?? []).map((b) => [b.dimValue, b.value]));
+      expect(byDim).toMatchObject({ US: 15, CA: 7 });
+    });
+
+    it('breakdown() ranks movers over an undeclared dimension via rawBreakdown', async () => {
+      await seedPurchases();
+      const undeclared: MetricSummary = { ...metric, definition: { ...metric.definition, dimensions: [] } };
+      const reads = createMetricReads({ aggregates: createClickHouseReadsAggregates(client) });
+
+      const res = await reads.breakdown(undeclared, PROJECT_ID, { current: window, compare: emptyWindow }, 'country', 10);
+
+      expect(res.kind).toBe('movers');
     });
   });
 });
