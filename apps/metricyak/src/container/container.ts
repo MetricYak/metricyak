@@ -12,6 +12,7 @@ import {
   ProjectsRepository,
 } from '@metricyak/storage';
 import { createMetricReads, type MetricReads } from '@/modules/aggregates/aggregates.reads.js';
+import { createPostgresReadsAggregates } from '@/modules/aggregates/postgres-reads.js';
 import { MetricMatcher } from '@/modules/aggregates/engine/matcher.js';
 import {
   createIngestPipeline,
@@ -74,7 +75,7 @@ export function createContainer(
   };
 
   const ingest = createIngestPipeline({ events, aggregates, matcher, runInTransaction });
-  const reads = createMetricReads({ aggregates });
+  const reads = createMetricReads({ aggregates: createPostgresReadsAggregates(aggregates) });
 
   return { db, producer, signals, evalProducer, matcher, runInTransaction, repos, ingest, reads };
 }

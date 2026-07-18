@@ -1,9 +1,7 @@
-import type { AggregatesRepository, MetricEvent, MetricSummary } from '@metricyak/storage';
+import type { MetricEvent, MetricSummary, PartialRow, RawBreakdownRow } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
 import { aggregateScalar, windowValues } from '@/modules/aggregates/engine/materialize.js';
-
-const GRANULARITY = 'minute' as const;
 
 export type Window = { from: Date; to: Date };
 
@@ -24,7 +22,21 @@ export type BreakdownResult =
   | { kind: 'movers'; movers: Mover[] }
   | { kind: 'unsupported-dimension' };
 
-type ReadsAggregates = Pick<AggregatesRepository, 'getPartials' | 'rawBreakdown'>;
+export type ReadsAggregates = {
+  windowPartials(params: {
+    metric: MetricSummary;
+    projectId: string;
+    window: Window;
+  }): Promise<PartialRow[]>;
+  rawBreakdown(params: {
+    projectId: string;
+    eventNames: readonly string[];
+    dimField: string;
+    valuePath: readonly string[] | null;
+    from: Date;
+    to: Date;
+  }): Promise<RawBreakdownRow[]>;
+};
 
 export type MetricReads = {
   value(
@@ -47,16 +59,11 @@ export function createMetricReads(deps: { aggregates: ReadsAggregates }): Metric
 
   async function windowByDimension(
     metric: MetricSummary,
+    projectId: string,
     window: Window,
     dimension: string,
   ): Promise<Map<string, number | null>> {
-    const partials = await aggregates.getPartials({
-      metricId: metric.metricId,
-      metricVersion: metric.version,
-      granularity: GRANULARITY,
-      rangeStart: window.from,
-      rangeEnd: window.to,
-    });
+    const partials = await aggregates.windowPartials({ metric, projectId, window });
     const byValue = new Map<string, number | null>();
     for (const value of windowValues(metric.definition, partials)) {
       if (value.dimName === dimension) byValue.set(value.dimValue, value.value);
@@ -86,23 +93,15 @@ export function createMetricReads(deps: { aggregates: ReadsAggregates }): Metric
 
   async function value(
     metric: MetricSummary,
-    _projectId: string,
+    projectId: string,
     window: Window,
     splitBy?: string,
   ): Promise<ValueResult> {
-    const partials = await aggregates.getPartials({
-      metricId: metric.metricId,
-      metricVersion: metric.version,
-      granularity: GRANULARITY,
-      rangeStart: window.from,
-      rangeEnd: window.to,
-    });
+    const partials = await aggregates.windowPartials({ metric, projectId, window });
     const values = windowValues(metric.definition, partials);
     const total = values.find((v) => v.dimName === TOTAL_SENTINEL)?.value ?? null;
     const breakdown = splitBy
-      ? values
-          .filter((v) => v.dimName === splitBy)
-          .map((v) => ({ dimValue: v.dimValue, value: v.value }))
+      ? values.filter((v) => v.dimName === splitBy).map((v) => ({ dimValue: v.dimValue, value: v.value }))
       : undefined;
     return { value: total, breakdown };
   }
@@ -120,8 +119,8 @@ export function createMetricReads(deps: { aggregates: ReadsAggregates }): Metric
     let previous: Map<string, number | null>;
 
     if (declared) {
-      current = await windowByDimension(metric, windows.current, dimension);
-      previous = await windowByDimension(metric, windows.compare, dimension);
+      current = await windowByDimension(metric, projectId, windows.current, dimension);
+      previous = await windowByDimension(metric, projectId, windows.compare, dimension);
     } else {
       const [event, ...rest] = metric.definition.events;
       if (!event || rest.length > 0) return { kind: 'unsupported-dimension' };

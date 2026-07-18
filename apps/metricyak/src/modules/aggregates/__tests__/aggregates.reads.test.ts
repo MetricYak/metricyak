@@ -1,14 +1,7 @@
-import type {
-  AggregatesRepository,
-  MetricSummary,
-  PartialRow,
-  RawBreakdownRow,
-} from '@metricyak/storage';
+import type { MetricSummary, PartialRow, RawBreakdownRow } from '@metricyak/storage';
 import { TOTAL_SENTINEL } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
-import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
-
-type AggregatesStub = Pick<AggregatesRepository, 'getPartials' | 'rawBreakdown'>;
+import { createMetricReads, type ReadsAggregates } from '@/modules/aggregates/aggregates.reads.js';
 
 const countMetric: MetricSummary = {
   metricId: 'metric-1',
@@ -22,24 +15,15 @@ const countMetric: MetricSummary = {
 const bucketStart = new Date('2026-01-01T00:00:00.000Z');
 
 function partial(dimName: string, dimValue: string, count: number): PartialRow {
-  return {
-    bucketStart,
-    seriesKey: 'purchases',
-    dimName,
-    dimValue,
-    count,
-    sum: 0,
-    min: null,
-    max: null,
-  };
+  return { bucketStart, seriesKey: 'purchases', dimName, dimValue, count, sum: 0, min: null, max: null };
 }
 
-const noRawBreakdown: AggregatesStub['rawBreakdown'] = async () => [];
+const noRawBreakdown: ReadsAggregates['rawBreakdown'] = async () => [];
 
 describe('createMetricReads.value', () => {
   it('returns the $total value for the window', async () => {
-    const aggregates: AggregatesStub = {
-      getPartials: async () => [partial(TOTAL_SENTINEL, TOTAL_SENTINEL, 5)],
+    const aggregates: ReadsAggregates = {
+      windowPartials: async () => [partial(TOTAL_SENTINEL, TOTAL_SENTINEL, 5)],
       rawBreakdown: noRawBreakdown,
     };
     const reads = createMetricReads({ aggregates });
@@ -54,8 +38,8 @@ describe('createMetricReads.value', () => {
   });
 
   it('includes a per-dimension breakdown when splitBy is given', async () => {
-    const aggregates: AggregatesStub = {
-      getPartials: async () => [
+    const aggregates: ReadsAggregates = {
+      windowPartials: async () => [
         partial(TOTAL_SENTINEL, TOTAL_SENTINEL, 5),
         partial('country', 'us', 3),
         partial('country', 'ca', 2),
@@ -78,10 +62,10 @@ describe('createMetricReads.value', () => {
     ]);
   });
 
-  it('queries partials at minute granularity over the window range', async () => {
-    let params: Parameters<AggregatesRepository['getPartials']>[0] | null = null;
-    const aggregates: AggregatesStub = {
-      getPartials: async (p) => {
+  it('passes the metric, projectId, and window through to windowPartials', async () => {
+    let params: Parameters<ReadsAggregates['windowPartials']>[0] | null = null;
+    const aggregates: ReadsAggregates = {
+      windowPartials: async (p) => {
         params = p;
         return [];
       },
@@ -93,12 +77,10 @@ describe('createMetricReads.value', () => {
     const to = new Date('2026-01-01T01:00:00.000Z');
     await reads.value(countMetric, 'project-1', { from, to });
 
-    if (params === null) throw new Error('getPartials was not called');
-    expect(params.granularity).toBe('minute');
-    expect(params.metricId).toBe('metric-1');
-    expect(params.metricVersion).toBe(1);
-    expect(params.rangeStart).toEqual(from);
-    expect(params.rangeEnd).toEqual(to);
+    if (params === null) throw new Error('windowPartials was not called');
+    expect(params.metric).toBe(countMetric);
+    expect(params.projectId).toBe('project-1');
+    expect(params.window).toEqual({ from, to });
   });
 });
 
@@ -115,9 +97,9 @@ describe('createMetricReads.breakdown', () => {
   };
 
   it('ranks declared-dimension movers by absolute delta with contributions', async () => {
-    const aggregates: AggregatesStub = {
-      getPartials: async (p) =>
-        p.rangeStart.getTime() === currentFrom.getTime()
+    const aggregates: ReadsAggregates = {
+      windowPartials: async (p) =>
+        p.window.from.getTime() === currentFrom.getTime()
           ? [partial('country', 'us', 10), partial('country', 'ca', 5)]
           : [partial('country', 'us', 6), partial('country', 'ca', 5)],
       rawBreakdown: noRawBreakdown,
@@ -148,8 +130,8 @@ describe('createMetricReads.breakdown', () => {
         ],
       },
     };
-    const aggregates: AggregatesStub = {
-      getPartials: async () => [],
+    const aggregates: ReadsAggregates = {
+      windowPartials: async () => [],
       rawBreakdown: noRawBreakdown,
     };
     const reads = createMetricReads({ aggregates });
@@ -163,8 +145,8 @@ describe('createMetricReads.breakdown', () => {
     function rawRow(dimValue: string, count: number): RawBreakdownRow {
       return { dimValue, count, sum: 0, min: null, max: null };
     }
-    const aggregates: AggregatesStub = {
-      getPartials: async () => [],
+    const aggregates: ReadsAggregates = {
+      windowPartials: async () => [],
       rawBreakdown: async (p) =>
         p.from.getTime() === currentFrom.getTime() ? [rawRow('us', 8)] : [rawRow('us', 3)],
     };

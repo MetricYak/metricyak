@@ -19,6 +19,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
+import { createPostgresReadsAggregates } from '@/modules/aggregates/postgres-reads.js';
 import { runMonitorDispatch } from '@/modules/monitors/monitors.dispatch.js';
 import { runMonitorEval } from '@/modules/monitors/monitors.eval.js';
 
@@ -120,10 +121,11 @@ describe('monitor fan-out (integration)', () => {
     const { dispatched } = await runMonitorDispatch({ monitorRuntime: runtime, evalProducer }, now);
     expect(dispatched).toBeGreaterThanOrEqual(1);
 
+    const aggregates = new AggregatesRepository(db);
     const evalDeps = {
       db,
       metrics: new MetricsRepository(db),
-      metricReads: createMetricReads({ aggregates: new AggregatesRepository(db) }),
+      metricReads: createMetricReads({ aggregates: createPostgresReadsAggregates(aggregates) }),
       monitorRuntime: runtime,
     };
     const outcomes = await Promise.all(

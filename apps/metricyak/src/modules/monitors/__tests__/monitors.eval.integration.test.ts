@@ -19,6 +19,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
+import { createPostgresReadsAggregates } from '@/modules/aggregates/postgres-reads.js';
 import {
   evaluateMonitorRecord,
   type MonitorEvalCoreDeps,
@@ -98,9 +99,10 @@ describe('evaluateMonitorRecord (integration)', () => {
     if (!monitor) throw new Error('seed monitor');
     monitorId = monitor.id;
 
+    const aggregates = new AggregatesRepository(db);
     deps = {
       metrics,
-      metricReads: createMetricReads({ aggregates: new AggregatesRepository(db) }),
+      metricReads: createMetricReads({ aggregates: createPostgresReadsAggregates(aggregates) }),
       monitorRuntime: new MonitorRuntimeRepository(db),
     };
   });
