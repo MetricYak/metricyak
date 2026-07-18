@@ -24,7 +24,7 @@ describe('migrate (integration)', () => {
     await container?.stop();
   });
 
-  it('creates both tables idempotently', async () => {
+  it('creates the events table idempotently', async () => {
     const client = createClickHouseClient(url);
     await migrate(client);
     await migrate(client); // second run must not throw (IF NOT EXISTS)
@@ -34,39 +34,7 @@ describe('migrate (integration)', () => {
       format: 'JSONEachRow',
     });
     const rows = await rs.json<{ name: string }>();
-    expect(rows.map((r) => r.name)).toEqual(['events', 'metric_buckets']);
-    await client.close();
-  });
-
-  it('sums SimpleAggregateFunction partials via plain GROUP BY', async () => {
-    const client = createClickHouseClient(url);
-    await migrate(client);
-    const base = {
-      metric_id: '00000000-0000-0000-0000-000000000001',
-      metric_version: 1,
-      granularity: 'minute',
-      bucket_start: '2026-01-01 00:00:00.000',
-      series_key: 's',
-      dim_name: '$total',
-      dim_value: '$total',
-      min: 2,
-      max: 9,
-    };
-    await client.insert({
-      table: 'metric_buckets',
-      format: 'JSONEachRow',
-      values: [
-        { ...base, count: 3, sum: 10 },
-        { ...base, count: 2, sum: 5 }, // same key → two rows, engine will merge; read sums
-      ],
-    });
-    const rs = await client.query({
-      query:
-        'SELECT sum(count) AS c, sum(sum) AS s, min(min) AS mn, max(max) AS mx FROM metric_buckets GROUP BY metric_id',
-      format: 'JSONEachRow',
-    });
-    const [row] = await rs.json<{ c: string; s: number; mn: number; mx: number }>();
-    expect({ ...row, c: Number(row?.c) }).toEqual({ c: 5, s: 15, mn: 2, mx: 9 });
+    expect(rows.map((r) => r.name)).toEqual(['events']);
     await client.close();
   });
 
@@ -89,7 +57,7 @@ describe('migrate (integration)', () => {
       format: 'JSONEachRow',
     });
     const rows = await rs.json<{ n: number }>();
-    expect(Number(rows[0]?.n)).toBe(1);
+    expect(Number(rows[0]?.n)).toBe(1); // second identical-token insert dropped
     await client.close();
   });
 });

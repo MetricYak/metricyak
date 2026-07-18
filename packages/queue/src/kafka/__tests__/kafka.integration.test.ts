@@ -19,7 +19,7 @@ describe('kafka connection + topics (integration)', () => {
     await container?.stop();
   });
 
-  it('ensureTopics creates the three topics with 48 partitions', async () => {
+  it('ensureTopics creates the events.raw topic with 48 partitions', async () => {
     const kafka = createKafka(brokers);
     await ensureTopics(kafka);
     const admin = kafka.admin();
@@ -28,8 +28,6 @@ describe('kafka connection + topics (integration)', () => {
     await admin.disconnect();
     const byName = Object.fromEntries(meta.topics.map((t) => [t.name, t.partitions.length]));
     expect(byName[TOPICS.eventsRaw]).toBe(48);
-    expect(byName[TOPICS.matchedEvents]).toBe(48);
-    expect(byName[TOPICS.metricBuckets]).toBe(48);
   });
 });
 

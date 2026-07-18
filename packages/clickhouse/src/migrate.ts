@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ClickHouseClient } from '@/client.js';
 
-const MIGRATIONS = ['0001_metric_buckets.sql', '0002_events.sql'] as const;
+const MIGRATIONS = ['0001_events.sql'] as const;
 
 export async function migrate(client: ClickHouseClient): Promise<void> {
   const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
