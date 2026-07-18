@@ -14,12 +14,6 @@ import {
 } from '@metricyak/storage';
 import { createMetricReads, type MetricReads } from '@/modules/aggregates/aggregates.reads.js';
 import { createClickHouseReadsAggregates } from '@/modules/aggregates/clickhouse-reads.js';
-import { MetricMatcher } from '@/modules/aggregates/engine/matcher.js';
-import {
-  createIngestPipeline,
-  type IngestPipeline,
-  type RunInTransaction,
-} from '@/modules/events/events.ingest.js';
 
 export type Repositories = {
   readonly projectKeys: ProjectKeysRepository;
@@ -38,10 +32,7 @@ export type Container = {
   readonly producer: EventsProducer;
   readonly signals: MonitorSignalsProducer;
   readonly evalProducer: MonitorEvalProducer;
-  readonly matcher: MetricMatcher;
-  readonly runInTransaction: RunInTransaction;
   readonly repos: Repositories;
-  readonly ingest: IngestPipeline;
   readonly reads: MetricReads;
   readonly clickhouse: ClickHouseClient;
 };
@@ -62,8 +53,6 @@ export function createContainer(
   const metrics = new MetricsRepository(db);
   const events = new EventsRepository(db);
   const aggregates = new AggregatesRepository(db);
-  const matcher = new MetricMatcher(metrics);
-  const runInTransaction: RunInTransaction = (fn) => db.transaction(fn);
 
   const repos: Repositories = {
     projectKeys: new ProjectKeysRepository(db),
@@ -77,8 +66,7 @@ export function createContainer(
     projects: new ProjectsRepository(db),
   };
 
-  const ingest = createIngestPipeline({ events, aggregates, matcher, runInTransaction });
   const reads = createMetricReads({ aggregates: createClickHouseReadsAggregates(clickhouse) });
 
-  return { db, producer, signals, evalProducer, matcher, runInTransaction, repos, ingest, reads, clickhouse };
+  return { db, producer, signals, evalProducer, repos, reads, clickhouse };
 }

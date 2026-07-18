@@ -3,9 +3,9 @@ import {
   BullMonitorEvalProducer,
   BullMonitorSignalsProducer,
   createProducerConnectionOptions,
+  InMemoryEventsProducer,
   InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
-  InProcessEventsProducer,
   type MonitorEvalProducer,
   type MonitorSignalsProducer,
 } from '@metricyak/queue';
@@ -20,7 +20,7 @@ const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
 const clickhouse = createClickHouseClient(config.clickhouseUrl);
 await assertSchemaReady(db);
-const producer = new InProcessEventsProducer(async () => {});
+const producer = new InMemoryEventsProducer();
 const signals: MonitorSignalsProducer = config.redisUrl
   ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
   : new InMemoryMonitorSignalsProducer();

@@ -4,21 +4,17 @@ export { createKafka, ensureTopics } from '@/kafka/connection.js';
 export { KafkaEventsProducer } from '@/kafka/events-producer.js';
 export { TOPIC_SPECS, TOPICS, type TopicName } from '@/kafka/topics.js';
 export {
-  BullEventsProducer,
   BullMonitorEvalProducer,
   BullMonitorSignalsProducer,
-  type EventBatchHandler,
   type EventsProducer,
   InMemoryEventsProducer,
   InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
-  InProcessEventsProducer,
   type MonitorEvalProducer,
   type MonitorSignalsProducer,
 } from '@/producer.js';
 export {
   computeBatchId,
-  EVENTS_QUEUE,
   type EventBatchJob,
   MONITOR_DISPATCH_INTERVAL_MS,
   MONITOR_DISPATCH_QUEUE,
@@ -35,12 +31,10 @@ export {
   type StoredEvent,
 } from '@/queues.js';
 export {
-  createEventsWorker,
   createMonitorDispatchWorker,
   createMonitorEvalWorker,
   createMonitorRelayWorker,
   createMonitorSignalsWorker,
-  type EventWorkerOptions,
   type MonitorDispatchWorkerOptions,
   type MonitorEvalWorkerOptions,
   type MonitorRelayWorkerOptions,
