@@ -8,11 +8,3 @@ export type PartialRow = {
   min: number | null;
   max: number | null;
 };
-
-export type RawBreakdownRow = {
-  dimValue: string;
-  count: number;
-  sum: number;
-  min: number | null;
-  max: number | null;
-};

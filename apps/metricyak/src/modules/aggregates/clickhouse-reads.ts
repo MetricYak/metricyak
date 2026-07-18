@@ -2,13 +2,29 @@ import type { ClickHouseClient } from '@metricyak/clickhouse';
 import { type MetricSummary, OTHER_SENTINEL, TOTAL_SENTINEL } from '@metricyak/storage';
 import type { ReadsAggregates, Window } from '@/modules/aggregates/aggregates.reads.js';
 import { fieldPath } from '@/modules/aggregates/engine/ingest.js';
-import type { PartialRow, RawBreakdownRow } from '@/modules/aggregates/types.js';
+import type { PartialRow } from '@/modules/aggregates/types.js';
+
+/** Splits a dot-separated JSON path into quoted, comma-joined ClickHouse JSON-function arguments. */
+function jsonPathArgs(path: readonly string[]): string {
+  return path.map((seg) => `'${seg.replace(/'/g, "\\'")}'`).join(', ');
+}
 
 /** JSON accessor for a value path over the `properties` String column, as Nullable(Float64). */
 function numericExpr(valuePath: readonly string[] | null): string {
   if (!valuePath || valuePath.length === 0) return 'CAST(NULL AS Nullable(Float64))';
-  const args = valuePath.map((seg) => `'${seg.replace(/'/g, "\\'")}'`).join(', ');
-  return `JSONExtract(properties, ${args}, 'Nullable(Float64)')`;
+  return `JSONExtract(properties, ${jsonPathArgs(valuePath)}, 'Nullable(Float64)')`;
+}
+
+/**
+ * JSON accessor for a (possibly dot-nested) dimension name over `properties`, e.g. "geo.country"
+ * resolves properties.geo.country rather than a literal top-level key named "geo.country".
+ */
+function dimExpr(dim: string): { has: string; extract: string } {
+  const args = jsonPathArgs(dim.split('.'));
+  return {
+    has: `JSONHas(properties, ${args})`,
+    extract: `JSONExtractString(properties, ${args})`,
+  };
 }
 
 /**
@@ -19,62 +35,6 @@ function numericExpr(valuePath: readonly string[] | null): string {
  */
 function chDateTime(date: Date): string {
   return date.toISOString().replace('T', ' ').replace('Z', '');
-}
-
-export async function chRawBreakdown(
-  client: ClickHouseClient,
-  params: {
-    projectId: string;
-    eventNames: readonly string[];
-    dimField: string;
-    valuePath: readonly string[] | null;
-    from: Date;
-    to: Date;
-  },
-): Promise<RawBreakdownRow[]> {
-  const val = numericExpr(params.valuePath);
-  const fromStr = chDateTime(params.from);
-  const toStr = chDateTime(params.to);
-
-  const rs = await client.query({
-    query: `
-      SELECT
-        if(JSONHas(properties, {dim:String}), JSONExtractString(properties, {dim:String}), {other:String}) AS dimValue,
-        toInt64(count()) AS count,
-        toFloat64(sum(${val})) AS sum,
-        min(${val}) AS min,
-        max(${val}) AS max
-      FROM events FINAL
-      WHERE project_id = {projectId:UUID}
-        AND name IN {names:Array(String)}
-        AND timestamp >= {from:DateTime64(3, 'UTC')}
-        AND timestamp <  {to:DateTime64(3, 'UTC')}
-      GROUP BY dimValue
-    `,
-    query_params: {
-      dim: params.dimField,
-      other: OTHER_SENTINEL,
-      projectId: params.projectId,
-      names: [...params.eventNames],
-      from: fromStr,
-      to: toStr,
-    },
-    format: 'JSONEachRow',
-  });
-  const raw = await rs.json<{
-    dimValue: string;
-    count: string;
-    sum: number;
-    min: number | null;
-    max: number | null;
-  }>();
-  return raw.map((r) => ({
-    dimValue: r.dimValue,
-    count: Number(r.count),
-    sum: Number(r.sum),
-    min: r.min,
-    max: r.max,
-  }));
 }
 
 async function eventPartials(
@@ -120,12 +80,13 @@ async function eventPartials(
   ];
 
   for (const dim of dimensions) {
+    const { has, extract } = dimExpr(dim);
     const rs = await client.query({
       query: `
-        SELECT if(JSONHas(properties, {dim:String}), JSONExtractString(properties, {dim:String}), {other:String}) AS dimValue,
+        SELECT if(${has}, ${extract}, {other:String}) AS dimValue,
                toInt64(count()) AS count, toFloat64(sum(${val})) AS sum, min(${val}) AS min, max(${val}) AS max
         FROM events FINAL WHERE ${where} GROUP BY dimValue`,
-      query_params: { ...baseParams, dim, other: OTHER_SENTINEL },
+      query_params: { ...baseParams, other: OTHER_SENTINEL },
       format: 'JSONEachRow',
     });
     for (const r of await rs.json<{
@@ -165,6 +126,5 @@ export async function chWindowPartials(
 export function createClickHouseReadsAggregates(client: ClickHouseClient): ReadsAggregates {
   return {
     windowPartials: (params) => chWindowPartials(client, params),
-    rawBreakdown: (params) => chRawBreakdown(client, params),
   };
 }
