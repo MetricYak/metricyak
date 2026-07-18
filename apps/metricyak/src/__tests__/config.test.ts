@@ -48,4 +48,10 @@ describe('kafka/clickhouse config', () => {
       parseConfig({ ...backendBase, CLICKHOUSE_URL: 'not-a-url', KAFKA_BROKERS: 'a:9092' }),
     ).toThrow();
   });
+
+  it('rejects a missing KAFKA_BROKERS', () => {
+    expect(() =>
+      parseConfig({ DATABASE_URL: backendBase.DATABASE_URL, RUN_WORKER_INLINE: 'true', CLICKHOUSE_URL: backendBase.CLICKHOUSE_URL }),
+    ).toThrow(/KAFKA_BROKERS/);
+  });
 });

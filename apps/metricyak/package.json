@@ -28,6 +28,7 @@
   "devDependencies": {
     "@metricyak/typescript-config": "workspace:*",
     "@metricyak/vitest-config": "workspace:*",
+    "@testcontainers/kafka": "^12.0.4",
     "@testcontainers/postgresql": "^12.0.4",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",

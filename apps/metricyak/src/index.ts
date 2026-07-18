@@ -1,13 +1,13 @@
-import { createClickHouseClient } from '@metricyak/clickhouse';
+import { createClickHouseClient, migrate, setupKafkaIngestion } from '@metricyak/clickhouse';
 import {
-  BullEventsProducer,
   BullMonitorEvalProducer,
   BullMonitorSignalsProducer,
+  createKafka,
   createProducerConnectionOptions,
-  type EventsProducer,
+  ensureTopics,
   InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
-  InProcessEventsProducer,
+  KafkaEventsProducer,
   type MonitorEvalProducer,
   type MonitorSignalsProducer,
 } from '@metricyak/queue';
@@ -18,23 +18,21 @@ import { assertSchemaReady } from '@/bootstrap/schema.js';
 import { registerShutdown } from '@/bootstrap/shutdown.js';
 import { startWorkers } from '@/bootstrap/workers.js';
 import { loadConfig } from '@/config.js';
-import { type Container, createContainer } from '@/container/container.js';
+import { createContainer } from '@/container/container.js';
 
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
-const clickhouse = createClickHouseClient(config.clickhouseUrl);
 await assertSchemaReady(db);
 
-let container: Container;
+const clickhouse = createClickHouseClient(config.clickhouseUrl);
+await migrate(clickhouse);
+await setupKafkaIngestion(clickhouse, { brokers: config.kafkaBrokers });
 
-let producer: EventsProducer;
-if (config.runWorkerInline) {
-  producer = new InProcessEventsProducer((job) => container.ingest.ingestBatch(job));
-  console.log(JSON.stringify({ level: 'info', msg: 'inline worker enabled (in-process events)' }));
-} else {
-  if (!config.redisUrl) throw new Error('REDIS_URL is required when RUN_WORKER_INLINE is not set.');
-  producer = new BullEventsProducer(createProducerConnectionOptions(config.redisUrl));
-}
+const kafka = createKafka(config.kafkaBrokers);
+await ensureTopics(kafka);
+const producer = new KafkaEventsProducer(kafka);
+await producer.connect();
+console.log(JSON.stringify({ level: 'info', msg: 'kafka events producer connected' }));
 
 const signals: MonitorSignalsProducer = config.redisUrl
   ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
@@ -44,7 +42,7 @@ const evalProducer: MonitorEvalProducer = config.redisUrl
   ? new BullMonitorEvalProducer(createProducerConnectionOptions(config.redisUrl))
   : new InMemoryMonitorEvalProducer();
 
-container = createContainer(db, producer, signals, evalProducer, clickhouse);
+const container = createContainer(db, producer, signals, evalProducer, clickhouse);
 const app = createApp(container);
 
 const server = startHttpServer(app, config);
@@ -59,6 +57,7 @@ registerShutdown(async (signal) => {
   await Promise.allSettled([
     new Promise<void>((resolve) => server.close(() => resolve())),
     closeWorkers?.(),
+    producer.disconnect(),
   ]);
   process.exit(0);
 });
