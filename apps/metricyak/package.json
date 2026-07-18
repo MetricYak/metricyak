@@ -17,6 +17,7 @@
   "dependencies": {
     "@hono/node-server": "^1.13.0",
     "@hono/zod-openapi": "^1.4.0",
+    "@metricyak/clickhouse": "workspace:*",
     "@metricyak/queue": "workspace:*",
     "@metricyak/storage": "workspace:*",
     "drizzle-orm": "catalog:",
