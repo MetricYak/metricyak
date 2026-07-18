@@ -1,5 +1,29 @@
 import type { ClickHouseClient } from '@/client.js';
 
+/**
+ * The projection events_mv applies to each events.raw message (a JSON string in `raw`).
+ * Exported so tests can pin its behavior against literal payloads without a live broker.
+ *
+ * insert_id coalesces a null/absent insertId to the event id. This mirrors the Postgres
+ * path exactly: PG dedups on a PARTIAL unique index `(project_id, insert_id) WHERE
+ * insert_id IS NOT NULL`, so null-insertId events all persist and never dedup. Here the
+ * per-event id fallback gives each such event a unique dedup key, so the ReplacingMergeTree
+ * on (project_id, insert_id) likewise keeps them all — whereas a Nullable insert_id in the
+ * sort key would collapse every null-insertId event for a project into one row (data loss).
+ */
+export const EVENTS_PROJECTION = `
+  toUUID(JSONExtractString(raw, 'id')) AS id,
+  toUUID(JSONExtractString(raw, 'projectId')) AS project_id,
+  if(
+    JSONExtractString(raw, 'insertId') != '',
+    JSONExtractString(raw, 'insertId'),
+    JSONExtractString(raw, 'id')
+  ) AS insert_id,
+  JSONExtractString(raw, 'name') AS name,
+  parseDateTime64BestEffort(JSONExtractString(raw, 'timestamp'), 3, 'UTC') AS timestamp,
+  if(JSONExtractRaw(raw, 'properties') != '', JSONExtractRaw(raw, 'properties'), '{}') AS properties
+`;
+
 export type KafkaIngestionOptions = {
   /** Broker addresses ClickHouse dials from inside its own network, e.g. ['kafka:29092']. */
   brokers: string[];
@@ -51,21 +75,10 @@ export async function setupKafkaIngestion(
   });
 
   // Each events.raw message is a JSON object: { id, insertId, name, timestamp, properties, projectId, ... }.
-  // insert_id falls back to id so the dedup key is always present (StoredEvent.insertId is nullable).
   await client.command({
     query: `
       CREATE MATERIALIZED VIEW IF NOT EXISTS events_mv TO events AS
-      SELECT
-        toUUID(JSONExtractString(raw, 'id')) AS id,
-        toUUID(JSONExtractString(raw, 'projectId')) AS project_id,
-        if(
-          JSONExtractString(raw, 'insertId') != '',
-          JSONExtractString(raw, 'insertId'),
-          JSONExtractString(raw, 'id')
-        ) AS insert_id,
-        JSONExtractString(raw, 'name') AS name,
-        parseDateTime64BestEffort(JSONExtractString(raw, 'timestamp'), 3, 'UTC') AS timestamp,
-        if(JSONExtractRaw(raw, 'properties') != '', JSONExtractRaw(raw, 'properties'), '{}') AS properties
+      SELECT ${EVENTS_PROJECTION}
       FROM events_queue
       WHERE length(_error) = 0
     `,
