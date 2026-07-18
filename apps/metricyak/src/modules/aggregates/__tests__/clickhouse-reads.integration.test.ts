@@ -1,7 +1,10 @@
 import { createClickHouseClient, migrate } from '@metricyak/clickhouse';
 import { GenericContainer, type StartedTestContainer, Wait } from 'testcontainers';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { chRawBreakdown } from '@/modules/aggregates/clickhouse-reads.js';
+import type { MetricSummary } from '@metricyak/storage';
+import { TOTAL_SENTINEL } from '@metricyak/storage';
+import { chRawBreakdown, chWindowPartials } from '@/modules/aggregates/clickhouse-reads.js';
+import { windowValues } from '@/modules/aggregates/engine/materialize.js';
 
 const PROJECT_ID = '00000000-0000-0000-0000-0000000000aa';
 
@@ -78,5 +81,54 @@ describe('clickhouse-reads (integration)', () => {
     });
 
     expect(rows).toEqual([{ dimValue: '$other', count: 1, sum: 9, min: 9, max: 9 }]);
+  });
+
+  describe('chWindowPartials', () => {
+    const metric: MetricSummary = {
+      metricId: 'metric-1',
+      version: 1,
+      name: 'Purchases',
+      definition: {
+        events: [{ key: 'purchases', source: 'web', type: 'purchase', aggregation: 'sum', field: '$properties.amount' }],
+        dimensions: ['country'],
+      },
+    };
+    const window = { from: new Date('2026-01-01T00:00:00Z'), to: new Date('2026-01-02T00:00:00Z') };
+
+    async function seedPurchases(): Promise<void> {
+      await client.insert({
+        table: 'events',
+        format: 'JSONEachRow',
+        values: [
+          { id: '00000000-0000-0000-0000-0000000000b1', project_id: PROJECT_ID, insert_id: 'e1', name: 'purchase', timestamp: '2026-01-01 00:00:00.000', properties: JSON.stringify({ country: 'US', amount: '10' }) },
+          { id: '00000000-0000-0000-0000-0000000000b2', project_id: PROJECT_ID, insert_id: 'e2', name: 'purchase', timestamp: '2026-01-01 00:01:00.000', properties: JSON.stringify({ country: 'US', amount: '5' }) },
+          { id: '00000000-0000-0000-0000-0000000000b3', project_id: PROJECT_ID, insert_id: 'e3', name: 'purchase', timestamp: '2026-01-01 00:02:00.000', properties: JSON.stringify({ country: 'CA', amount: '7' }) },
+          { id: '00000000-0000-0000-0000-0000000000b4', project_id: PROJECT_ID, insert_id: 'e4', name: 'purchase', timestamp: '2026-01-01 00:03:00.000', properties: JSON.stringify({ country: 'US', amount: 'n/a' }) },
+        ],
+      });
+    }
+
+    it('emits a $total row and per-declared-dimension rows per event key', async () => {
+      await seedPurchases();
+
+      const partials = await chWindowPartials(client, { metric, projectId: PROJECT_ID, window });
+
+      const totals = partials.filter((p) => p.dimName === TOTAL_SENTINEL);
+      expect(totals).toHaveLength(1);
+      expect(totals[0]).toMatchObject({ seriesKey: 'purchases', dimValue: TOTAL_SENTINEL, count: 4, sum: 22 }); // 'n/a' ignored
+      const country = partials.filter((p) => p.dimName === 'country');
+      const byVal = Object.fromEntries(country.map((p) => [p.dimValue, p]));
+      expect(byVal.US).toMatchObject({ seriesKey: 'purchases', count: 3, sum: 15 });
+      expect(byVal.CA).toMatchObject({ seriesKey: 'purchases', count: 1, sum: 7 });
+    });
+
+    it('feeds windowValues to produce the correct sum scalar', async () => {
+      await seedPurchases();
+
+      const partials = await chWindowPartials(client, { metric, projectId: PROJECT_ID, window });
+      const total = windowValues(metric.definition, partials).find((v) => v.dimName === TOTAL_SENTINEL);
+
+      expect(total?.value).toBe(22);
+    });
   });
 });
