@@ -66,4 +66,19 @@ describe('kafka/clickhouse config', () => {
       }),
     ).toThrow(/KAFKA_BROKERS/);
   });
+
+  it('defaults clickhouseKafkaBrokers to KAFKA_BROKERS when CLICKHOUSE_KAFKA_BROKERS is unset', () => {
+    const cfg = parseConfig({ ...backendBase, KAFKA_BROKERS: 'localhost:9092' });
+    expect(cfg.clickhouseKafkaBrokers).toEqual(['localhost:9092']);
+  });
+
+  it('uses CLICKHOUSE_KAFKA_BROKERS when set, independent of KAFKA_BROKERS', () => {
+    const cfg = parseConfig({
+      ...backendBase,
+      KAFKA_BROKERS: 'localhost:9092',
+      CLICKHOUSE_KAFKA_BROKERS: 'kafka:29092',
+    });
+    expect(cfg.kafkaBrokers).toEqual(['localhost:9092']);
+    expect(cfg.clickhouseKafkaBrokers).toEqual(['kafka:29092']);
+  });
 });

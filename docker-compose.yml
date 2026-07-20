@@ -55,30 +55,35 @@ services:
       start_period: 10s
 
   kafka:
-    image: apache/kafka:3.9.0
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.9
     restart: on-failure
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:29092,external://0.0.0.0:9092
+      # external:// is host-reachable (used by the Node backend, which runs outside Docker via
+      # `pnpm dev`); internal:// is docker-network-reachable (used by ClickHouse's Kafka Engine
+      # table and kafka-ui, which run inside Docker). Same single broker, two advertised addresses —
+      # see CLICKHOUSE_KAFKA_BROKERS in config.ts for why this split matters.
+      - --advertise-kafka-addr internal://kafka:29092,external://localhost:9092
+      - --rpc-addr kafka:33145
+      - --advertise-rpc-addr kafka:33145
+      - --mode dev-container
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --overprovisioned
+      - --set redpanda.empty_seed_starts_cluster=false
+      - --seeds kafka:33145
+      - --set redpanda.auto_create_topics_enabled=true
     environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
-      # apache/kafka 3.9 combined broker+controller (KRaft) REQUIRES the CONTROLLER listener advertised —
-      # without it StorageTool rejects the 0.0.0.0 controller bind and the broker crash-loops. Do not remove.
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092,CONTROLLER://localhost:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_LOG_RETENTION_HOURS: 168
+      ALLOW_PLAINTEXT_LISTENER: "true"
     ports:
       - "127.0.0.1:${KAFKA_PORT:-9092}:9092"
     volumes:
-      - metricyak-kafka-data:/var/lib/kafka/data
+      - metricyak-redpanda-data:/var/lib/redpanda/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:9644/v1/status/ready || exit 1"]
       interval: 5s
       timeout: 10s
       retries: 30
@@ -101,4 +106,4 @@ volumes:
   metricyak-postgres-data:
   metricyak-redis-data:
   metricyak-clickhouse-data:
-  metricyak-kafka-data:
+  metricyak-redpanda-data:

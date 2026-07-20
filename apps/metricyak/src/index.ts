@@ -26,7 +26,7 @@ await assertSchemaReady(db);
 
 const clickhouse = createClickHouseClient(config.clickhouseUrl);
 await migrate(clickhouse);
-await setupKafkaIngestion(clickhouse, { brokers: config.kafkaBrokers });
+await setupKafkaIngestion(clickhouse, { brokers: config.clickhouseKafkaBrokers });
 
 const kafka = createKafka(config.kafkaBrokers);
 await ensureTopics(kafka);
