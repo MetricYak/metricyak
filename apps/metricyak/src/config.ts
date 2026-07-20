@@ -46,7 +46,11 @@ const ConfigSchema = z
       .optional()
       .transform((v) => v !== 'false' && v !== '0'),
     KAFKA_BROKERS: brokerList('KAFKA_BROKERS'),
-    CLICKHOUSE_KAFKA_BROKERS: brokerList('CLICKHOUSE_KAFKA_BROKERS').optional(),
+    // No fallback to KAFKA_BROKERS: that address is host-reachable, not reachable from inside
+    // ClickHouse's own container, so silently reusing it would recreate the exact bug this
+    // variable exists to fix (ClickHouse's Kafka Engine table would connect to nothing) —
+    // without ever surfacing an error, since the Kafka Engine connects lazily.
+    CLICKHOUSE_KAFKA_BROKERS: brokerList('CLICKHOUSE_KAFKA_BROKERS'),
     CLICKHOUSE_URL: z
       .string()
       .url('CLICKHOUSE_URL must be a valid URL.')
@@ -84,7 +88,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): Config {
     runWorkerInline: parsed.RUN_WORKER_INLINE,
     runWorkersInApi: parsed.RUN_WORKERS_IN_API,
     kafkaBrokers: parsed.KAFKA_BROKERS,
-    clickhouseKafkaBrokers: parsed.CLICKHOUSE_KAFKA_BROKERS ?? parsed.KAFKA_BROKERS,
+    clickhouseKafkaBrokers: parsed.CLICKHOUSE_KAFKA_BROKERS,
     clickhouseUrl: parsed.CLICKHOUSE_URL,
   };
 }
