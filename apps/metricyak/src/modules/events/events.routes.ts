@@ -2,9 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { createRoute } from '@hono/zod-openapi';
 import { computeBatchId } from '@metricyak/queue';
 import { errorResponse, UnauthorizedError } from '@/http/errors.js';
+import { respond } from '@/http/respond.js';
 import { createRouter } from '@/http/router.js';
+import { requireProject } from '@/http/scope.js';
 import { dropDuplicateInsertIds } from '@/modules/events/events.dedup.js';
-import { IngestRequest, IngestResponse } from '@/modules/events/events.schemas.js';
+import {
+  IngestRequest,
+  IngestResponse,
+  ListEventsParams,
+  ListEventsQuery,
+  ListEventsResponse,
+} from '@/modules/events/events.schemas.js';
 
 export const ingestRoute = createRoute({
   method: 'post',
@@ -56,6 +64,39 @@ eventsRouter.openapi(ingestRoute, async (c) => {
   });
 
   return c.json({ accepted: storedEvents.length }, 202);
+});
+
+export const listEventsRoute = createRoute({
+  method: 'get',
+  path: '/projects/{projectId}/events',
+  request: { params: ListEventsParams, query: ListEventsQuery },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: ListEventsResponse } },
+      description: 'A page of events for the project.',
+    },
+    400: errorResponse('The request failed validation.'),
+    404: errorResponse('The project could not be found.'),
+  },
+});
+
+eventsRouter.openapi(listEventsRoute, async (c) => {
+  const { projectId } = c.req.valid('param');
+  const { from, to, sort, page, pageSize } = c.req.valid('query');
+  const { repos, eventsReads } = c.var.container;
+
+  await requireProject(repos.projects, projectId);
+
+  const result = await eventsReads.listPage({
+    projectId,
+    from: from ? new Date(from) : null,
+    to: to ? new Date(to) : null,
+    sort,
+    page,
+    pageSize,
+  });
+
+  return respond(c, ListEventsResponse, result, 200);
 });
 
 export default eventsRouter;
