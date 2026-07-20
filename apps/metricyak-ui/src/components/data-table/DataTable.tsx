@@ -90,40 +90,44 @@ export function DataTable<TData>({
   return (
     <div>
       {errorBanner}
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <Table className="min-w-140">
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-metricyak-50 hover:bg-metricyak-50">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="h-9 text-[11px] text-muted-foreground">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
+      <Table
+        className="min-w-224"
+        containerClassName="max-h-[70vh] overflow-auto border border-border bg-background"
+      >
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id} className="bg-metricyak-50 hover:bg-metricyak-50">
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  className="sticky top-0 z-10 h-10 bg-metricyak-50 text-[11px] text-muted-foreground"
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <DataTableSkeletonRows columnCount={columnCount} rowCount={skeletonRowCount} />
+          ) : data.length === 0 ? (
+            <DataTableEmptyRow columnCount={columnCount} emptyState={emptyState} />
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={getRowId(row.original)} className="hover:bg-metricyak-50">
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id} className="py-3.5">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
                 ))}
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <DataTableSkeletonRows columnCount={columnCount} rowCount={skeletonRowCount} />
-            ) : data.length === 0 ? (
-              <DataTableEmptyRow columnCount={columnCount} emptyState={emptyState} />
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={getRowId(row.original)} className="hover:bg-metricyak-50">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-2.5">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

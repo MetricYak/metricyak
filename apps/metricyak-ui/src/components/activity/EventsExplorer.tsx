@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatCompact } from './format';
 import { TimeRangeSelect } from './TimeRangeSelect';
 
-const PROPERTIES_PREVIEW_LIMIT = 4;
+const PROPERTIES_PREVIEW_LIMIT = 6;
 
 function formatPropertyPreviewValue(value: unknown): string {
   if (value === null || value === undefined) return '—';
@@ -36,7 +36,7 @@ function PropertiesPreviewCell({
   const preview = entries.slice(0, PROPERTIES_PREVIEW_LIMIT);
   const overflow = entries.length - preview.length;
   return (
-    <span className="flex items-center gap-3 font-mono text-[12px] text-muted-foreground">
+    <span className="flex items-center gap-4 font-mono text-[12px] text-muted-foreground">
       {preview.map(([key, value]) => (
         <span key={key} className="truncate">
           <span className="text-metricyak-500">{key}</span>
