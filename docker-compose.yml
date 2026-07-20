@@ -54,6 +54,14 @@ services:
       retries: 30
       start_period: 10s
 
+  # BREAKING CHANGE (was apache/kafka, image + volume renamed): if you have an existing
+  # metricyak-kafka-data volume from before this change, `docker compose up` does NOT touch it —
+  # it just becomes an orphaned, unreferenced volume, since `metricyak-redpanda-data` below starts
+  # empty. Kafka's on-disk segment format isn't readable by Redpanda, so there is no automated
+  # migration path for whatever was queued in it. Before pulling this change, either drain any
+  # events you need (let the old stack's consumer catch up) or accept the loss, then remove the
+  # stale volume explicitly — `docker compose down -v` will NOT catch it either, since it only
+  # touches volumes currently declared here: `docker volume rm <project>_metricyak-kafka-data`.
   kafka:
     image: docker.redpanda.com/redpandadata/redpanda:v25.1.9
     restart: on-failure
