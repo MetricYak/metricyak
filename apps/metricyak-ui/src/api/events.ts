@@ -1,3 +1,5 @@
+import { apiFetch } from '@/lib/api';
+
 export type ActivityKind = 'event';
 
 export type Severity = 'info' | 'warning' | 'error';
@@ -329,65 +331,39 @@ export function timeRangeLabel(range: TimeRange): string {
   return TIME_RANGES.find((r) => r.id === range)?.label ?? 'All time';
 }
 
-export interface EventQuery {
-  search?: string;
-  severities?: Severity[];
-  source?: EventSource | 'all';
-  range?: TimeRange;
+export interface RealEvent {
+  id: string;
+  name: string;
+  timestamp: string;
+  properties: Record<string, unknown>;
+}
+
+export interface ListEventsResult {
+  events: RealEvent[];
+  hasMore: boolean;
+}
+
+export interface ListEventsInput {
+  from?: string;
+  to?: string;
   sort?: EventSort;
   page?: number;
   pageSize?: number;
 }
 
-export interface EventQueryResult {
-  events: ActivityEvent[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export function listEvents(
+  projectId: string,
+  input: ListEventsInput = {},
+): Promise<ListEventsResult> {
+  const searchParams = new URLSearchParams();
+  if (input.from) searchParams.set('from', input.from);
+  if (input.to) searchParams.set('to', input.to);
+  if (input.sort) searchParams.set('sort', input.sort === 'time-asc' ? 'asc' : 'desc');
+  if (input.page != null) searchParams.set('page', String(input.page));
+  if (input.pageSize != null) searchParams.set('pageSize', String(input.pageSize));
 
-function eventMatches(event: ActivityEvent, needle: string): boolean {
-  if (event.name.includes(needle) || event.source.includes(needle)) return true;
-  for (const [key, value] of Object.entries(event.properties)) {
-    if (key.includes(needle)) return true;
-    if (String(value).toLowerCase().includes(needle)) return true;
-  }
-  return false;
-}
-
-export async function queryEvents(
-  _projectId: string,
-  query: EventQuery = {},
-): Promise<EventQueryResult> {
-  await new Promise((resolve) => setTimeout(resolve, 220));
-
-  const {
-    search = '',
-    severities,
-    source = 'all',
-    range = 'all',
-    sort = 'time-desc',
-    page = 0,
-    pageSize = 25,
-  } = query;
-
-  const needle = search.trim().toLowerCase();
-  const sevSet = severities?.length ? new Set(severities) : null;
-  const cutoff = rangeCutoff(range, Date.now());
-
-  let rows = ensureStore().filter((event) => {
-    if (cutoff != null && new Date(event.receivedAt).getTime() < cutoff) return false;
-    if (sevSet && !sevSet.has(event.severity)) return false;
-    if (source !== 'all' && event.source !== source) return false;
-    if (needle && !eventMatches(event, needle)) return false;
-    return true;
-  });
-
-  if (sort === 'time-asc') rows = [...rows].reverse();
-
-  const total = rows.length;
-  const start = page * pageSize;
-  return { events: rows.slice(start, start + pageSize), total, page, pageSize };
+  const qs = searchParams.toString();
+  return apiFetch<ListEventsResult>(`/v1/projects/${projectId}/events${qs ? `?${qs}` : ''}`);
 }
 
 export function subscribeToEvents(_projectId: string, listener: ActivityListener): Unsubscribe {
