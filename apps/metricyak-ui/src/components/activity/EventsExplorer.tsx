@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type EventSort,
   listEvents,
-  rangeCutoff,
   type RealEvent,
+  rangeCutoff,
   type TimeRange,
 } from '@/api/events';
 import { DataTable } from '@/components/data-table/DataTable';

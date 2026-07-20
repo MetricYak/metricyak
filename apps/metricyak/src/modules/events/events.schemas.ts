@@ -87,15 +87,24 @@ export const ListEventsParams = z.object({
 });
 
 export const ListEventsQuery = z.object({
-  from: z.iso.datetime().optional().openapi({
-    param: { name: 'from', in: 'query' },
-    description: 'Inclusive lower time bound. Omit for no lower bound.',
-  }),
-  to: z.iso.datetime().optional().openapi({
-    param: { name: 'to', in: 'query' },
-    description: 'Exclusive upper time bound. Defaults to the request time when omitted.',
-  }),
-  sort: z.enum(['asc', 'desc']).default('desc').openapi({ param: { name: 'sort', in: 'query' } }),
+  from: z.iso
+    .datetime()
+    .optional()
+    .openapi({
+      param: { name: 'from', in: 'query' },
+      description: 'Inclusive lower time bound. Omit for no lower bound.',
+    }),
+  to: z.iso
+    .datetime()
+    .optional()
+    .openapi({
+      param: { name: 'to', in: 'query' },
+      description: 'Exclusive upper time bound. Defaults to the request time when omitted.',
+    }),
+  sort: z
+    .enum(['asc', 'desc'])
+    .default('desc')
+    .openapi({ param: { name: 'sort', in: 'query' } }),
   page: z.coerce
     .number()
     .int('The page must be an integer.')
