@@ -13,6 +13,21 @@ function isPostgresUrlWithPassword(value: string): boolean {
   }
 }
 
+function brokerList(envVarName: string) {
+  return z
+    .string()
+    .min(1, `${envVarName} is required.`)
+    .transform((s) =>
+      s
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean),
+    )
+    .refine((brokers) => brokers.length > 0, {
+      message: `${envVarName} must list at least one broker.`,
+    });
+}
+
 const ConfigSchema = z
   .object({
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.').refine(isPostgresUrlWithPassword, {
@@ -30,18 +45,12 @@ const ConfigSchema = z
       .string()
       .optional()
       .transform((v) => v !== 'false' && v !== '0'),
-    KAFKA_BROKERS: z
-      .string()
-      .min(1, 'KAFKA_BROKERS is required.')
-      .transform((s) =>
-        s
-          .split(',')
-          .map((x) => x.trim())
-          .filter(Boolean),
-      )
-      .refine((brokers) => brokers.length > 0, {
-        message: 'KAFKA_BROKERS must list at least one broker.',
-      }),
+    KAFKA_BROKERS: brokerList('KAFKA_BROKERS'),
+    // No fallback to KAFKA_BROKERS: that address is host-reachable, not reachable from inside
+    // ClickHouse's own container, so silently reusing it would recreate the exact bug this
+    // variable exists to fix (ClickHouse's Kafka Engine table would connect to nothing) —
+    // without ever surfacing an error, since the Kafka Engine connects lazily.
+    CLICKHOUSE_KAFKA_BROKERS: brokerList('CLICKHOUSE_KAFKA_BROKERS'),
     CLICKHOUSE_URL: z
       .string()
       .url('CLICKHOUSE_URL must be a valid URL.')
@@ -65,6 +74,7 @@ export type Config = {
   readonly runWorkerInline: boolean;
   readonly runWorkersInApi: boolean;
   readonly kafkaBrokers: string[];
+  readonly clickhouseKafkaBrokers: string[];
   readonly clickhouseUrl: string;
 };
 
@@ -78,6 +88,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): Config {
     runWorkerInline: parsed.RUN_WORKER_INLINE,
     runWorkersInApi: parsed.RUN_WORKERS_IN_API,
     kafkaBrokers: parsed.KAFKA_BROKERS,
+    clickhouseKafkaBrokers: parsed.CLICKHOUSE_KAFKA_BROKERS,
     clickhouseUrl: parsed.CLICKHOUSE_URL,
   };
 }

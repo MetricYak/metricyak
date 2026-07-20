@@ -5,6 +5,7 @@ const base = {
   RUN_WORKER_INLINE: 'true',
   CLICKHOUSE_URL: 'http://x:y@h:8123/d',
   KAFKA_BROKERS: 'a:9092',
+  CLICKHOUSE_KAFKA_BROKERS: 'a:29092',
 };
 
 describe('parseConfig DATABASE_URL', () => {
@@ -34,6 +35,8 @@ describe('kafka/clickhouse config', () => {
     DATABASE_URL: 'postgres://u:p@localhost:5432/db',
     RUN_WORKER_INLINE: 'true',
     CLICKHOUSE_URL: 'http://x:y@h:8123/d',
+    KAFKA_BROKERS: 'a:9092',
+    CLICKHOUSE_KAFKA_BROKERS: 'a:29092',
   };
 
   it('parses comma-separated brokers', () => {
@@ -42,28 +45,31 @@ describe('kafka/clickhouse config', () => {
   });
 
   it('requires CLICKHOUSE_URL', () => {
-    expect(() =>
-      parseConfig({
-        DATABASE_URL: backendBase.DATABASE_URL,
-        RUN_WORKER_INLINE: 'true',
-        KAFKA_BROKERS: 'a:9092',
-      }),
-    ).toThrow(/CLICKHOUSE_URL/);
+    const { CLICKHOUSE_URL: _omit, ...withoutClickhouseUrl } = backendBase;
+    expect(() => parseConfig(withoutClickhouseUrl)).toThrow(/CLICKHOUSE_URL/);
   });
 
   it('rejects a non-URL CLICKHOUSE_URL', () => {
-    expect(() =>
-      parseConfig({ ...backendBase, CLICKHOUSE_URL: 'not-a-url', KAFKA_BROKERS: 'a:9092' }),
-    ).toThrow();
+    expect(() => parseConfig({ ...backendBase, CLICKHOUSE_URL: 'not-a-url' })).toThrow();
   });
 
   it('rejects a missing KAFKA_BROKERS', () => {
-    expect(() =>
-      parseConfig({
-        DATABASE_URL: backendBase.DATABASE_URL,
-        RUN_WORKER_INLINE: 'true',
-        CLICKHOUSE_URL: backendBase.CLICKHOUSE_URL,
-      }),
-    ).toThrow(/KAFKA_BROKERS/);
+    const { KAFKA_BROKERS: _omit, ...withoutKafkaBrokers } = backendBase;
+    expect(() => parseConfig(withoutKafkaBrokers)).toThrow(/KAFKA_BROKERS/);
+  });
+
+  it('rejects a missing CLICKHOUSE_KAFKA_BROKERS, with no fallback to KAFKA_BROKERS', () => {
+    const { CLICKHOUSE_KAFKA_BROKERS: _omit, ...withoutClickhouseKafkaBrokers } = backendBase;
+    expect(() => parseConfig(withoutClickhouseKafkaBrokers)).toThrow(/CLICKHOUSE_KAFKA_BROKERS/);
+  });
+
+  it('uses CLICKHOUSE_KAFKA_BROKERS independently of KAFKA_BROKERS', () => {
+    const cfg = parseConfig({
+      ...backendBase,
+      KAFKA_BROKERS: 'localhost:9092',
+      CLICKHOUSE_KAFKA_BROKERS: 'kafka:29092',
+    });
+    expect(cfg.kafkaBrokers).toEqual(['localhost:9092']);
+    expect(cfg.clickhouseKafkaBrokers).toEqual(['kafka:29092']);
   });
 });
