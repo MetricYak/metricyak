@@ -49,9 +49,9 @@ export function TimeRangeSelect({ value, onChange }: TimeRangeSelectProps): Reac
                 key={option.id}
                 value={option.id}
                 className={cn(
-                  'relative flex cursor-pointer select-none items-center rounded-[5px] py-1.5 pr-3 pl-7 text-sm outline-none',
+                  'relative flex cursor-pointer select-none items-center rounded-[5px] py-1.5 pr-3 pl-7 font-medium text-sm outline-none',
                   'text-foreground transition-colors data-highlighted:bg-metricyak-100',
-                  'data-[state=checked]:font-medium',
+                  'data-[state=checked]:font-semibold',
                 )}
               >
                 <DropdownMenu.ItemIndicator className="absolute left-2 inline-flex">
