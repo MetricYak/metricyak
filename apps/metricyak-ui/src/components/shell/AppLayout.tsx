@@ -1,9 +1,11 @@
 import { type ReactNode, useState } from 'react';
 import { OnboardingPage } from '@/components/onboarding/OnboardingPage';
+import { MobileNav } from '@/components/sidebar/MobileNav';
 import { navItems } from '@/components/sidebar/nav.config';
 import { SidePanel } from '@/components/sidebar/SidePanel';
 import { SubMenuPanel } from '@/components/sidebar/SubMenuPanel';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { MainContent } from './MainContent';
 
 interface AppLayoutProps {
@@ -12,6 +14,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
   const { status } = useProjectContext();
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   const [activeSubMenuId, setActiveSubMenuId] = useState<string | undefined>(undefined);
 
   const activeItem = activeSubMenuId
@@ -40,12 +43,21 @@ export function AppLayout({ children }: AppLayoutProps): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      <SidePanel activeSubMenuId={activeSubMenuId} onOpenSubMenu={handleOpenSubMenu} />
-      {activeItem?.items?.length ? (
-        <SubMenuPanel item={activeItem} onClose={() => setActiveSubMenuId(undefined)} />
-      ) : null}
-      <MainContent>{children}</MainContent>
+    <div className="flex h-dvh w-screen overflow-hidden">
+      {isDesktop && (
+        <>
+          <SidePanel activeSubMenuId={activeSubMenuId} onOpenSubMenu={handleOpenSubMenu} />
+          {activeItem?.items?.length ? (
+            <SubMenuPanel item={activeItem} onClose={() => setActiveSubMenuId(undefined)} />
+          ) : null}
+        </>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {!isDesktop && (
+          <MobileNav activeSubMenuId={activeSubMenuId} onOpenSubMenu={handleOpenSubMenu} />
+        )}
+        <MainContent>{children}</MainContent>
+      </div>
     </div>
   );
 }

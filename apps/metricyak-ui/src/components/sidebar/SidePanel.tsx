@@ -2,6 +2,7 @@ import { Resizable } from '@/components/resizable/Resizable';
 import { NavItem } from './NavItem';
 import { NavList } from './NavList';
 import { bottomNavItems } from './nav.config';
+import { SidebarCollapseShortcut } from './SidebarCollapseShortcut';
 import { SidePanelBody } from './SidePanelBody';
 import { SidePanelFooter } from './SidePanelFooter';
 import { SidePanelHeader } from './SidePanelHeader';
@@ -25,6 +26,7 @@ export function SidePanel({ activeSubMenuId, onOpenSubMenu }: SidePanelProps): R
     >
       {({ collapsed, setCollapsed }) => (
         <div className="flex h-full flex-col">
+          <SidebarCollapseShortcut collapsed={collapsed} setCollapsed={setCollapsed} />
           <SidePanelHeader collapsed={collapsed} />
           <SidePanelBody>
             <NavList

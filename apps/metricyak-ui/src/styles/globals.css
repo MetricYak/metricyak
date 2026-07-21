@@ -25,11 +25,15 @@
 :root {
   --radius: 0.625rem;
 
+  --z-drawer-backdrop: 40;
+  --z-drawer: 45;
   --z-dropdown: 50;
   --z-popover: 60;
 
   --background: #ffffff;
   --foreground: var(--metricyak-900);
+
+  --canvas: var(--metricyak-100);
 
   --card: #ffffff;
   --card-foreground: var(--metricyak-900);
@@ -56,16 +60,20 @@
   --input: var(--metricyak-300);
   --ring: var(--metricyak-brand-orange);
 
-  --sidebar-bg: var(--metricyak-200);
+  --brand-orange-text: #b0480f;
+
+  --sidebar-bg: var(--metricyak-300);
   --sidebar-foreground: var(--metricyak-900);
-  --sidebar-accent: var(--metricyak-300);
+  --sidebar-accent: var(--metricyak-400);
   --sidebar-accent-foreground: var(--metricyak-900);
-  --sidebar-border: var(--metricyak-300);
+  --sidebar-border: var(--metricyak-400);
 }
 
 .dark {
   --background: var(--metricyak-900);
   --foreground: var(--metricyak-50);
+
+  --canvas: var(--metricyak-950);
 
   --card: var(--metricyak-900);
   --card-foreground: var(--metricyak-50);
@@ -92,6 +100,8 @@
   --input: var(--metricyak-700);
   --ring: var(--metricyak-brand-orange);
 
+  --brand-orange-text: #e0672a;
+
   --sidebar-bg: var(--metricyak-800);
   --sidebar-foreground: var(--metricyak-50);
   --sidebar-accent: var(--metricyak-700);
@@ -116,9 +126,11 @@
   --color-yellow: var(--yellow);
   --color-cream: var(--cream);
   --color-metricyak-brand-orange: var(--metricyak-brand-orange);
+  --color-brand-orange-text: var(--brand-orange-text);
   --color-button-orange: var(--button-orange);
 
   --color-background: var(--background);
+  --color-canvas: var(--canvas);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -280,6 +292,12 @@
 
   .dialog::backdrop {
     background-color: color-mix(in srgb, var(--metricyak-950) 45%, transparent);
+  }
+
+  .dialog.command-palette {
+    margin-top: 11vh;
+    margin-bottom: auto;
+    max-height: min(72vh, 34rem);
   }
 
   @media not (prefers-reduced-motion: reduce) {

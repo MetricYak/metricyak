@@ -6,6 +6,9 @@ This file provides guidance on how to work with the metricyak repository.
 
 MetricYak is an open-source platform for **metric-powered autonomous workflows**: declare metrics over an event stream, define monitors that watch those metrics, and fire automated steps when a metric crosses a threshold.
 
+## UI
+@UI.md
+
 ## Technology
 
 - **Runtime:** Node `>=24`, pnpm `>=11` (see root `engines`). ESM throughout.
@@ -15,6 +18,7 @@ MetricYak is an open-source platform for **metric-powered autonomous workflows**
 - **Validation:** Zod v4 throughout — schemas drive both runtime validation and TypeScript types.
 - **Linter/formatter:** Biome (`pnpm lint` / `pnpm check:fix`). Single-quote strings, 100-char line width, trailing commas always.
 - **Dependency versions** for shared libs (vitest, zod, drizzle-orm, …) are pinned in the **pnpm `catalog:`** in `pnpm-workspace.yaml`. Reference them as `"vitest": "catalog:"` rather than hardcoding versions.
+
 
 ## Code Style
 
