@@ -18,6 +18,7 @@ export function SidePanelFooter({
         type="button"
         onClick={onToggleCollapse}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        title={`${collapsed ? 'Expand' : 'Collapse'} sidebar (⌘B)`}
         className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-muted-foreground text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
       >
         {collapsed ? (
@@ -26,6 +27,9 @@ export function SidePanelFooter({
           <PanelLeftClose className="size-5 shrink-0" />
         )}
         <span className="truncate group-data-[collapsed=true]/panel:hidden">Collapse</span>
+        <kbd className="ml-auto rounded border border-sidebar-border px-1.5 py-0.5 text-[10px] text-muted-foreground group-data-[collapsed=true]/panel:hidden">
+          ⌘B
+        </kbd>
       </button>
     </div>
   );

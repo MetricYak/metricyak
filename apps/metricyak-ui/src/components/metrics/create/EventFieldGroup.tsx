@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { EventCombobox } from './EventCombobox';
 import type { MetricFormValues } from './schema';
+import { suggestShortName } from './suggest';
 
 const AGGREGATION_LABEL: Record<(typeof METRIC_AGGREGATIONS)[number], string> = {
   count: 'Count',
@@ -83,7 +84,9 @@ export function EventFieldGroup({ index, onRemove }: EventFieldGroupProps): Reac
                   onSelect={(event) => {
                     field.onChange(event.name);
                     if (!watch(`events.${index}.key`)) {
-                      setValue(`events.${index}.key`, event.name, { shouldValidate: true });
+                      setValue(`events.${index}.key`, suggestShortName(event.name), {
+                        shouldValidate: true,
+                      });
                     }
                     if (event.source) {
                       setValue(`events.${index}.source`, event.source, { shouldValidate: true });
@@ -136,7 +139,7 @@ export function EventFieldGroup({ index, onRemove }: EventFieldGroupProps): Reac
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="font-normal text-muted-foreground text-xs">
-                  Refer to this event as
+                  Short name
                 </FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="e.g. signups" />

@@ -367,7 +367,7 @@ function BrowseContent({
             <button
               type="button"
               onClick={onRetry}
-              className="rounded-md px-3 py-1 text-sm font-medium text-metricyak-brand-orange transition-colors hover:bg-sidebar-accent"
+              className="rounded-md px-3 py-1 text-sm font-medium text-brand-orange-text transition-colors hover:bg-sidebar-accent"
             >
               Try again
             </button>

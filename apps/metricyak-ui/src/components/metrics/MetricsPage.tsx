@@ -33,7 +33,7 @@ function TabBar({
                   className={cn(
                     'relative flex items-center pt-1 pb-3 font-medium text-sm transition-colors',
                     active
-                      ? 'text-metricyak-brand-orange'
+                      ? 'text-brand-orange-text'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >

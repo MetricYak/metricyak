@@ -16,13 +16,20 @@ import { cn } from '@/lib/utils';
 
 export type SeenEvent = { name: string; source: string };
 
-function useRecentlySeenEvents(): SeenEvent[] {
+export interface RecentlySeenEvents {
+  events: SeenEvent[];
+  loading: boolean;
+}
+
+export function useRecentlySeenEvents(): RecentlySeenEvents {
   const { activeProject } = useProjectContext();
   const [events, setEvents] = useState<SeenEvent[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!activeProject) return;
     let cancelled = false;
+    setLoading(true);
     listRecentEvents(activeProject.id, 200).then((activities) => {
       if (cancelled) return;
       const seen = new Map<string, SeenEvent>();
@@ -32,13 +39,14 @@ function useRecentlySeenEvents(): SeenEvent[] {
         }
       }
       setEvents([...seen.values()].sort((a, b) => a.name.localeCompare(b.name)));
+      setLoading(false);
     });
     return () => {
       cancelled = true;
     };
   }, [activeProject]);
 
-  return events;
+  return { events, loading };
 }
 
 interface EventComboboxProps {
@@ -54,7 +62,7 @@ export function EventCombobox({
 }: EventComboboxProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const events = useRecentlySeenEvents();
+  const { events } = useRecentlySeenEvents();
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -89,7 +97,9 @@ export function EventCombobox({
           />
           <CommandList>
             <CommandEmpty className="px-3 py-4 text-left text-muted-foreground text-xs">
-              Nothing matches yet — that's fine, you can still use a custom event name below.
+              {search.trim()
+                ? 'No event by that name yet.'
+                : "No events seen here yet — type the name you send from your app (e.g. checkout.completed) and we'll match it once it arrives."}
             </CommandEmpty>
             {filtered.length > 0 ? (
               <CommandGroup heading="From your recent activity">

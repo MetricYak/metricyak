@@ -165,7 +165,7 @@ function LiveStream({ feed }: { feed: ReturnType<typeof useActivityFeed> }): Rea
                   <button
                     type="button"
                     onClick={feed.reload}
-                    className="mt-2 block w-full text-center font-medium text-metricyak-brand-orange text-sm hover:underline"
+                    className="mt-2 block w-full text-center font-medium text-brand-orange-text text-sm hover:underline"
                   >
                     Try again
                   </button>

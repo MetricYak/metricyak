@@ -1,16 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Braces, PenLine, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormProvider, type Path, useFieldArray, useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { createMetric } from '@/api/metrics';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useProjectContext } from '@/contexts/ProjectContext';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { DimensionsField } from './DimensionsField';
+import { useRecentlySeenEvents } from './EventCombobox';
 import { EventFieldGroup } from './EventFieldGroup';
+import { FirstEventCallout } from './FirstEventCallout';
 import { FormulaField } from './FormulaField';
 import { MetricBasicsFields } from './MetricBasicsFields';
 import { MetricJsonPreview } from './MetricJsonPreview';
@@ -44,6 +47,25 @@ export function CreateMetricPage(): React.JSX.Element {
   const { control, handleSubmit, setError } = form;
   const { fields, append, remove } = useFieldArray({ control, name: 'events' });
   const events = form.watch('events');
+  const { events: seenEvents, loading: seenLoading } = useRecentlySeenEvents();
+  const showFirstEventCallout = !seenLoading && seenEvents.length === 0;
+
+  const [showDiscard, setShowDiscard] = useState(false);
+  const isDirty = form.formState.isDirty && !submitting;
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnOnUnload = (event: BeforeUnloadEvent): void => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warnOnUnload);
+    return () => window.removeEventListener('beforeunload', warnOnUnload);
+  }, [isDirty]);
+
+  const requestLeave = (): void => {
+    if (isDirty) setShowDiscard(true);
+    else navigate('/metrics/definitions');
+  };
 
   const onSubmit = async (values: MetricFormValues): Promise<void> => {
     if (!activeProject) return;
@@ -68,7 +90,7 @@ export function CreateMetricPage(): React.JSX.Element {
       });
 
       toast.success('Metric created', { description: metric.name });
-      navigate('/metrics/definitions', { state: { highlightId: metric.id } });
+      navigate(`/metrics/definitions/${metric.id}`, { state: { metric, justCreated: true } });
     } catch (error) {
       if (error instanceof ApiError) {
         let appliedToField = false;
@@ -94,6 +116,10 @@ export function CreateMetricPage(): React.JSX.Element {
     <div className="mx-auto max-w-2xl px-6 py-8 md:px-8">
       <Link
         to="/metrics/definitions"
+        onClick={(event) => {
+          event.preventDefault();
+          requestLeave();
+        }}
         className="inline-flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
@@ -104,7 +130,7 @@ export function CreateMetricPage(): React.JSX.Element {
         <div>
           <h1 className="font-semibold text-foreground text-xl">New metric</h1>
           <p className="mt-1 text-muted-foreground text-sm">
-            Pick the events that make up this number and how they should roll up.
+            Choose the events this number counts and how to add them up.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 rounded-md border border-border p-0.5">
@@ -112,7 +138,7 @@ export function CreateMetricPage(): React.JSX.Element {
             type="button"
             onClick={() => setView('visual')}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 font-medium text-xs',
+              'inline-flex h-8 items-center gap-1.5 rounded px-3 font-medium text-xs',
               view === 'visual'
                 ? 'bg-metricyak-100 text-foreground'
                 : 'text-muted-foreground hover:text-foreground',
@@ -125,7 +151,7 @@ export function CreateMetricPage(): React.JSX.Element {
             type="button"
             onClick={() => setView('json')}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 font-medium text-xs',
+              'inline-flex h-8 items-center gap-1.5 rounded px-3 font-medium text-xs',
               view === 'json'
                 ? 'bg-metricyak-100 text-foreground'
                 : 'text-muted-foreground hover:text-foreground',
@@ -143,10 +169,18 @@ export function CreateMetricPage(): React.JSX.Element {
             <MetricJsonPreview />
           ) : (
             <>
+              {showFirstEventCallout ? <FirstEventCallout /> : null}
+
               <MetricBasicsFields />
 
               <section>
                 <h2 className="font-semibold text-foreground text-sm">Events</h2>
+                <p className="mt-1 text-muted-foreground text-sm">
+                  Each row is an event. Keep <span className="text-foreground">Count</span> to tally
+                  how often it happens, or switch to Sum/Average/Min/Max to roll up a number field —
+                  e.g. Sum of <code className="text-foreground">amount</code> on{' '}
+                  <code className="text-foreground">checkout.completed</code> for revenue.
+                </p>
                 <div className="mt-2 space-y-3">
                   {fields.map((field, index) => (
                     <EventFieldGroup
@@ -159,7 +193,7 @@ export function CreateMetricPage(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => append(emptyEvent())}
-                  className="mt-2 inline-flex items-center gap-1.5 text-metricyak-brand-orange text-sm hover:underline"
+                  className="mt-2 inline-flex items-center gap-1.5 text-brand-orange-text text-sm hover:underline"
                 >
                   <Plus className="size-3.5" />
                   Combine another event
@@ -174,7 +208,7 @@ export function CreateMetricPage(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setDimensionsOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-metricyak-brand-orange text-sm hover:underline"
+                  className="inline-flex items-center gap-1.5 text-brand-orange-text text-sm hover:underline"
                 >
                   <Plus className="size-3.5" />
                   Add breakdown
@@ -185,11 +219,7 @@ export function CreateMetricPage(): React.JSX.Element {
 
           <div className="flex items-center justify-end gap-2 border-border border-t pt-4">
             {submitError ? <p className="mr-auto text-destructive text-sm">{submitError}</p> : null}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/metrics/definitions')}
-            >
+            <Button type="button" variant="outline" onClick={requestLeave}>
               Cancel
             </Button>
             <Button type="submit" className="raised" disabled={submitting}>
@@ -198,6 +228,17 @@ export function CreateMetricPage(): React.JSX.Element {
           </div>
         </form>
       </FormProvider>
+
+      <ConfirmDialog
+        open={showDiscard}
+        title="Discard this metric?"
+        description="Your changes will be lost."
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        destructive
+        onConfirm={() => navigate('/metrics/definitions')}
+        onCancel={() => setShowDiscard(false)}
+      />
     </div>
   );
 }

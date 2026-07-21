@@ -470,7 +470,7 @@ export function ProjectKeysPage(): React.JSX.Element {
           <button
             type="button"
             onClick={() => void load(activeProject.id)}
-            className="mt-2 rounded-md px-3 py-1 text-sm font-medium text-metricyak-brand-orange transition-colors hover:bg-accent"
+            className="mt-2 rounded-md px-3 py-1 text-sm font-medium text-brand-orange-text transition-colors hover:bg-accent"
           >
             Try again
           </button>

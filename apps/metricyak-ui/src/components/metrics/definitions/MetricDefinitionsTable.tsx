@@ -42,7 +42,7 @@ export function MetricDefinitionRow({
       <TableCell className="py-3.5 pl-5">
         <Link
           to={`/metrics/definitions/${metric.id}`}
-          className="font-medium text-foreground text-sm hover:text-metricyak-brand-orange hover:underline"
+          className="font-medium text-foreground text-sm hover:text-brand-orange-text hover:underline"
         >
           {metric.name}
         </Link>

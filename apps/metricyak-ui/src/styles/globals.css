@@ -56,6 +56,8 @@
   --input: var(--metricyak-300);
   --ring: var(--metricyak-brand-orange);
 
+  --brand-orange-text: #b0480f;
+
   --sidebar-bg: var(--metricyak-200);
   --sidebar-foreground: var(--metricyak-900);
   --sidebar-accent: var(--metricyak-300);
@@ -92,6 +94,8 @@
   --input: var(--metricyak-700);
   --ring: var(--metricyak-brand-orange);
 
+  --brand-orange-text: #e0672a;
+
   --sidebar-bg: var(--metricyak-800);
   --sidebar-foreground: var(--metricyak-50);
   --sidebar-accent: var(--metricyak-700);
@@ -116,6 +120,7 @@
   --color-yellow: var(--yellow);
   --color-cream: var(--cream);
   --color-metricyak-brand-orange: var(--metricyak-brand-orange);
+  --color-brand-orange-text: var(--brand-orange-text);
   --color-button-orange: var(--button-orange);
 
   --color-background: var(--background);
@@ -280,6 +285,12 @@
 
   .dialog::backdrop {
     background-color: color-mix(in srgb, var(--metricyak-950) 45%, transparent);
+  }
+
+  .dialog.command-palette {
+    margin-top: 11vh;
+    margin-bottom: auto;
+    max-height: min(72vh, 34rem);
   }
 
   @media not (prefers-reduced-motion: reduce) {
