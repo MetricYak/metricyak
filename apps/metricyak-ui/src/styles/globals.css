@@ -25,11 +25,15 @@
 :root {
   --radius: 0.625rem;
 
+  --z-drawer-backdrop: 40;
+  --z-drawer: 45;
   --z-dropdown: 50;
   --z-popover: 60;
 
   --background: #ffffff;
   --foreground: var(--metricyak-900);
+
+  --canvas: var(--metricyak-100);
 
   --card: #ffffff;
   --card-foreground: var(--metricyak-900);
@@ -58,16 +62,18 @@
 
   --brand-orange-text: #b0480f;
 
-  --sidebar-bg: var(--metricyak-200);
+  --sidebar-bg: var(--metricyak-300);
   --sidebar-foreground: var(--metricyak-900);
-  --sidebar-accent: var(--metricyak-300);
+  --sidebar-accent: var(--metricyak-400);
   --sidebar-accent-foreground: var(--metricyak-900);
-  --sidebar-border: var(--metricyak-300);
+  --sidebar-border: var(--metricyak-400);
 }
 
 .dark {
   --background: var(--metricyak-900);
   --foreground: var(--metricyak-50);
+
+  --canvas: var(--metricyak-950);
 
   --card: var(--metricyak-900);
   --card-foreground: var(--metricyak-50);
@@ -124,6 +130,7 @@
   --color-button-orange: var(--button-orange);
 
   --color-background: var(--background);
+  --color-canvas: var(--canvas);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);

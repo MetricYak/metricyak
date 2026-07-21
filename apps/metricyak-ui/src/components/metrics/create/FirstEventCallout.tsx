@@ -1,9 +1,10 @@
 import { ArrowUpRight, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Surface } from '@/components/ui/surface';
 
 export function FirstEventCallout(): React.JSX.Element {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-metricyak-50 p-4">
+    <Surface className="flex items-start gap-3">
       <Radio className="mt-0.5 size-4 shrink-0 text-metricyak-brand-orange" />
       <div className="min-w-0 space-y-1">
         <p className="font-medium text-foreground text-sm">No events have arrived yet</p>
@@ -28,6 +29,6 @@ export function FirstEventCallout(): React.JSX.Element {
           </Link>
         </div>
       </div>
-    </div>
+    </Surface>
   );
 }

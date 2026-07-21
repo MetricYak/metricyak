@@ -1,5 +1,4 @@
-import { SlidersHorizontal, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
 import { METRIC_AGGREGATIONS } from '@/api/metrics';
 import { Button } from '@/components/ui/button';
@@ -30,19 +29,8 @@ interface EventFieldGroupProps {
 }
 
 export function EventFieldGroup({ index, onRemove }: EventFieldGroupProps): React.JSX.Element {
-  const {
-    control,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useFormContext<MetricFormValues>();
-  const [customizing, setCustomizing] = useState(false);
+  const { control, watch, setValue } = useFormContext<MetricFormValues>();
   const aggregation = watch(`events.${index}.aggregation`);
-  const hasCustomError = Boolean(errors.events?.[index]?.key || errors.events?.[index]?.source);
-
-  useEffect(() => {
-    if (hasCustomError) setCustomizing(true);
-  }, [hasCustomError]);
 
   return (
     <div className="rounded-lg border border-border p-4">
@@ -131,47 +119,42 @@ export function EventFieldGroup({ index, onRemove }: EventFieldGroupProps): Reac
         </div>
       ) : null}
 
-      {customizing ? (
-        <div className="mt-3 grid gap-3 border-border border-t pt-3 sm:grid-cols-2">
-          <FormField
-            control={control}
-            name={`events.${index}.key`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="font-normal text-muted-foreground text-xs">
-                  Short name
-                </FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g. signups" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name={`events.${index}.source`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="font-normal text-muted-foreground text-xs">Source</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g. web" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setCustomizing(true)}
-          className="mt-3 inline-flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground"
-        >
-          <SlidersHorizontal className="size-3" />
-          Customize name &amp; source
-        </button>
-      )}
+      <div className="mt-3 grid gap-3 border-border border-t pt-3 sm:grid-cols-2">
+        <FormField
+          control={control}
+          name={`events.${index}.key`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-normal text-muted-foreground text-xs">
+                Short name
+              </FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. signups" />
+              </FormControl>
+              <p className="text-muted-foreground text-xs">
+                Used to refer to this event in a formula.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name={`events.${index}.source`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-normal text-muted-foreground text-xs">Source</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. web" />
+              </FormControl>
+              <p className="text-muted-foreground text-xs">
+                Where the event comes from, e.g. web or ios.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </div>
   );
 }

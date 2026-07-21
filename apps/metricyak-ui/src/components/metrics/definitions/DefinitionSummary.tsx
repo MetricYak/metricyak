@@ -17,19 +17,28 @@ export function DefinitionSummary({
   const { events, value, dimensions } = definition;
 
   return (
-    <div className="space-y-4 rounded-lg border border-border p-4">
+    <div className="space-y-4">
       <div className="space-y-2">
-        {events.map((event) => {
-          const aggregation = AGGREGATION_LABEL[event.aggregation] ?? event.aggregation;
+        {events.map((event, index) => {
+          const aggregation = (
+            AGGREGATION_LABEL[event.aggregation] ?? event.aggregation
+          ).toLowerCase();
           return (
-            <div key={event.key} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
-              <code className="rounded bg-metricyak-100 px-1.5 py-0.5 font-medium text-foreground text-xs">
-                {event.key}
-              </code>
+            // biome-ignore lint/suspicious/noArrayIndexKey: event rows are positional in a small, live-edited list
+            <div key={index} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+              {event.key ? (
+                <code className="rounded bg-muted px-1.5 py-0.5 font-medium text-foreground text-xs">
+                  {event.key}
+                </code>
+              ) : null}
               <span className="text-muted-foreground">
-                {aggregation.toLowerCase()}
-                {event.aggregation === 'count' ? '' : ` of ${event.field}`} on{' '}
-                <span className="text-foreground">{event.type}</span>
+                {aggregation}
+                {event.aggregation === 'count' ? '' : ` of ${event.field || '…'}`} on{' '}
+                {event.type ? (
+                  <span className="text-foreground">{event.type}</span>
+                ) : (
+                  <span>an event</span>
+                )}
                 {event.source ? ` from ${event.source}` : ''}
               </span>
             </div>
@@ -40,7 +49,7 @@ export function DefinitionSummary({
       {value ? (
         <div className="border-border border-t pt-3 text-sm">
           <span className="text-muted-foreground">Combined as </span>
-          <code className="rounded bg-metricyak-100 px-1.5 py-0.5 font-mono text-foreground text-xs">
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground text-xs">
             {value}
           </code>
         </div>

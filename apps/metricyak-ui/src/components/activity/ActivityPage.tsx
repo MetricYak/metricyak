@@ -2,6 +2,8 @@ import { Activity, ArrowUp, List, Pause, Play, Radio } from 'lucide-react';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { PageContainer } from '@/components/shell/PageContainer';
+import { PageTabs } from '@/components/shell/PageTabs';
 import { useProjectContext } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
 import { EventsExplorer } from './EventsExplorer';
@@ -150,7 +152,7 @@ function LiveStream({ feed }: { feed: ReturnType<typeof useActivityFeed> }): Rea
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 pt-5 pb-8 md:px-8">
+        <PageContainer width="wide" className="pt-5 pb-8">
           <EventTableFrame>
             <EventTableHead />
             <TableBody>
@@ -191,7 +193,7 @@ function LiveStream({ feed }: { feed: ReturnType<typeof useActivityFeed> }): Rea
               )}
             </TableBody>
           </EventTableFrame>
-        </div>
+        </PageContainer>
       </div>
 
       {/* "N new" pill — floats over the top of the stream */}
@@ -249,45 +251,41 @@ export function ActivityPage(): React.JSX.Element {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <header className="shrink-0 border-border border-b px-6 pt-7 md:px-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="flex items-center gap-2 font-semibold text-foreground text-xl">
-                <Activity className="size-5 text-metricyak-brand-orange" />
-                Activity
-              </h1>
-              <p className="mt-1 text-muted-foreground text-sm">
-                A live pulse of everything flowing into MetricYak.
-              </p>
-            </div>
-            {view === 'live' && projectId && (
-              <div className="flex items-center gap-4">
-                <div className="hidden sm:block">
-                  <ThroughputMeter arrivalsRef={feed.arrivalsRef} live={feed.live} />
-                </div>
-                <LiveToggle live={feed.live} onToggle={() => feed.setLive(!feed.live)} />
+      <PageTabs
+        actions={
+          view === 'live' && projectId ? (
+            <>
+              <div className="hidden sm:block">
+                <ThroughputMeter arrivalsRef={feed.arrivalsRef} live={feed.live} />
               </div>
-            )}
-          </div>
+              <LiveToggle live={feed.live} onToggle={() => feed.setLive(!feed.live)} />
+            </>
+          ) : undefined
+        }
+      >
+        <TabBar view={view} onChange={(v) => navigate(`/activity/${v}`)} />
+      </PageTabs>
 
-          <div className="mt-6">
-            <TabBar view={view} onChange={(v) => navigate(`/activity/${v}`)} />
-          </div>
-        </div>
-      </header>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PageContainer width="wide" className="shrink-0 pt-5">
+          <p className="text-muted-foreground text-sm">
+            A live pulse of everything flowing into MetricYak.
+          </p>
+        </PageContainer>
 
-      {/* Body */}
-      {!projectId ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-5xl px-6 pt-6 pb-8 md:px-8">
-            <NoProject />
+        {/* Body */}
+        {!projectId ? (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <PageContainer width="wide" className="pt-6 pb-8">
+              <NoProject />
+            </PageContainer>
           </div>
-        </div>
-      ) : (
-        <Outlet context={{ feed, projectId } satisfies ActivityOutletContext} />
-      )}
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Outlet context={{ feed, projectId } satisfies ActivityOutletContext} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -303,9 +301,9 @@ export function ActivityExploreView(): React.JSX.Element {
   const { projectId } = useOutletContext<ActivityOutletContext>();
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[100rem] px-6 pt-5 pb-10 md:px-8">
+      <PageContainer width="wide" className="pt-5 pb-10">
         <EventsExplorer key={projectId} projectId={projectId} />
-      </div>
+      </PageContainer>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { METRIC_AGGREGATIONS } from '@/api/metrics';
+import { METRIC_AGGREGATIONS, type MetricDefinition } from '@/api/metrics';
 
 export const eventFormSchema = z
   .object({
@@ -59,3 +59,18 @@ export const defaultMetricFormValues: MetricFormValues = {
   value: '',
   dimensions: [],
 };
+
+export function toMetricDefinition(values: MetricFormValues): MetricDefinition {
+  const events = values.events ?? [];
+  return {
+    events: events.map((event) => ({
+      key: event.key,
+      source: event.source,
+      type: event.type,
+      aggregation: event.aggregation,
+      field: event.aggregation === 'count' ? undefined : event.field,
+    })),
+    value: events.length > 1 ? values.value : undefined,
+    dimensions: values.dimensions?.length ? values.dimensions : undefined,
+  };
+}

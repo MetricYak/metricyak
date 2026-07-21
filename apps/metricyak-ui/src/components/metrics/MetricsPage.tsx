@@ -1,6 +1,7 @@
-import { BarChart3 } from 'lucide-react';
 import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { PageContainer } from '@/components/shell/PageContainer';
+import { PageTabs } from '@/components/shell/PageTabs';
 import { cn } from '@/lib/utils';
 
 type View = 'definitions' | 'explorer';
@@ -66,23 +67,19 @@ export function MetricsPage(): React.JSX.Element {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="shrink-0 border-border border-b px-6 pt-7 md:px-8">
-        <div className="mx-auto max-w-5xl">
-          <h1 className="flex items-center gap-2 font-semibold text-foreground text-xl">
-            <BarChart3 className="size-5 text-metricyak-brand-orange" />
-            Metrics
-          </h1>
-          <p className="mt-1 text-muted-foreground text-sm">
+      <PageTabs>
+        <TabBar view={view} onChange={(v) => navigate(`/metrics/${v}`)} />
+      </PageTabs>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PageContainer width="wide" className="shrink-0 pt-5">
+          <p className="text-muted-foreground text-sm">
             Turn the events you're tracking into the numbers your team watches.
           </p>
-          <div className="mt-6">
-            <TabBar view={view} onChange={(v) => navigate(`/metrics/${v}`)} />
-          </div>
+        </PageContainer>
+        <div className="min-h-0 flex-1 overflow-y-auto md:overflow-hidden">
+          <Outlet />
         </div>
-      </header>
-
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <Outlet />
       </div>
     </div>
   );

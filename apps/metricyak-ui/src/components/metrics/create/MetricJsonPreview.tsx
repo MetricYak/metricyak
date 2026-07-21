@@ -3,23 +3,13 @@ import { useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import type { CreateMetricInput } from '@/api/metrics';
 import { Button } from '@/components/ui/button';
-import type { MetricFormValues } from './schema';
+import { type MetricFormValues, toMetricDefinition } from './schema';
 
 function toPayload(values: MetricFormValues): CreateMetricInput {
   return {
     name: values.name,
     description: values.description || undefined,
-    definition: {
-      events: values.events.map((event) => ({
-        key: event.key,
-        source: event.source,
-        type: event.type,
-        aggregation: event.aggregation,
-        field: event.aggregation === 'count' ? undefined : event.field,
-      })),
-      value: values.events.length > 1 ? values.value : undefined,
-      dimensions: values.dimensions?.length ? values.dimensions : undefined,
-    },
+    definition: toMetricDefinition(values),
   };
 }
 
@@ -37,23 +27,20 @@ export function MetricJsonPreview(): React.JSX.Element {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-metricyak-50">
-      <div className="flex items-center justify-between border-border border-b px-4 py-2">
-        <span className="font-medium text-muted-foreground text-xs">
-          Request payload · read-only
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={handleCopy}
-          className="h-7 gap-1.5 text-xs"
-        >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-          {copied ? 'Copied' : 'Copy'}
-        </Button>
-      </div>
-      <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed">{json}</pre>
+    <div className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleCopy}
+        className="absolute top-2 right-2 gap-1.5 bg-card text-xs"
+      >
+        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        {copied ? 'Copied' : 'Copy'}
+      </Button>
+      <pre className="overflow-x-auto rounded-md bg-muted p-3 pr-20 font-mono text-xs leading-relaxed">
+        {json}
+      </pre>
     </div>
   );
 }
