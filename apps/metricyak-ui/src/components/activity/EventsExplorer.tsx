@@ -75,6 +75,7 @@ export function EventsExplorer({ projectId }: { projectId: string }): React.JSX.
     async (next: ExplorerQuery) => {
       const reqId = ++reqRef.current;
       setLoading(true);
+      setQuery(next);
       try {
         const cutoff = rangeCutoff(next.range, Date.now());
         const res = await listEvents(projectId, {
@@ -85,7 +86,6 @@ export function EventsExplorer({ projectId }: { projectId: string }): React.JSX.
         });
         if (reqId !== reqRef.current) return;
         setLastGood({ query: next, events: res.events, hasMore: res.hasMore });
-        setQuery(next);
         setBannerError(false);
       } catch {
         if (reqId !== reqRef.current) return;
@@ -171,9 +171,13 @@ export function EventsExplorer({ projectId }: { projectId: string }): React.JSX.
         isLoading={loading && !lastGood}
         skeletonRowCount={10}
         errorBanner={
-          bannerError && lastGood ? (
+          bannerError ? (
             <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive text-sm">
-              <span>Couldn't refresh the stream — showing the last events you loaded.</span>
+              <span>
+                {lastGood
+                  ? "Couldn't refresh the stream — showing the last events you loaded."
+                  : "Couldn't load events."}
+              </span>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -194,11 +198,19 @@ export function EventsExplorer({ projectId }: { projectId: string }): React.JSX.
             </div>
           ) : undefined
         }
-        emptyState={{
-          icon: <SearchX className="size-5" />,
-          title: 'Nothing in the stream',
-          description: 'No events have flowed through this window yet.',
-        }}
+        emptyState={
+          bannerError && !lastGood
+            ? {
+                icon: <SearchX className="size-5" />,
+                title: 'Couldn’t load events',
+                description: 'Something went wrong fetching this project’s activity.',
+              }
+            : {
+                icon: <SearchX className="size-5" />,
+                title: 'Nothing in the stream',
+                description: 'No events have flowed through this window yet.',
+              }
+        }
       />
 
       {events.length > 0 && (

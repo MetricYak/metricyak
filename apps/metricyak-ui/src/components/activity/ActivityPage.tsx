@@ -304,7 +304,7 @@ export function ActivityExploreView(): React.JSX.Element {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-[100rem] px-6 pt-5 pb-10 md:px-8">
-        <EventsExplorer projectId={projectId} />
+        <EventsExplorer key={projectId} projectId={projectId} />
       </div>
     </div>
   );
