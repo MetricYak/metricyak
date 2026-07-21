@@ -11,6 +11,7 @@ import {
 } from '@metricyak/storage';
 import { createMetricReads, type MetricReads } from '@/modules/aggregates/aggregates.reads.js';
 import { createClickHouseReadsAggregates } from '@/modules/aggregates/clickhouse-reads.js';
+import { createClickHouseEventsReads, type EventsReads } from '@/modules/events/events-reads.js';
 
 export type Repositories = {
   readonly projectKeys: ProjectKeysRepository;
@@ -28,6 +29,7 @@ export type Container = {
   readonly evalProducer: MonitorEvalProducer;
   readonly repos: Repositories;
   readonly reads: MetricReads;
+  readonly eventsReads: EventsReads;
   readonly clickhouse: ClickHouseClient;
 };
 
@@ -56,6 +58,7 @@ export function createContainer(
   };
 
   const reads = createMetricReads({ aggregates: createClickHouseReadsAggregates(clickhouse) });
+  const eventsReads = createClickHouseEventsReads(clickhouse);
 
-  return { db, producer, signals, evalProducer, repos, reads, clickhouse };
+  return { db, producer, signals, evalProducer, repos, reads, eventsReads, clickhouse };
 }

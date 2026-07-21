@@ -76,3 +76,63 @@ export const IngestResponse = z
     }),
   })
   .openapi('IngestResponse');
+
+export const EVENT_PAGE_SIZES: readonly number[] = [25, 50, 75, 100];
+
+export const ListEventsParams = z.object({
+  projectId: z.uuid().openapi({
+    param: { name: 'projectId', in: 'path' },
+    example: 'd6ceaf26-fd71-4c38-90f1-2de20b946d00',
+  }),
+});
+
+export const ListEventsQuery = z.object({
+  from: z.iso
+    .datetime()
+    .optional()
+    .openapi({
+      param: { name: 'from', in: 'query' },
+      description: 'Inclusive lower time bound. Omit for no lower bound.',
+    }),
+  to: z.iso
+    .datetime()
+    .optional()
+    .openapi({
+      param: { name: 'to', in: 'query' },
+      description: 'Exclusive upper time bound. Defaults to the request time when omitted.',
+    }),
+  sort: z
+    .enum(['asc', 'desc'])
+    .default('desc')
+    .openapi({ param: { name: 'sort', in: 'query' } }),
+  page: z.coerce
+    .number()
+    .int('The page must be an integer.')
+    .min(0, 'The page must not be negative.')
+    .default(0)
+    .openapi({ param: { name: 'page', in: 'query' } }),
+  pageSize: z.coerce
+    .number()
+    .int('The pageSize must be an integer.')
+    .refine((value) => EVENT_PAGE_SIZES.includes(value), {
+      error: `The pageSize must be one of: ${EVENT_PAGE_SIZES.join(', ')}.`,
+    })
+    .default(25)
+    .openapi({ param: { name: 'pageSize', in: 'query' } }),
+});
+
+export const EventItem = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    timestamp: z.iso.datetime(),
+    properties: z.record(z.string(), z.unknown()),
+  })
+  .openapi('EventItem');
+
+export const ListEventsResponse = z
+  .object({
+    events: z.array(EventItem),
+    hasMore: z.boolean(),
+  })
+  .openapi('ListEventsResponse');
