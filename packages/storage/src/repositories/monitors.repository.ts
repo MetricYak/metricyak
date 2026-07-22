@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import type { Database } from '@/client.js';
+import type { Database, Executor } from '@/client.js';
 import {
   type MonitorEvalHealth,
   type MonitorMissingData,
@@ -57,8 +57,8 @@ export type MonitorRecord = {
 export class MonitorsRepository {
   constructor(private readonly db: Database) {}
 
-  async create(input: CreateMonitorInput): Promise<MonitorRecord> {
-    const [monitor] = await this.db
+  async create(input: CreateMonitorInput, executor: Executor = this.db): Promise<MonitorRecord> {
+    const [monitor] = await executor
       .insert(monitors)
       .values({
         projectId: input.projectId,
@@ -99,8 +99,9 @@ export class MonitorsRepository {
     id: string,
     projectId: string,
     input: UpdateMonitorInput,
+    executor: Executor = this.db,
   ): Promise<MonitorRecord | null> {
-    const [monitor] = await this.db
+    const [monitor] = await executor
       .update(monitors)
       .set({
         ...(input.metricId !== undefined ? { metricId: input.metricId } : {}),

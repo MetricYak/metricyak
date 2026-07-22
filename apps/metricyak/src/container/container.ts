@@ -3,6 +3,7 @@ import type { EventsProducer, MonitorEvalProducer, MonitorSignalsProducer } from
 import {
   type Database,
   MetricsRepository,
+  MonitorEventKeysRepository,
   MonitorRuntimeRepository,
   MonitorsRepository,
   OrganizationsRepository,
@@ -17,6 +18,7 @@ export type Repositories = {
   readonly projectKeys: ProjectKeysRepository;
   readonly metrics: MetricsRepository;
   readonly monitors: MonitorsRepository;
+  readonly monitorEventKeys: MonitorEventKeysRepository;
   readonly monitorRuntime: MonitorRuntimeRepository;
   readonly organizations: OrganizationsRepository;
   readonly projects: ProjectsRepository;
@@ -52,6 +54,7 @@ export function createContainer(
     projectKeys: new ProjectKeysRepository(db),
     metrics,
     monitors: new MonitorsRepository(db),
+    monitorEventKeys: new MonitorEventKeysRepository(db),
     monitorRuntime: new MonitorRuntimeRepository(db),
     organizations: new OrganizationsRepository(db),
     projects: new ProjectsRepository(db),
