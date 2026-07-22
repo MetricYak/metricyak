@@ -1,4 +1,5 @@
 export * from '@/schema/metrics.js';
+export * from '@/schema/monitor-event-keys.js';
 export * from '@/schema/monitor-events.js';
 export * from '@/schema/monitor-state.js';
 export * from '@/schema/monitors.js';
