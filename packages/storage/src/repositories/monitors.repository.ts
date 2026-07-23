@@ -1,5 +1,6 @@
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, gt, ilike, isNull, or, type SQL } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
+import { monitorState } from '@/schema/monitor-state.js';
 import {
   type MonitorEvalHealth,
   type MonitorMissingData,
@@ -7,6 +8,48 @@ import {
   type MonitorThresholdCondition,
   monitors,
 } from '@/schema/monitors.js';
+import { TOTAL_SENTINEL } from '@/schema/sentinels.js';
+
+export const MONITOR_STATUS_FILTERS = ['watching', 'pending', 'firing', 'error', 'paused'] as const;
+export type MonitorStatusFilter = (typeof MONITOR_STATUS_FILTERS)[number];
+
+export type ListMonitorsPageOptions = {
+  page: number;
+  pageSize: number;
+  q?: string | null;
+  status?: MonitorStatusFilter | null;
+};
+
+function statusFilterCondition(status: MonitorStatusFilter): SQL | undefined {
+  switch (status) {
+    case 'paused':
+      return eq(monitors.enabled, false);
+    case 'error':
+      return and(eq(monitors.enabled, true), eq(monitors.evalHealth, 'error'));
+    case 'firing':
+      return and(
+        eq(monitors.enabled, true),
+        eq(monitors.evalHealth, 'ok'),
+        eq(monitorState.status, 'firing'),
+      );
+    case 'pending':
+      return and(
+        eq(monitors.enabled, true),
+        eq(monitors.evalHealth, 'ok'),
+        eq(monitorState.status, 'pending'),
+      );
+    case 'watching':
+      return and(
+        eq(monitors.enabled, true),
+        eq(monitors.evalHealth, 'ok'),
+        or(isNull(monitorState.status), eq(monitorState.status, 'ok')),
+      );
+    default: {
+      const _exhaustive: never = status;
+      throw new Error(`Unhandled status filter: ${JSON.stringify(_exhaustive)}`);
+    }
+  }
+}
 
 export type CreateMonitorInput = {
   projectId: string;
@@ -127,6 +170,30 @@ export class MonitorsRepository {
       .returning({ id: monitors.id });
 
     return deleted.length > 0;
+  }
+
+  async listPage(
+    projectId: string,
+    options: ListMonitorsPageOptions,
+  ): Promise<{ monitors: MonitorRecord[]; hasMore: boolean }> {
+    const { page, pageSize, q, status } = options;
+    const conditions: (SQL | undefined)[] = [eq(monitors.projectId, projectId)];
+    if (q) conditions.push(ilike(monitors.name, `%${q}%`));
+    if (status) conditions.push(statusFilterCondition(status));
+
+    const rows = await this.db
+      .select(getTableColumns(monitors))
+      .from(monitors)
+      .leftJoin(
+        monitorState,
+        and(eq(monitorState.monitorId, monitors.id), eq(monitorState.series, TOTAL_SENTINEL)),
+      )
+      .where(and(...conditions))
+      .orderBy(desc(monitors.createdAt), desc(monitors.id))
+      .limit(pageSize + 1)
+      .offset(page * pageSize);
+
+    return { monitors: rows.slice(0, pageSize), hasMore: rows.length > pageSize };
   }
 
   async listEnabledIds(afterId: string | null, limit: number): Promise<{ id: string }[]> {

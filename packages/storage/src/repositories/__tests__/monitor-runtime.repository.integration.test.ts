@@ -403,4 +403,40 @@ describe('MonitorRuntimeRepository (integration)', () => {
     expect(after?.consecutiveFailures).toBe(1);
     expect(after?.lastEvalError).toBe('real failure');
   });
+
+  describe('getTotalStateByMonitorIds', () => {
+    it('returns $total status, lastValue and lastEvaluatedAt keyed by monitor id', async () => {
+      const monitor = await seedMonitor();
+      const now = new Date();
+      await repo.upsertState(
+        {
+          monitorId: monitor.id,
+          series: TOTAL_SENTINEL,
+          status: 'firing',
+          breachedSince: now,
+          lastValue: 42,
+          lastEvaluatedAt: now,
+        },
+        db,
+      );
+
+      const map = await repo.getTotalStateByMonitorIds([monitor.id]);
+
+      expect(map.get(monitor.id)).toEqual({
+        status: 'firing',
+        lastValue: 42,
+        lastEvaluatedAt: now,
+      });
+    });
+
+    it('omits monitors with no $total state row', async () => {
+      const monitor = await seedMonitor();
+      const map = await repo.getTotalStateByMonitorIds([monitor.id]);
+      expect(map.has(monitor.id)).toBe(false);
+    });
+
+    it('returns an empty map for no ids', async () => {
+      expect(await repo.getTotalStateByMonitorIds([])).toEqual(new Map());
+    });
+  });
 });

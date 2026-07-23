@@ -1,4 +1,10 @@
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  type RowData,
+  useReactTable,
+} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -7,6 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+
+declare module '@tanstack/react-table' {
+  interface ColumnMeta<TData extends RowData, TValue> {
+    className?: string;
+  }
+}
 
 export interface DataTableEmptyState {
   icon: React.ReactNode;
@@ -22,6 +35,7 @@ interface DataTableProps<TData> {
   skeletonRowCount: number;
   errorBanner?: React.ReactNode;
   emptyState: DataTableEmptyState;
+  minWidthClassName?: string;
 }
 
 function DataTableSkeletonRows({
@@ -78,6 +92,7 @@ export function DataTable<TData>({
   skeletonRowCount,
   errorBanner,
   emptyState,
+  minWidthClassName = 'min-w-224',
 }: DataTableProps<TData>): React.JSX.Element {
   const table = useReactTable({
     data: Array.from(data),
@@ -91,7 +106,7 @@ export function DataTable<TData>({
     <div>
       {errorBanner}
       <Table
-        className="min-w-224"
+        className={minWidthClassName}
         containerClassName="max-h-[70vh] overflow-auto border border-border bg-background"
       >
         <TableHeader>
@@ -100,7 +115,10 @@ export function DataTable<TData>({
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  className="sticky top-0 z-10 h-10 bg-metricyak-50 text-[11px] text-muted-foreground"
+                  className={cn(
+                    'sticky top-0 z-10 h-10 bg-metricyak-50 text-[11px] text-muted-foreground',
+                    header.column.columnDef.meta?.className,
+                  )}
                 >
                   {header.isPlaceholder
                     ? null
@@ -119,7 +137,10 @@ export function DataTable<TData>({
             table.getRowModel().rows.map((row) => (
               <TableRow key={getRowId(row.original)} className="hover:bg-metricyak-50">
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-3.5">
+                  <TableCell
+                    key={cell.id}
+                    className={cn('py-3.5', cell.column.columnDef.meta?.className)}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}

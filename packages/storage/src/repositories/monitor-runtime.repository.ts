@@ -44,6 +44,12 @@ export type MonitorEventRecord = {
   occurredAt: Date;
 };
 
+export type MonitorTotalState = {
+  status: MonitorStatus;
+  lastValue: number | null;
+  lastEvaluatedAt: Date | null;
+};
+
 export class MonitorRuntimeRepository {
   constructor(private readonly db: Database) {}
 
@@ -172,6 +178,33 @@ export class MonitorRuntimeRepository {
         ),
       );
     return new Map(rows.map((r) => [r.monitorId, r.lastEvaluatedAt]));
+  }
+
+  async getTotalStateByMonitorIds(
+    monitorIds: readonly string[],
+    executor: Executor = this.db,
+  ): Promise<Map<string, MonitorTotalState>> {
+    if (monitorIds.length === 0) return new Map();
+    const rows = await executor
+      .select({
+        monitorId: monitorState.monitorId,
+        status: monitorState.status,
+        lastValue: monitorState.lastValue,
+        lastEvaluatedAt: monitorState.lastEvaluatedAt,
+      })
+      .from(monitorState)
+      .where(
+        and(
+          inArray(monitorState.monitorId, [...monitorIds]),
+          eq(monitorState.series, TOTAL_SENTINEL),
+        ),
+      );
+    return new Map(
+      rows.map((row) => [
+        row.monitorId,
+        { status: row.status, lastValue: row.lastValue, lastEvaluatedAt: row.lastEvaluatedAt },
+      ]),
+    );
   }
 
   async getState(

@@ -78,7 +78,7 @@ export function MobileMenuDrawer({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 md:hidden">
+        <div className="fixed inset-0 z-(--z-drawer) md:hidden">
           <motion.button
             type="button"
             aria-label="Close menu"

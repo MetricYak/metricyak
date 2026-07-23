@@ -1,9 +1,5 @@
-import { createRoute, type z } from '@hono/zod-openapi';
-import type {
-  MetricDefinition,
-  MonitorComparisonOperator,
-  MonitorRecord,
-} from '@metricyak/storage';
+import { createRoute } from '@hono/zod-openapi';
+import type { MetricDefinition, MonitorComparisonOperator } from '@metricyak/storage';
 import {
   ERROR_TYPES,
   errorItem,
@@ -18,37 +14,15 @@ import {
   CreateMonitorRequest,
   DeleteMonitorResponse,
   isEqualityOperator,
+  ListMonitorsQuery,
   ListMonitorsResponse,
   MonitorResponse,
   MonitorScopedParams,
   metricYieldsIntegerValues,
   ProjectScopedParams,
+  toMonitorResponse,
   UpdateMonitorRequest,
 } from '@/modules/monitors/monitors.schemas.js';
-
-function toMonitorResponse(
-  record: MonitorRecord,
-  lastEvaluatedAt: Date | null,
-): z.input<typeof MonitorResponse> {
-  return {
-    monitorId: record.id,
-    name: record.name,
-    description: record.description,
-    metricId: record.metricId,
-    scope: record.scope,
-    condition: record.condition,
-    window: record.window,
-    holdFor: record.holdFor,
-    enabled: record.enabled,
-    missingData: record.missingData,
-    evalHealth: record.evalHealth,
-    lastEvalError: record.lastEvalError,
-    lastEvalErrorAt: record.lastEvalErrorAt?.toISOString() ?? null,
-    lastEvaluatedAt: lastEvaluatedAt?.toISOString() ?? null,
-    createdOn: record.createdAt.toISOString(),
-    updatedOn: record.updatedAt.toISOString(),
-  };
-}
 
 function rejectEqualityOnFractionalMetric(
   operator: MonitorComparisonOperator,
@@ -91,11 +65,12 @@ export const listMonitorsRoute = createRoute({
   path: '/projects/{projectId}/monitors',
   request: {
     params: ProjectScopedParams,
+    query: ListMonitorsQuery,
   },
   responses: {
     200: {
       content: { 'application/json': { schema: ListMonitorsResponse } },
-      description: 'Monitors for the project.',
+      description: 'A page of monitors for the project.',
     },
     404: errorResponse('The project could not be found.'),
   },
@@ -197,17 +172,26 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
 
 monitorsRouter.openapi(listMonitorsRoute, async (c) => {
   const { projectId } = c.req.valid('param');
+  const { page, pageSize, q, status } = c.req.valid('query');
   const { monitors, projects, monitorRuntime } = c.var.container.repos;
 
   await requireProject(projects, projectId);
 
-  const records = await monitors.list(projectId);
-  const lastEvalMap = await monitorRuntime.getLastEvaluatedAt(records.map((r) => r.id));
+  const { monitors: records, hasMore } = await monitors.listPage(projectId, {
+    page,
+    pageSize,
+    q,
+    status,
+  });
+  const stateMap = await monitorRuntime.getTotalStateByMonitorIds(records.map((r) => r.id));
 
   return respond(
     c,
     ListMonitorsResponse,
-    records.map((r) => toMonitorResponse(r, lastEvalMap.get(r.id) ?? null)),
+    {
+      monitors: records.map((r) => toMonitorResponse(r, stateMap.get(r.id) ?? null)),
+      hasMore,
+    },
     200,
   );
 });
@@ -222,12 +206,12 @@ monitorsRouter.openapi(getMonitorRoute, async (c) => {
     'The monitor could not be found.',
   );
 
-  const lastEvalMap = await monitorRuntime.getLastEvaluatedAt([record.id]);
+  const stateMap = await monitorRuntime.getTotalStateByMonitorIds([record.id]);
 
   return respond(
     c,
     MonitorResponse,
-    toMonitorResponse(record, lastEvalMap.get(record.id) ?? null),
+    toMonitorResponse(record, stateMap.get(record.id) ?? null),
     200,
   );
 });
@@ -286,12 +270,12 @@ monitorsRouter.openapi(updateMonitorRoute, async (c) => {
     eventNames.map((eventName) => ({ projectId, eventName })),
   );
 
-  const lastEvalMap = await monitorRuntime.getLastEvaluatedAt([record.id]);
+  const stateMap = await monitorRuntime.getTotalStateByMonitorIds([record.id]);
 
   return respond(
     c,
     MonitorResponse,
-    toMonitorResponse(record, lastEvalMap.get(record.id) ?? null),
+    toMonitorResponse(record, stateMap.get(record.id) ?? null),
     200,
   );
 });

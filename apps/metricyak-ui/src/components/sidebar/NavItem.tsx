@@ -66,7 +66,12 @@ export function NavItem({
         )}
       >
         {isActive && collapsed && <Highlight />}
-        <Icon className="relative z-10 size-5 shrink-0 group-data-[active=true]/navitem:text-sidebar-accent-foreground" />
+        <Icon
+          className={cn(
+            'relative z-10 size-5 shrink-0',
+            item.iconColor ?? 'group-data-[active=true]/navitem:text-sidebar-accent-foreground',
+          )}
+        />
       </span>
 
       <span
