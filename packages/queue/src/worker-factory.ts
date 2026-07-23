@@ -1,6 +1,8 @@
 import type { ConnectionOptions, Job } from 'bullmq';
 import { Queue, Worker } from 'bullmq';
 import {
+  MONITOR_BACKSTOP_INTERVAL_MS,
+  MONITOR_BACKSTOP_QUEUE,
   MONITOR_DISPATCH_INTERVAL_MS,
   MONITOR_DISPATCH_QUEUE,
   MONITOR_DRAIN_INTERVAL_MS,
@@ -9,6 +11,7 @@ import {
   MONITOR_RELAY_INTERVAL_MS,
   MONITOR_RELAY_QUEUE,
   MONITOR_SIGNALS_QUEUE,
+  type MonitorBackstopJob,
   type MonitorDispatchJob,
   type MonitorDrainJob,
   type MonitorEvalJob,
@@ -123,6 +126,40 @@ export async function registerMonitorDrainScheduler(connection: ConnectionOption
       { every: MONITOR_DRAIN_INTERVAL_MS },
       {
         name: MONITOR_DRAIN_QUEUE,
+        data: { tickAt: 'scheduled' },
+        opts: { removeOnComplete: { age: 3600, count: 100 }, removeOnFail: { age: 7 * 24 * 3600 } },
+      },
+    );
+  } finally {
+    await queue.close();
+  }
+}
+
+export type MonitorBackstopWorkerOptions = {
+  concurrency: number;
+  process: (job: Job<MonitorBackstopJob>) => Promise<void>;
+};
+
+export function createMonitorBackstopWorker(
+  connection: ConnectionOptions,
+  { concurrency, process }: MonitorBackstopWorkerOptions,
+): Worker<MonitorBackstopJob> {
+  return new Worker<MonitorBackstopJob>(MONITOR_BACKSTOP_QUEUE, process, {
+    connection,
+    concurrency,
+  });
+}
+
+export async function registerMonitorBackstopScheduler(
+  connection: ConnectionOptions,
+): Promise<void> {
+  const queue = new Queue<MonitorBackstopJob>(MONITOR_BACKSTOP_QUEUE, { connection });
+  try {
+    await queue.upsertJobScheduler(
+      'monitor-backstop',
+      { every: MONITOR_BACKSTOP_INTERVAL_MS },
+      {
+        name: MONITOR_BACKSTOP_QUEUE,
         data: { tickAt: 'scheduled' },
         opts: { removeOnComplete: { age: 3600, count: 100 }, removeOnFail: { age: 7 * 24 * 3600 } },
       },

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq, gt } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
 import {
   type MonitorEvalHealth,
@@ -127,5 +127,18 @@ export class MonitorsRepository {
       .returning({ id: monitors.id });
 
     return deleted.length > 0;
+  }
+
+  async listEnabledIds(afterId: string | null, limit: number): Promise<{ id: string }[]> {
+    return this.db
+      .select({ id: monitors.id })
+      .from(monitors)
+      .where(
+        afterId
+          ? and(eq(monitors.enabled, true), gt(monitors.id, afterId))
+          : eq(monitors.enabled, true),
+      )
+      .orderBy(asc(monitors.id))
+      .limit(limit);
   }
 }
