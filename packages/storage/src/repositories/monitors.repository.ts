@@ -10,13 +10,7 @@ import {
 } from '@/schema/monitors.js';
 import { TOTAL_SENTINEL } from '@/schema/sentinels.js';
 
-export const MONITOR_STATUS_FILTERS = [
-  'watching',
-  'pending',
-  'firing',
-  'error',
-  'paused',
-] as const;
+export const MONITOR_STATUS_FILTERS = ['watching', 'pending', 'firing', 'error', 'paused'] as const;
 export type MonitorStatusFilter = (typeof MONITOR_STATUS_FILTERS)[number];
 
 export type ListMonitorsPageOptions = {

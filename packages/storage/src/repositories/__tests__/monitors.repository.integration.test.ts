@@ -11,8 +11,8 @@ import { MonitorsRepository } from '@/repositories/monitors.repository.js';
 import * as schema from '@/schema/index.js';
 import {
   metricDefinitions,
-  monitors as monitorsTable,
   monitorState,
+  monitors as monitorsTable,
   organizations,
   projects,
   TOTAL_SENTINEL,
