@@ -4,6 +4,12 @@ export { createKafka, ensureTopics } from '@/kafka/connection.js';
 export { KafkaEventsProducer } from '@/kafka/events-producer.js';
 export { TOPIC_SPECS, TOPICS, type TopicName } from '@/kafka/topics.js';
 export {
+  type DirtyKey,
+  InMemoryMonitorDirtyBuffer,
+  type MonitorDirtyBuffer,
+  RedisMonitorDirtyBuffer,
+} from '@/monitor-dirty.js';
+export {
   BullMonitorEvalProducer,
   BullMonitorSignalsProducer,
   type EventsProducer,
@@ -16,6 +22,7 @@ export {
 export {
   computeBatchId,
   type EventBatchJob,
+  MONITOR_DEBOUNCE_MS,
   MONITOR_DISPATCH_INTERVAL_MS,
   MONITOR_DISPATCH_QUEUE,
   MONITOR_EVAL_QUEUE,

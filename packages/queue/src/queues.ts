@@ -63,3 +63,5 @@ export const MONITOR_RELAY_INTERVAL_MS = 10_000;
 export type MonitorRelayJob = {
   tickAt: string;
 };
+
+export const MONITOR_DEBOUNCE_MS = 5000;
