@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import type { ClickHouseClient } from '@metricyak/clickhouse';
 import {
   InMemoryEventsProducer,
+  InMemoryMonitorDirtyBuffer,
   InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
 } from '@metricyak/queue';
@@ -83,6 +84,7 @@ describe('monitor_event_keys sync (integration)', () => {
         new InMemoryMonitorSignalsProducer(),
         new InMemoryMonitorEvalProducer(),
         {} as ClickHouseClient,
+        new InMemoryMonitorDirtyBuffer(),
       ),
     );
   }, 120_000);

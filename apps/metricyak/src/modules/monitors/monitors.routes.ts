@@ -188,6 +188,10 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
     return created;
   });
 
+  await c.var.container.dirty.addMonitoredKeys(
+    eventNames.map((eventName) => ({ projectId, eventName })),
+  );
+
   return respond(c, MonitorResponse, toMonitorResponse(record, null), 201);
 });
 
@@ -276,6 +280,10 @@ monitorsRouter.openapi(updateMonitorRoute, async (c) => {
       return updated;
     }),
     'The monitor could not be found.',
+  );
+
+  await c.var.container.dirty.addMonitoredKeys(
+    eventNames.map((eventName) => ({ projectId, eventName })),
   );
 
   const lastEvalMap = await monitorRuntime.getLastEvaluatedAt([record.id]);

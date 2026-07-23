@@ -5,11 +5,14 @@ import {
   createKafka,
   createProducerConnectionOptions,
   ensureTopics,
+  InMemoryMonitorDirtyBuffer,
   InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
   KafkaEventsProducer,
+  type MonitorDirtyBuffer,
   type MonitorEvalProducer,
   type MonitorSignalsProducer,
+  RedisMonitorDirtyBuffer,
 } from '@metricyak/queue';
 import { createDatabase } from '@metricyak/storage';
 import { createApp } from '@/app.js';
@@ -42,7 +45,11 @@ const evalProducer: MonitorEvalProducer = config.redisUrl
   ? new BullMonitorEvalProducer(createProducerConnectionOptions(config.redisUrl))
   : new InMemoryMonitorEvalProducer();
 
-const container = createContainer(db, producer, signals, evalProducer, clickhouse);
+const dirty: MonitorDirtyBuffer = config.redisUrl
+  ? new RedisMonitorDirtyBuffer(config.redisUrl)
+  : new InMemoryMonitorDirtyBuffer();
+
+const container = createContainer(db, producer, signals, evalProducer, clickhouse, dirty);
 const app = createApp(container);
 
 const server = startHttpServer(app, config);
