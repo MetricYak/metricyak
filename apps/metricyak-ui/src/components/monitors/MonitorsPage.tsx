@@ -151,6 +151,7 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
       {
         id: 'watching',
         header: 'Watching',
+        meta: { className: 'hidden lg:table-cell' },
         cell: ({ row }) => (
           <span className="text-muted-foreground text-sm">
             {conditionSentence({
@@ -177,6 +178,7 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
       {
         id: 'lastChecked',
         header: 'Last checked',
+        meta: { className: 'hidden md:table-cell' },
         cell: ({ row }) => (
           <span className="text-muted-foreground text-sm">
             {row.original.lastEvaluatedAt ? formatDateAgo(row.original.lastEvaluatedAt) : '—'}
@@ -242,6 +244,7 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
             columns={columns}
             data={monitors}
             getRowId={(monitor) => monitor.monitorId}
+            minWidthClassName="min-w-0 md:min-w-[44rem]"
             isLoading={loading && !loadedOnce}
             skeletonRowCount={8}
             errorBanner={
