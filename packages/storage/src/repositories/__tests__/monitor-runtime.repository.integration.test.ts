@@ -55,7 +55,13 @@ describe('MonitorRuntimeRepository (integration)', () => {
     metricId = metric.id;
   });
 
-  async function seedMonitor(overrides: { enabled?: boolean; nextEvalAt?: Date } = {}) {
+  async function seedMonitor(
+    overrides: {
+      enabled?: boolean;
+      nextEvalAt?: Date;
+      missingData?: 'skip' | 'zero' | 'fire';
+    } = {},
+  ) {
     const [monitor] = await db
       .insert(monitors)
       .values({
@@ -66,6 +72,7 @@ describe('MonitorRuntimeRepository (integration)', () => {
         window: '1d',
         holdFor: '0m',
         enabled: overrides.enabled ?? true,
+        missingData: overrides.missingData ?? 'zero',
         nextEvalAt: overrides.nextEvalAt ?? new Date('2026-07-13T00:00:00.000Z'),
       })
       .returning();
@@ -207,6 +214,41 @@ describe('MonitorRuntimeRepository (integration)', () => {
       const all = [...a, ...b].map((m) => m.id);
       expect(new Set(all).size).toBe(all.length); // no monitor claimed twice
       expect(all.filter((id) => ids.has(id)).length).toBe(20); // every due monitor claimed exactly once
+    });
+
+    it('claims only time-sensitive monitors (fire/zero or pending/firing)', async () => {
+      const now = new Date('2026-07-13T12:00:00.000Z');
+      const nextEvalAt = new Date(now.getTime() - 1000);
+
+      const skipOk = await seedMonitor({ missingData: 'skip', nextEvalAt });
+      const fireMissing = await seedMonitor({ missingData: 'fire', nextEvalAt });
+      const firing = await seedMonitor({ missingData: 'skip', nextEvalAt });
+      const pending = await seedMonitor({ missingData: 'skip', nextEvalAt });
+
+      await repo.upsertState({
+        monitorId: firing.id,
+        series: TOTAL_SENTINEL,
+        status: 'firing',
+        breachedSince: now,
+        lastValue: 1,
+        lastEvaluatedAt: now,
+      });
+      await repo.upsertState({
+        monitorId: pending.id,
+        series: TOTAL_SENTINEL,
+        status: 'pending',
+        breachedSince: now,
+        lastValue: 1,
+        lastEvaluatedAt: now,
+      });
+
+      const claimed = await repo.claimDueMonitors(now, 60_000, 100);
+      const ids = new Set(claimed.map((m) => m.id));
+
+      expect(ids.has(skipOk.id)).toBe(false);
+      expect(ids.has(fireMissing.id)).toBe(true);
+      expect(ids.has(firing.id)).toBe(true);
+      expect(ids.has(pending.id)).toBe(true);
     });
   });
 
