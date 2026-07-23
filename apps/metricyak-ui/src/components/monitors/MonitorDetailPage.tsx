@@ -18,10 +18,13 @@ import { MonitorStatusBadge } from './MonitorStatusBadge';
 type Tab = 'overview' | 'settings';
 type LoadState = 'loading' | 'ready' | 'error';
 
-export function MonitorDetailPage(): React.JSX.Element {
-  const { activeProject } = useProjectContext();
-  const projectId = activeProject?.id ?? null;
-  const { monitorId } = useParams();
+function MonitorDetailView({
+  projectId,
+  monitorId,
+}: {
+  projectId: string;
+  monitorId: string;
+}): React.JSX.Element {
   const navigate = useNavigate();
 
   const [monitor, setMonitor] = useState<Monitor | null>(null);
@@ -31,7 +34,6 @@ export function MonitorDetailPage(): React.JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (!projectId || !monitorId) return;
     let cancelled = false;
     setState('loading');
     Promise.all([getMonitor(projectId, monitorId), listMetrics(projectId)])
@@ -50,7 +52,7 @@ export function MonitorDetailPage(): React.JSX.Element {
   }, [projectId, monitorId]);
 
   const toggleEnabled = async (): Promise<void> => {
-    if (!projectId || !monitor) return;
+    if (!monitor) return;
     const next = !monitor.enabled;
     setMonitor({ ...monitor, enabled: next });
     try {
@@ -62,7 +64,7 @@ export function MonitorDetailPage(): React.JSX.Element {
   };
 
   const onDelete = async (): Promise<void> => {
-    if (!projectId || !monitor) return;
+    if (!monitor) return;
     try {
       await deleteMonitor(projectId, monitor.monitorId);
       toast.success('Monitor deleted', { description: monitor.name });
@@ -223,5 +225,29 @@ export function MonitorDetailPage(): React.JSX.Element {
         onCancel={() => setConfirmDelete(false)}
       />
     </div>
+  );
+}
+
+export function MonitorDetailPage(): React.JSX.Element {
+  const { activeProject } = useProjectContext();
+  const projectId = activeProject?.id ?? null;
+  const { monitorId } = useParams();
+  const navigate = useNavigate();
+
+  if (!projectId || !monitorId) {
+    return (
+      <PageContainer width="content" className="py-16">
+        <div className="flex flex-col items-center gap-1 text-center">
+          <p className="font-semibold text-foreground text-sm">No monitor selected</p>
+          <Button variant="outline" className="mt-2" onClick={() => navigate('/monitors')}>
+            Back to monitors
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <MonitorDetailView key={`${projectId}:${monitorId}`} projectId={projectId} monitorId={monitorId} />
   );
 }
