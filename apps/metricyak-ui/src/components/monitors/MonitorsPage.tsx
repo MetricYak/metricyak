@@ -52,10 +52,7 @@ type MonitorsQuery = {
 
 const DEFAULT_QUERY: MonitorsQuery = { page: 0, pageSize: 25, q: '', status: 'all' };
 
-export function MonitorsPage(): React.JSX.Element {
-  const { activeProject } = useProjectContext();
-  const projectId = activeProject?.id ?? null;
-
+function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
   const [query, setQuery] = useState<MonitorsQuery>(DEFAULT_QUERY);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [metricNames, setMetricNames] = useState<Map<string, string>>(new Map());
@@ -66,7 +63,6 @@ export function MonitorsPage(): React.JSX.Element {
   const reqRef = useRef(0);
 
   useEffect(() => {
-    if (!projectId) return;
     let cancelled = false;
     listMetrics(projectId)
       .then((metrics) => {
@@ -81,7 +77,6 @@ export function MonitorsPage(): React.JSX.Element {
   }, [projectId]);
 
   useEffect(() => {
-    if (!projectId) return;
     const reqId = ++reqRef.current;
     setLoading(true);
     const run = (): void => {
@@ -111,7 +106,6 @@ export function MonitorsPage(): React.JSX.Element {
 
   const toggleEnabled = useCallback(
     async (monitor: Monitor): Promise<void> => {
-      if (!projectId) return;
       const next = !monitor.enabled;
       setMonitors((prev) =>
         prev.map((m) => (m.monitorId === monitor.monitorId ? { ...m, enabled: next } : m)),
@@ -192,22 +186,6 @@ export function MonitorsPage(): React.JSX.Element {
     ],
     [metricNames, toggleEnabled],
   );
-
-  if (!projectId) {
-    return (
-      <PageContainer width="wide" className="py-16">
-        <div className="flex flex-col items-center rounded-lg border border-border bg-metricyak-50 px-6 py-14 text-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-metricyak-100">
-            <BellRing className="size-5 text-muted-foreground" />
-          </span>
-          <h2 className="mt-4 font-semibold text-foreground text-sm">No project selected</h2>
-          <p className="mt-1 max-w-sm text-muted-foreground text-sm">
-            Pick a project from the switcher to see its monitors.
-          </p>
-        </div>
-      </PageContainer>
-    );
-  }
 
   const filtersActive = query.q.trim().length > 0 || query.status !== 'all';
 
@@ -305,4 +283,27 @@ export function MonitorsPage(): React.JSX.Element {
       </div>
     </div>
   );
+}
+
+export function MonitorsPage(): React.JSX.Element {
+  const { activeProject } = useProjectContext();
+  const projectId = activeProject?.id ?? null;
+
+  if (!projectId) {
+    return (
+      <PageContainer width="wide" className="py-16">
+        <div className="flex flex-col items-center rounded-lg border border-border bg-metricyak-50 px-6 py-14 text-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-metricyak-100">
+            <BellRing className="size-5 text-muted-foreground" />
+          </span>
+          <h2 className="mt-4 font-semibold text-foreground text-sm">No project selected</h2>
+          <p className="mt-1 max-w-sm text-muted-foreground text-sm">
+            Pick a project from the switcher to see its monitors.
+          </p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  return <MonitorsView key={projectId} projectId={projectId} />;
 }
