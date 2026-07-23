@@ -8,6 +8,9 @@ export type MissingData = (typeof MONITOR_MISSING_DATA_STRATEGIES)[number];
 
 export type MonitorStatus = 'ok' | 'pending' | 'firing';
 
+export const MONITOR_STATUS_FILTERS = ['watching', 'pending', 'firing', 'error', 'paused'] as const;
+export type MonitorStatusFilter = (typeof MONITOR_STATUS_FILTERS)[number];
+
 export type MonitorCondition = {
   operator: ConditionOperator;
   value: number;
@@ -50,11 +53,13 @@ export type MonitorsPage = {
 
 export function listMonitors(
   projectId: string,
-  params?: { page?: number; pageSize?: number },
+  params?: { page?: number; pageSize?: number; q?: string; status?: MonitorStatusFilter },
 ): Promise<MonitorsPage> {
   const query = new URLSearchParams();
   if (params?.page != null) query.set('page', String(params.page));
   if (params?.pageSize != null) query.set('pageSize', String(params.pageSize));
+  if (params?.q) query.set('q', params.q);
+  if (params?.status) query.set('status', params.status);
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return apiFetch<MonitorsPage>(`/v1/projects/${projectId}/monitors${suffix}`);
 }
