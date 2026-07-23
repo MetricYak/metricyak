@@ -16,15 +16,15 @@ describe('deriveMonitorStatus', () => {
       tone: 'error',
     });
   });
-  it('is Waiting before the first evaluation', () => {
+  it('is Watching before the first evaluation (a new monitor is already watching)', () => {
     expect(deriveMonitorStatus({ ...base, status: null })).toEqual({
-      label: 'Waiting',
-      tone: 'muted',
+      label: 'Watching',
+      tone: 'ok',
     });
   });
   it('maps live statuses', () => {
     expect(deriveMonitorStatus({ ...base, status: 'firing' }).label).toBe('Firing');
     expect(deriveMonitorStatus({ ...base, status: 'pending' }).label).toBe('Pending');
-    expect(deriveMonitorStatus({ ...base, status: 'ok' }).label).toBe('OK');
+    expect(deriveMonitorStatus({ ...base, status: 'ok' }).label).toBe('Watching');
   });
 });
