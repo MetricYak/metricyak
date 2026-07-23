@@ -1,4 +1,4 @@
-import { Activity, BarChart3, type LucideIcon, Settings } from 'lucide-react';
+import { Activity, BarChart3, BellRing, type LucideIcon, Settings } from 'lucide-react';
 
 export interface SubNavItem {
   id: string;
@@ -26,6 +26,12 @@ export const navItems: readonly NavItemData[] = [
     label: 'Metrics',
     icon: BarChart3,
     path: '/metrics',
+  },
+  {
+    id: 'monitors',
+    label: 'Monitors',
+    icon: BellRing,
+    path: '/monitors',
   },
 ] satisfies readonly NavItemData[];
 

@@ -72,7 +72,6 @@ const NAVIGATE: readonly PaletteAction[] = [
     icon: BellRing,
     iconColor: 'text-amber-600',
     to: '/monitors',
-    badge: 'Coming soon',
   },
   {
     id: 'settings',

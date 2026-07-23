@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { App } from './App';
 import { NotFoundPage } from './components/shell/NotFoundPage';
 import { PlaceholderPage } from './components/shell/PlaceholderPage';
@@ -71,10 +71,27 @@ export const router = createBrowserRouter([
       },
       {
         path: 'monitors',
-        element: <Outlet />,
         children: [
-          { index: true, element: <PlaceholderPage title="Monitors · Active" /> },
-          { path: 'history', element: <PlaceholderPage title="Monitors · History" /> },
+          {
+            index: true,
+            lazy: async () => ({
+              Component: (await import('./components/monitors/MonitorsPage')).MonitorsPage,
+            }),
+          },
+          {
+            path: 'new',
+            lazy: async () => ({
+              Component: (await import('./components/monitors/create/CreateMonitorPage'))
+                .CreateMonitorPage,
+            }),
+          },
+          {
+            path: ':monitorId',
+            lazy: async () => ({
+              Component: (await import('./components/monitors/MonitorDetailPage'))
+                .MonitorDetailPage,
+            }),
+          },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

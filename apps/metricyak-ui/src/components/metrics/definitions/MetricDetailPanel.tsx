@@ -1,10 +1,11 @@
-import { Check } from 'lucide-react';
+import { BellPlus, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Metric } from '@/api/metrics';
+import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/surface';
 import { DefinitionSummary } from './DefinitionSummary';
 import { formatDateAgo } from './format';
 import { MetricValueSlot } from './MetricValueSlot';
-import { MonitorComingSoon } from './MonitorComingSoon';
 
 export function MetricDetailPanel({
   metric,
@@ -44,7 +45,21 @@ export function MetricDetailPanel({
         </Surface>
       </section>
 
-      <MonitorComingSoon metricName={metric.name} />
+      <section className="rounded-lg border border-border p-5">
+        <div className="flex items-center gap-2">
+          <BellPlus className="size-4 shrink-0 text-metricyak-brand-orange" />
+          <h3 className="font-semibold text-foreground text-sm">Monitor this metric</h3>
+        </div>
+        <p className="mt-1 max-w-md text-muted-foreground text-sm">
+          Get told the moment {metric.name} crosses a threshold.
+        </p>
+        <Button asChild className="raised mt-4">
+          <Link to={`/monitors/new?metric=${encodeURIComponent(metric.id)}`}>
+            <BellPlus className="size-4" />
+            Add monitor
+          </Link>
+        </Button>
+      </section>
     </div>
   );
 }
