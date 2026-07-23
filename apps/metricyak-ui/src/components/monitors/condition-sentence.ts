@@ -22,7 +22,7 @@ export function operatorPhrase(operator: ConditionOperator): string {
 }
 
 export function formatThreshold(value: number): string {
-  return new Intl.NumberFormat().format(value);
+  return new Intl.NumberFormat('en-US').format(value);
 }
 
 export function windowLabel(duration: string): string {
