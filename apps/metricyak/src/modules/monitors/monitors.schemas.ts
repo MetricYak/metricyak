@@ -4,6 +4,7 @@ import {
   MONITOR_COMPARISON_OPERATORS,
   MONITOR_EVAL_HEALTHS,
   MONITOR_MISSING_DATA,
+  MONITOR_STATUS_FILTERS,
   MONITOR_STATUSES,
   type MonitorComparisonOperator,
   type MonitorRecord,
@@ -140,6 +141,22 @@ export const ListMonitorsQuery = z.object({
     .max(100, 'The pageSize must be at most 100.')
     .default(20)
     .openapi({ param: { name: 'pageSize', in: 'query' } }),
+  q: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .openapi({
+      param: { name: 'q', in: 'query' },
+      description: 'Case-insensitive search on the monitor name.',
+    }),
+  status: z
+    .enum(MONITOR_STATUS_FILTERS)
+    .optional()
+    .openapi({
+      param: { name: 'status', in: 'query' },
+      description: 'Filter by derived status: watching, pending, firing, error, or paused.',
+    }),
 });
 
 export const ListMonitorsResponse = z.object({

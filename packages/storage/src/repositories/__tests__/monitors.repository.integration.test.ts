@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
@@ -9,7 +9,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from '@/client.js';
 import { MonitorsRepository } from '@/repositories/monitors.repository.js';
 import * as schema from '@/schema/index.js';
-import { metricDefinitions, organizations, projects } from '@/schema/index.js';
+import {
+  metricDefinitions,
+  monitors as monitorsTable,
+  monitorState,
+  organizations,
+  projects,
+  TOTAL_SENTINEL,
+} from '@/schema/index.js';
 
 const migrationsFolder = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -160,11 +167,11 @@ describe('MonitorsRepository (integration)', () => {
         await monitors.create(newMonitorInput());
       }
 
-      const first = await monitors.listPage(projectId, 0, 2);
+      const first = await monitors.listPage(projectId, { page: 0, pageSize: 2 });
       expect(first.monitors).toHaveLength(2);
       expect(first.hasMore).toBe(true);
 
-      const second = await monitors.listPage(projectId, 1, 2);
+      const second = await monitors.listPage(projectId, { page: 1, pageSize: 2 });
       expect(second.monitors).toHaveLength(1);
       expect(second.hasMore).toBe(false);
     });
@@ -174,9 +181,68 @@ describe('MonitorsRepository (integration)', () => {
         await monitors.create(newMonitorInput());
       }
 
-      const page = await monitors.listPage(projectId, 0, 10);
+      const page = await monitors.listPage(projectId, { page: 0, pageSize: 10 });
       const times = page.monitors.map((monitor) => monitor.createdAt.getTime());
       expect(times).toEqual([...times].sort((a, b) => b - a));
+    });
+
+    it('filters by case-insensitive name search', async () => {
+      await monitors.create({ ...newMonitorInput(), name: 'Signup floor' });
+      await monitors.create({ ...newMonitorInput(), name: 'Revenue floor' });
+      await monitors.create({ ...newMonitorInput(), name: 'Checkout drop' });
+
+      const floors = await monitors.listPage(projectId, { page: 0, pageSize: 10, q: 'FLOOR' });
+      expect(floors.monitors.map((m) => m.name).sort()).toEqual(['Revenue floor', 'Signup floor']);
+
+      const signup = await monitors.listPage(projectId, { page: 0, pageSize: 10, q: 'signup' });
+      expect(signup.monitors.map((m) => m.name)).toEqual(['Signup floor']);
+    });
+
+    it('filters by derived status', async () => {
+      const watching = await monitors.create({ ...newMonitorInput(), name: 'watching one' });
+      const firing = await monitors.create({ ...newMonitorInput(), name: 'firing one' });
+      const paused = await monitors.create({
+        ...newMonitorInput(),
+        name: 'paused one',
+        enabled: false,
+      });
+      const errored = await monitors.create({ ...newMonitorInput(), name: 'errored one' });
+
+      await db
+        .insert(monitorState)
+        .values({ monitorId: firing.id, series: TOTAL_SENTINEL, status: 'firing' });
+      await db
+        .update(monitorsTable)
+        .set({ evalHealth: 'error' })
+        .where(eq(monitorsTable.id, errored.id));
+
+      const firingPage = await monitors.listPage(projectId, {
+        page: 0,
+        pageSize: 10,
+        status: 'firing',
+      });
+      expect(firingPage.monitors.map((m) => m.id)).toEqual([firing.id]);
+
+      const watchingPage = await monitors.listPage(projectId, {
+        page: 0,
+        pageSize: 10,
+        status: 'watching',
+      });
+      expect(watchingPage.monitors.map((m) => m.id)).toEqual([watching.id]);
+
+      const pausedPage = await monitors.listPage(projectId, {
+        page: 0,
+        pageSize: 10,
+        status: 'paused',
+      });
+      expect(pausedPage.monitors.map((m) => m.id)).toEqual([paused.id]);
+
+      const errorPage = await monitors.listPage(projectId, {
+        page: 0,
+        pageSize: 10,
+        status: 'error',
+      });
+      expect(errorPage.monitors.map((m) => m.id)).toEqual([errored.id]);
     });
   });
 });

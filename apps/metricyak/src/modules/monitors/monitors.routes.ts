@@ -172,12 +172,17 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
 
 monitorsRouter.openapi(listMonitorsRoute, async (c) => {
   const { projectId } = c.req.valid('param');
-  const { page, pageSize } = c.req.valid('query');
+  const { page, pageSize, q, status } = c.req.valid('query');
   const { monitors, projects, monitorRuntime } = c.var.container.repos;
 
   await requireProject(projects, projectId);
 
-  const { monitors: records, hasMore } = await monitors.listPage(projectId, page, pageSize);
+  const { monitors: records, hasMore } = await monitors.listPage(projectId, {
+    page,
+    pageSize,
+    q,
+    status,
+  });
   const stateMap = await monitorRuntime.getTotalStateByMonitorIds(records.map((r) => r.id));
 
   return respond(
