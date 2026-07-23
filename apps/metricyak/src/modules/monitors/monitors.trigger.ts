@@ -1,5 +1,7 @@
 import type { DirtyKey, MonitorDirtyBuffer } from '@metricyak/queue';
 
+const KEY_SEPARATOR = String.fromCharCode(31);
+
 export async function markBatchDirty(
   dirty: MonitorDirtyBuffer,
   events: readonly { projectId: string; name: string }[],
@@ -7,7 +9,7 @@ export async function markBatchDirty(
 ): Promise<number> {
   const distinct = new Map<string, DirtyKey>();
   for (const event of events) {
-    distinct.set(`${event.projectId} ${event.name}`, {
+    distinct.set(`${event.projectId}${KEY_SEPARATOR}${event.name}`, {
       projectId: event.projectId,
       eventName: event.name,
     });
