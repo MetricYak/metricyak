@@ -1,6 +1,7 @@
 import type { ClickHouseClient } from '@metricyak/clickhouse';
 import {
   InMemoryEventsProducer,
+  InMemoryMonitorDirtyBuffer,
   InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
 } from '@metricyak/queue';
@@ -16,6 +17,7 @@ const app = createApp(
     new InMemoryMonitorSignalsProducer(),
     new InMemoryMonitorEvalProducer(),
     {} as ClickHouseClient,
+    new InMemoryMonitorDirtyBuffer(),
   ),
 );
 

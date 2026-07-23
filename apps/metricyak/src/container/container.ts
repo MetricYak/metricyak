@@ -1,8 +1,14 @@
 import type { ClickHouseClient } from '@metricyak/clickhouse';
-import type { EventsProducer, MonitorEvalProducer, MonitorSignalsProducer } from '@metricyak/queue';
+import type {
+  EventsProducer,
+  MonitorDirtyBuffer,
+  MonitorEvalProducer,
+  MonitorSignalsProducer,
+} from '@metricyak/queue';
 import {
   type Database,
   MetricsRepository,
+  MonitorEventKeysRepository,
   MonitorRuntimeRepository,
   MonitorsRepository,
   OrganizationsRepository,
@@ -17,6 +23,7 @@ export type Repositories = {
   readonly projectKeys: ProjectKeysRepository;
   readonly metrics: MetricsRepository;
   readonly monitors: MonitorsRepository;
+  readonly monitorEventKeys: MonitorEventKeysRepository;
   readonly monitorRuntime: MonitorRuntimeRepository;
   readonly organizations: OrganizationsRepository;
   readonly projects: ProjectsRepository;
@@ -31,6 +38,7 @@ export type Container = {
   readonly reads: MetricReads;
   readonly eventsReads: EventsReads;
   readonly clickhouse: ClickHouseClient;
+  readonly dirty: MonitorDirtyBuffer;
 };
 
 export type AppEnv = {
@@ -45,6 +53,7 @@ export function createContainer(
   signals: MonitorSignalsProducer,
   evalProducer: MonitorEvalProducer,
   clickhouse: ClickHouseClient,
+  dirty: MonitorDirtyBuffer,
 ): Container {
   const metrics = new MetricsRepository(db);
 
@@ -52,6 +61,7 @@ export function createContainer(
     projectKeys: new ProjectKeysRepository(db),
     metrics,
     monitors: new MonitorsRepository(db),
+    monitorEventKeys: new MonitorEventKeysRepository(db),
     monitorRuntime: new MonitorRuntimeRepository(db),
     organizations: new OrganizationsRepository(db),
     projects: new ProjectsRepository(db),
@@ -60,5 +70,5 @@ export function createContainer(
   const reads = createMetricReads({ aggregates: createClickHouseReadsAggregates(clickhouse) });
   const eventsReads = createClickHouseEventsReads(clickhouse);
 
-  return { db, producer, signals, evalProducer, repos, reads, eventsReads, clickhouse };
+  return { db, producer, signals, evalProducer, repos, reads, eventsReads, clickhouse, dirty };
 }

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, lte } from 'drizzle-orm';
+import { and, asc, eq, exists, inArray, isNull, lte, or } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
 import { MONITOR_EVAL_FAILURE_THRESHOLD, monitorEvalBackoffMs } from '@/lib/monitor-health.js';
 import type { MonitorRecord } from '@/repositories/monitors.repository.js';
@@ -49,10 +49,25 @@ export class MonitorRuntimeRepository {
 
   async claimDueMonitors(now: Date, intervalMs: number, limit: number): Promise<MonitorRecord[]> {
     const nextEvalAt = new Date(now.getTime() + intervalMs);
+    const timeSensitive = or(
+      inArray(monitors.missingData, ['fire', 'zero']),
+      exists(
+        this.db
+          .select()
+          .from(monitorState)
+          .where(
+            and(
+              eq(monitorState.monitorId, monitors.id),
+              eq(monitorState.series, TOTAL_SENTINEL),
+              inArray(monitorState.status, ['pending', 'firing']),
+            ),
+          ),
+      ),
+    );
     const due = this.db
       .select({ id: monitors.id })
       .from(monitors)
-      .where(and(eq(monitors.enabled, true), lte(monitors.nextEvalAt, now)))
+      .where(and(eq(monitors.enabled, true), lte(monitors.nextEvalAt, now), timeSensitive))
       .orderBy(asc(monitors.nextEvalAt))
       .limit(limit)
       .for('update', { skipLocked: true });

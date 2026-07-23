@@ -1,5 +1,5 @@
-import { and, eq } from 'drizzle-orm';
-import type { Database } from '@/client.js';
+import { and, asc, eq, gt } from 'drizzle-orm';
+import type { Database, Executor } from '@/client.js';
 import {
   type MonitorEvalHealth,
   type MonitorMissingData,
@@ -57,8 +57,8 @@ export type MonitorRecord = {
 export class MonitorsRepository {
   constructor(private readonly db: Database) {}
 
-  async create(input: CreateMonitorInput): Promise<MonitorRecord> {
-    const [monitor] = await this.db
+  async create(input: CreateMonitorInput, executor: Executor = this.db): Promise<MonitorRecord> {
+    const [monitor] = await executor
       .insert(monitors)
       .values({
         projectId: input.projectId,
@@ -99,8 +99,9 @@ export class MonitorsRepository {
     id: string,
     projectId: string,
     input: UpdateMonitorInput,
+    executor: Executor = this.db,
   ): Promise<MonitorRecord | null> {
-    const [monitor] = await this.db
+    const [monitor] = await executor
       .update(monitors)
       .set({
         ...(input.metricId !== undefined ? { metricId: input.metricId } : {}),
@@ -126,5 +127,18 @@ export class MonitorsRepository {
       .returning({ id: monitors.id });
 
     return deleted.length > 0;
+  }
+
+  async listEnabledIds(afterId: string | null, limit: number): Promise<{ id: string }[]> {
+    return this.db
+      .select({ id: monitors.id })
+      .from(monitors)
+      .where(
+        afterId
+          ? and(eq(monitors.enabled, true), gt(monitors.id, afterId))
+          : eq(monitors.enabled, true),
+      )
+      .orderBy(asc(monitors.id))
+      .limit(limit);
   }
 }

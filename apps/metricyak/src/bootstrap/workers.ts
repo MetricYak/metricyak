@@ -1,7 +1,14 @@
-import { createWorkerConnectionOptions, type Job, type Worker } from '@metricyak/queue';
+import {
+  createKafka,
+  createMonitorTriggerConsumer,
+  createWorkerConnectionOptions,
+  type Job,
+  type Worker,
+} from '@metricyak/queue';
 import type { Config } from '@/config.js';
 import type { Container } from '@/container/container.js';
 import { modules } from '@/modules/index.js';
+import { markBatchDirty } from '@/modules/monitors/monitors.trigger.js';
 
 export async function startWorkers(
   container: Container,
@@ -48,5 +55,14 @@ export async function startWorkers(
   const schedulerFactories = modules.flatMap((mod) => mod.schedulers ?? []);
   await Promise.all(schedulerFactories.map((register) => register(connection)));
 
-  return () => Promise.all(workers.map((w) => w.close())).then(() => undefined);
+  const kafka = createKafka(config.kafkaBrokers);
+  const triggerConsumer = createMonitorTriggerConsumer(kafka, {
+    onBatch: (events) => markBatchDirty(container.dirty, events, new Date()).then(() => undefined),
+  });
+  await triggerConsumer.start();
+
+  return () =>
+    Promise.all(workers.map((w) => w.close()))
+      .then(() => triggerConsumer.stop())
+      .then(() => undefined);
 }

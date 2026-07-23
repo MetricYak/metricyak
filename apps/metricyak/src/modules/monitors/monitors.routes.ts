@@ -157,7 +157,7 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
   const { projectId } = c.req.valid('param');
   const { name, description, metricId, scope, condition, window, holdFor, enabled, missingData } =
     c.req.valid('json');
-  const { monitors, metrics, projects } = c.var.container.repos;
+  const { monitors, monitorEventKeys, metrics, projects } = c.var.container.repos;
 
   await requireProject(projects, projectId);
   const metric = orNotFound(
@@ -167,18 +167,30 @@ monitorsRouter.openapi(createMonitorRoute, async (c) => {
 
   rejectEqualityOnFractionalMetric(condition.operator, metric.definition);
 
-  const record = await monitors.create({
-    projectId,
-    metricId,
-    name,
-    description,
-    scope,
-    condition,
-    window,
-    holdFor,
-    enabled,
-    missingData,
+  const eventNames = metric.definition.events.map((event) => event.type);
+  const record = await c.var.container.db.transaction(async (tx) => {
+    const created = await monitors.create(
+      {
+        projectId,
+        metricId,
+        name,
+        description,
+        scope,
+        condition,
+        window,
+        holdFor,
+        enabled,
+        missingData,
+      },
+      tx,
+    );
+    await monitorEventKeys.sync(created.id, projectId, eventNames, tx);
+    return created;
   });
+
+  await c.var.container.dirty.addMonitoredKeys(
+    eventNames.map((eventName) => ({ projectId, eventName })),
+  );
 
   return respond(c, MonitorResponse, toMonitorResponse(record, null), 201);
 });
@@ -223,7 +235,7 @@ monitorsRouter.openapi(getMonitorRoute, async (c) => {
 monitorsRouter.openapi(updateMonitorRoute, async (c) => {
   const { projectId, monitorId } = c.req.valid('param');
   const input = c.req.valid('json');
-  const { monitors, metrics, projects, monitorRuntime } = c.var.container.repos;
+  const { monitors, monitorEventKeys, metrics, projects, monitorRuntime } = c.var.container.repos;
 
   await requireProject(projects, projectId);
   const existing = orNotFound(
@@ -232,28 +244,46 @@ monitorsRouter.openapi(updateMonitorRoute, async (c) => {
   );
 
   const watchedMetricId = input.metricId ?? existing.metricId;
+  const watchedMetric = orNotFound(
+    await metrics.getDefinition(watchedMetricId, projectId),
+    'The metric could not be found.',
+  );
   if (input.metricId !== undefined || input.condition !== undefined) {
-    const metric = orNotFound(
-      await metrics.getDefinition(watchedMetricId, projectId),
-      'The metric could not be found.',
-    );
     const operator = input.condition?.operator ?? existing.condition.operator;
-    rejectEqualityOnFractionalMetric(operator, metric.definition);
+    rejectEqualityOnFractionalMetric(operator, watchedMetric.definition);
   }
+  const eventNames = watchedMetric.definition.events.map((event) => event.type);
 
   const record = orNotFound(
-    await monitors.update(monitorId, projectId, {
-      metricId: input.metricId,
-      name: input.name,
-      description: input.description,
-      scope: input.scope,
-      condition: input.condition,
-      window: input.window,
-      holdFor: input.holdFor,
-      enabled: input.enabled,
-      missingData: input.missingData,
+    await c.var.container.db.transaction(async (tx) => {
+      const updated = await monitors.update(
+        monitorId,
+        projectId,
+        {
+          metricId: input.metricId,
+          name: input.name,
+          description: input.description,
+          scope: input.scope,
+          condition: input.condition,
+          window: input.window,
+          holdFor: input.holdFor,
+          enabled: input.enabled,
+          missingData: input.missingData,
+        },
+        tx,
+      );
+
+      if (updated) {
+        await monitorEventKeys.sync(updated.id, projectId, eventNames, tx);
+      }
+
+      return updated;
     }),
     'The monitor could not be found.',
+  );
+
+  await c.var.container.dirty.addMonitoredKeys(
+    eventNames.map((eventName) => ({ projectId, eventName })),
   );
 
   const lastEvalMap = await monitorRuntime.getLastEvaluatedAt([record.id]);

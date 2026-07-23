@@ -1,0 +1,147 @@
+import { Redis } from 'ioredis';
+import { MONITOR_DEBOUNCE_MS } from '@/queues.js';
+
+export type DirtyKey = { projectId: string; eventName: string };
+
+export interface MonitorDirtyBuffer {
+  markDirty(pairs: readonly DirtyKey[], now: Date): Promise<void>;
+  popDue(now: Date, limit: number): Promise<DirtyKey[]>;
+  addMonitoredKeys(pairs: readonly DirtyKey[]): Promise<void>;
+  filterMonitored(pairs: readonly DirtyKey[]): Promise<DirtyKey[]>;
+  reconcileMonitoredKeys(pairs: readonly DirtyKey[]): Promise<void>;
+}
+
+const DIRTY_ZSET = 'monitor:dirty';
+const MEMBERSHIP_PREFIX = 'monitor:monitored:';
+const KEY_SEPARATOR = String.fromCharCode(31);
+
+function encode(pair: DirtyKey): string {
+  return `${pair.projectId}${KEY_SEPARATOR}${pair.eventName}`;
+}
+
+function decode(member: string): DirtyKey {
+  const separatorIndex = member.indexOf(KEY_SEPARATOR);
+  return {
+    projectId: member.slice(0, separatorIndex),
+    eventName: member.slice(separatorIndex + 1),
+  };
+}
+
+function membershipKey(projectId: string): string {
+  return `${MEMBERSHIP_PREFIX}${projectId}`;
+}
+
+const POP_DUE = `
+local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, tonumber(ARGV[2]))
+if #due > 0 then redis.call('ZREM', KEYS[1], unpack(due)) end
+return due
+`;
+
+export class RedisMonitorDirtyBuffer implements MonitorDirtyBuffer {
+  private readonly redis: Redis;
+
+  constructor(redisUrl: string) {
+    this.redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
+  }
+
+  async markDirty(pairs: readonly DirtyKey[], now: Date): Promise<void> {
+    if (pairs.length === 0) return;
+    const score = String(now.getTime() + MONITOR_DEBOUNCE_MS);
+    const args: string[] = ['NX'];
+    for (const pair of pairs) {
+      args.push(score, encode(pair));
+    }
+    await this.redis.call('ZADD', DIRTY_ZSET, ...args);
+  }
+
+  async popDue(now: Date, limit: number): Promise<DirtyKey[]> {
+    const due = await this.redis.eval(POP_DUE, 1, DIRTY_ZSET, String(now.getTime()), String(limit));
+    if (!Array.isArray(due)) return [];
+    return due.map((member) => decode(String(member)));
+  }
+
+  async addMonitoredKeys(pairs: readonly DirtyKey[]): Promise<void> {
+    if (pairs.length === 0) return;
+    const pipeline = this.redis.pipeline();
+    for (const pair of pairs) {
+      pipeline.sadd(membershipKey(pair.projectId), pair.eventName);
+    }
+    await pipeline.exec();
+  }
+
+  async filterMonitored(pairs: readonly DirtyKey[]): Promise<DirtyKey[]> {
+    if (pairs.length === 0) return [];
+    const pipeline = this.redis.pipeline();
+    for (const pair of pairs) {
+      pipeline.sismember(membershipKey(pair.projectId), pair.eventName);
+    }
+    const results = await pipeline.exec();
+    if (!results) return [];
+    return pairs.filter((_, index) => results[index]?.[1] === 1);
+  }
+
+  async reconcileMonitoredKeys(pairs: readonly DirtyKey[]): Promise<void> {
+    const byProject = new Map<string, string[]>();
+    for (const pair of pairs) {
+      const list = byProject.get(pair.projectId) ?? [];
+      list.push(pair.eventName);
+      byProject.set(pair.projectId, list);
+    }
+    const pipeline = this.redis.pipeline();
+    for (const [projectId, names] of byProject) {
+      pipeline.del(membershipKey(projectId));
+      if (names.length > 0) pipeline.sadd(membershipKey(projectId), ...names);
+    }
+    await pipeline.exec();
+  }
+
+  async flushAll(): Promise<void> {
+    await this.redis.flushdb();
+  }
+
+  async close(): Promise<void> {
+    await this.redis.quit();
+  }
+}
+
+export class InMemoryMonitorDirtyBuffer implements MonitorDirtyBuffer {
+  private readonly dirty = new Map<string, number>();
+  private readonly monitored = new Map<string, Set<string>>();
+
+  async markDirty(pairs: readonly DirtyKey[], now: Date): Promise<void> {
+    const score = now.getTime() + MONITOR_DEBOUNCE_MS;
+    for (const pair of pairs) {
+      const member = encode(pair);
+      if (!this.dirty.has(member)) this.dirty.set(member, score);
+    }
+  }
+
+  async popDue(now: Date, limit: number): Promise<DirtyKey[]> {
+    const due: DirtyKey[] = [];
+    for (const [member, score] of [...this.dirty.entries()].sort((a, b) => a[1] - b[1])) {
+      if (due.length >= limit) break;
+      if (score <= now.getTime()) {
+        due.push(decode(member));
+        this.dirty.delete(member);
+      }
+    }
+    return due;
+  }
+
+  async addMonitoredKeys(pairs: readonly DirtyKey[]): Promise<void> {
+    for (const pair of pairs) {
+      const set = this.monitored.get(pair.projectId) ?? new Set();
+      set.add(pair.eventName);
+      this.monitored.set(pair.projectId, set);
+    }
+  }
+
+  async filterMonitored(pairs: readonly DirtyKey[]): Promise<DirtyKey[]> {
+    return pairs.filter((pair) => this.monitored.get(pair.projectId)?.has(pair.eventName) ?? false);
+  }
+
+  async reconcileMonitoredKeys(pairs: readonly DirtyKey[]): Promise<void> {
+    this.monitored.clear();
+    await this.addMonitoredKeys(pairs);
+  }
+}

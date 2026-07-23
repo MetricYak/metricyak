@@ -63,3 +63,19 @@ export const MONITOR_RELAY_INTERVAL_MS = 10_000;
 export type MonitorRelayJob = {
   tickAt: string;
 };
+
+export const MONITOR_DEBOUNCE_MS = 5000;
+
+export const MONITOR_DRAIN_QUEUE = 'monitor-drain' as const;
+export const MONITOR_DRAIN_INTERVAL_MS = 2000;
+
+export type MonitorDrainJob = {
+  tickAt: string;
+};
+
+export const MONITOR_BACKSTOP_QUEUE = 'monitor-backstop' as const;
+export const MONITOR_BACKSTOP_INTERVAL_MS = 1_800_000;
+
+export type MonitorBackstopJob = {
+  tickAt: string;
+};
