@@ -1,12 +1,11 @@
-import { BellRing } from 'lucide-react';
+import { ArrowLeft, BellRing } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { listMetrics } from '@/api/metrics';
 import { deleteMonitor, getMonitor, type Monitor, setMonitorEnabled } from '@/api/monitors';
 import { conditionSentence, formatThreshold } from '@/components/monitors/condition-sentence';
 import { PageContainer } from '@/components/shell/PageContainer';
-import { PageHeader } from '@/components/shell/PageHeader';
 import { PageTabs } from '@/components/shell/PageTabs';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -107,14 +106,7 @@ export function MonitorDetailPage(): React.JSX.Element {
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader
-        icon={BellRing}
-        title={title}
-        description={description}
-        backTo="/monitors"
-        backLabel="Back to monitors"
-      />
-      <PageTabs>
+      <PageTabs width="content">
         <nav>
           <ul className="flex items-stretch gap-6">
             {TABS.map((entry) => (
@@ -143,6 +135,22 @@ export function MonitorDetailPage(): React.JSX.Element {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <PageContainer width="content" className="py-6">
+          <Link
+            to="/monitors"
+            className="mb-3 inline-flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Back to monitors
+          </Link>
+          <div className="mb-6">
+            <h1 className="flex items-center gap-2 font-semibold text-foreground text-xl">
+              <BellRing className="size-5 text-metricyak-brand-orange" />
+              {title}
+            </h1>
+            {description ? (
+              <p className="mt-1 text-muted-foreground text-sm">{description}</p>
+            ) : null}
+          </div>
           {state === 'loading' || !monitor ? (
             <div className="h-40 animate-pulse rounded-lg bg-metricyak-100" />
           ) : tab === 'overview' ? (
