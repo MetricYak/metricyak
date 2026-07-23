@@ -1,10 +1,13 @@
-import type { MetricDefinition } from '@metricyak/storage';
+import type { MetricDefinition, MonitorRecord } from '@metricyak/storage';
 import { describe, expect, it } from 'vitest';
 import {
   CreateMonitorRequest,
   isEqualityOperator,
+  ListMonitorsQuery,
+  ListMonitorsResponse,
   MonitorResponse,
   metricYieldsIntegerValues,
+  toMonitorResponse,
   UpdateMonitorRequest,
 } from '@/modules/monitors/monitors.schemas.js';
 
@@ -105,6 +108,8 @@ describe('MonitorResponse', () => {
       lastEvalError: 'metric unavailable',
       lastEvalErrorAt: '2026-07-17T00:00:00.000Z',
       lastEvaluatedAt: '2026-07-16T23:00:00.000Z',
+      status: 'ok',
+      lastValue: 42,
       createdOn: '2026-07-16T00:00:00.000Z',
       updatedOn: '2026-07-16T00:00:00.000Z',
     });
@@ -152,5 +157,77 @@ describe('metricYieldsIntegerValues', () => {
         value: 'signups / visits',
       }),
     ).toBe(false);
+  });
+});
+
+function record(overrides: Partial<MonitorRecord> = {}): MonitorRecord {
+  const now = new Date('2026-07-23T00:00:00.000Z');
+  return {
+    id: '11111111-1111-1111-9111-111111111111',
+    projectId: '22222222-2222-2222-9222-222222222222',
+    metricId: '33333333-3333-3333-9333-333333333333',
+    name: 'Signup floor',
+    description: null,
+    scope: null,
+    condition: { operator: 'lt', value: 5000 },
+    window: '1d',
+    holdFor: '0m',
+    enabled: true,
+    missingData: 'skip',
+    consecutiveFailures: 0,
+    evalHealth: 'ok',
+    lastEvalError: null,
+    lastEvalErrorAt: null,
+    nextEvalAt: now,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+describe('toMonitorResponse', () => {
+  it('maps live status and lastValue when state is present', () => {
+    const now = new Date('2026-07-23T01:00:00.000Z');
+    const out = toMonitorResponse(record(), {
+      status: 'firing',
+      lastValue: 12,
+      lastEvaluatedAt: now,
+    });
+    expect(out.status).toBe('firing');
+    expect(out.lastValue).toBe(12);
+    expect(out.lastEvaluatedAt).toBe(now.toISOString());
+  });
+
+  it('nulls status/lastValue/lastEvaluatedAt when never evaluated', () => {
+    const out = toMonitorResponse(record(), null);
+    expect(out.status).toBeNull();
+    expect(out.lastValue).toBeNull();
+    expect(out.lastEvaluatedAt).toBeNull();
+  });
+});
+
+describe('ListMonitorsQuery', () => {
+  it('defaults page to 0 and pageSize to 20', () => {
+    expect(ListMonitorsQuery.parse({})).toEqual({ page: 0, pageSize: 20 });
+  });
+  it('coerces numeric strings', () => {
+    expect(ListMonitorsQuery.parse({ page: '2', pageSize: '50' })).toEqual({
+      page: 2,
+      pageSize: 50,
+    });
+  });
+  it('rejects pageSize over 100', () => {
+    expect(() => ListMonitorsQuery.parse({ pageSize: '500' })).toThrow();
+  });
+});
+
+describe('ListMonitorsResponse', () => {
+  it('wraps monitors with hasMore', () => {
+    const parsed = ListMonitorsResponse.parse({
+      monitors: [toMonitorResponse(record(), null)],
+      hasMore: true,
+    });
+    expect(parsed.hasMore).toBe(true);
+    expect(parsed.monitors).toHaveLength(1);
   });
 });

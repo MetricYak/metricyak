@@ -4,7 +4,10 @@ import {
   MONITOR_COMPARISON_OPERATORS,
   MONITOR_EVAL_HEALTHS,
   MONITOR_MISSING_DATA,
+  MONITOR_STATUSES,
   type MonitorComparisonOperator,
+  type MonitorRecord,
+  type MonitorTotalState,
 } from '@metricyak/storage';
 
 const ProjectIdParam = z.uuid().openapi({
@@ -117,13 +120,60 @@ export const MonitorResponse = z.object({
   lastEvalError: z.string().nullish(),
   lastEvalErrorAt: z.iso.datetime().nullish(),
   lastEvaluatedAt: z.iso.datetime().nullish(),
+  status: z.enum(MONITOR_STATUSES).nullable(),
+  lastValue: z.number().nullable(),
   createdOn: z.iso.datetime(),
   updatedOn: z.iso.datetime(),
 });
 
-export const ListMonitorsResponse = z.array(MonitorResponse);
+export const ListMonitorsQuery = z.object({
+  page: z.coerce
+    .number()
+    .int('The page must be an integer.')
+    .min(0, 'The page must not be negative.')
+    .default(0)
+    .openapi({ param: { name: 'page', in: 'query' } }),
+  pageSize: z.coerce
+    .number()
+    .int('The pageSize must be an integer.')
+    .min(1, 'The pageSize must be at least 1.')
+    .max(100, 'The pageSize must be at most 100.')
+    .default(20)
+    .openapi({ param: { name: 'pageSize', in: 'query' } }),
+});
+
+export const ListMonitorsResponse = z.object({
+  monitors: z.array(MonitorResponse),
+  hasMore: z.boolean(),
+});
 
 export const DeleteMonitorResponse = z.object({ deleted: z.literal(true) });
+
+export function toMonitorResponse(
+  record: MonitorRecord,
+  state: MonitorTotalState | null,
+): z.input<typeof MonitorResponse> {
+  return {
+    monitorId: record.id,
+    name: record.name,
+    description: record.description,
+    metricId: record.metricId,
+    scope: record.scope,
+    condition: record.condition,
+    window: record.window,
+    holdFor: record.holdFor,
+    enabled: record.enabled,
+    missingData: record.missingData,
+    evalHealth: record.evalHealth,
+    lastEvalError: record.lastEvalError,
+    lastEvalErrorAt: record.lastEvalErrorAt?.toISOString() ?? null,
+    lastEvaluatedAt: state?.lastEvaluatedAt?.toISOString() ?? null,
+    status: state?.status ?? null,
+    lastValue: state?.lastValue ?? null,
+    createdOn: record.createdAt.toISOString(),
+    updatedOn: record.updatedAt.toISOString(),
+  };
+}
 
 export function isEqualityOperator(operator: MonitorComparisonOperator): boolean {
   return operator === 'eq' || operator === 'neq';
