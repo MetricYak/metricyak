@@ -153,4 +153,30 @@ describe('MonitorsRepository (integration)', () => {
     const found = await monitors.get(created.id, projectId);
     expect(found).toBeNull();
   });
+
+  describe('listPage', () => {
+    it('returns a page of pageSize with hasMore when more remain', async () => {
+      for (let i = 0; i < 3; i += 1) {
+        await monitors.create(newMonitorInput());
+      }
+
+      const first = await monitors.listPage(projectId, 0, 2);
+      expect(first.monitors).toHaveLength(2);
+      expect(first.hasMore).toBe(true);
+
+      const second = await monitors.listPage(projectId, 1, 2);
+      expect(second.monitors).toHaveLength(1);
+      expect(second.hasMore).toBe(false);
+    });
+
+    it('orders newest first', async () => {
+      for (let i = 0; i < 2; i += 1) {
+        await monitors.create(newMonitorInput());
+      }
+
+      const page = await monitors.listPage(projectId, 0, 10);
+      const times = page.monitors.map((monitor) => monitor.createdAt.getTime());
+      expect(times).toEqual([...times].sort((a, b) => b - a));
+    });
+  });
 });

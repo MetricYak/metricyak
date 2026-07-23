@@ -1,4 +1,4 @@
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, desc, eq, gt } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
 import {
   type MonitorEvalHealth,
@@ -127,6 +127,21 @@ export class MonitorsRepository {
       .returning({ id: monitors.id });
 
     return deleted.length > 0;
+  }
+
+  async listPage(
+    projectId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<{ monitors: MonitorRecord[]; hasMore: boolean }> {
+    const rows = await this.db
+      .select()
+      .from(monitors)
+      .where(eq(monitors.projectId, projectId))
+      .orderBy(desc(monitors.createdAt), desc(monitors.id))
+      .limit(pageSize + 1)
+      .offset(page * pageSize);
+    return { monitors: rows.slice(0, pageSize), hasMore: rows.length > pageSize };
   }
 
   async listEnabledIds(afterId: string | null, limit: number): Promise<{ id: string }[]> {
