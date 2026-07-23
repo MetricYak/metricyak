@@ -2,6 +2,13 @@ export type { ConnectionOptions, Job, Worker } from 'bullmq';
 export { createProducerConnectionOptions, createWorkerConnectionOptions } from '@/connection.js';
 export { createKafka, ensureTopics } from '@/kafka/connection.js';
 export { KafkaEventsProducer } from '@/kafka/events-producer.js';
+export {
+  createMonitorTriggerConsumer,
+  MONITOR_TRIGGER_GROUP,
+  type MonitorTriggerConsumer,
+  parseTriggerMessage,
+  type TriggerEvent,
+} from '@/kafka/monitor-trigger-consumer.js';
 export { TOPIC_SPECS, TOPICS, type TopicName } from '@/kafka/topics.js';
 export {
   type DirtyKey,
