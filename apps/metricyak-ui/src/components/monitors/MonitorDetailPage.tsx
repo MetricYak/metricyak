@@ -248,6 +248,10 @@ export function MonitorDetailPage(): React.JSX.Element {
   }
 
   return (
-    <MonitorDetailView key={`${projectId}:${monitorId}`} projectId={projectId} monitorId={monitorId} />
+    <MonitorDetailView
+      key={`${projectId}:${monitorId}`}
+      projectId={projectId}
+      monitorId={monitorId}
+    />
   );
 }
