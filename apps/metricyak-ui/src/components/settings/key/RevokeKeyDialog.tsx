@@ -31,7 +31,7 @@ export function RevokeKeyDialog({
     if (open) setConfirmation('');
   }, [open]);
 
-  const matches = confirmation.trim() === projectName;
+  const matches = confirmation.trim() === projectName.trim();
 
   return (
     <SettingsDialog
