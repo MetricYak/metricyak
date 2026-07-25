@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
 const PREFIX = 'myk_';
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -17,8 +17,4 @@ export function generatePublishableKey(): string {
     }
   }
   return PREFIX + chars.join('');
-}
-
-export function hashKey(key: string): string {
-  return createHash('sha256').update(key).digest('hex');
 }
