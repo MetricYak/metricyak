@@ -22,7 +22,7 @@ const sections: readonly SettingsSection[] = [
     label: 'Project',
     items: [
       { id: 'project-general', label: 'General', path: '/settings/project/general' },
-      { id: 'project-keys', label: 'Project keys', path: '/settings/project/keys' },
+      { id: 'project-key', label: 'Project key', path: '/settings/project/key' },
     ],
   },
 ] satisfies readonly SettingsSection[];

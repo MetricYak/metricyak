@@ -14,10 +14,10 @@ export function FirstEventCallout(): React.JSX.Element {
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
           <Link
-            to="/settings/project/keys"
+            to="/settings/project/key"
             className="inline-flex items-center gap-1 font-medium text-brand-orange-text text-sm hover:underline"
           >
-            Get an API key
+            Get your project key
             <ArrowUpRight className="size-3.5" />
           </Link>
           <Link

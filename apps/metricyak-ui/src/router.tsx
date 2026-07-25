@@ -114,12 +114,13 @@ export const router = createBrowserRouter([
                 }),
               },
               {
-                path: 'keys',
+                path: 'key',
                 lazy: async () => ({
-                  Component: (await import('./components/settings/pages/ProjectKeysPage'))
-                    .ProjectKeysPage,
+                  Component: (await import('./components/settings/pages/ProjectKeyPage'))
+                    .ProjectKeyPage,
                 }),
               },
+              { path: 'keys', element: <Navigate to="/settings/project/key" replace /> },
             ],
           },
           { path: '*', element: <NotFoundPage /> },

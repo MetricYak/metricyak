@@ -19,10 +19,7 @@ export function GraceBanner({
   onRevokeNow,
 }: GraceBannerProps): React.JSX.Element {
   return (
-    <div
-      role="status"
-      className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3.5 sm:px-5"
-    >
+    <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3.5 sm:px-5">
       <div className="flex items-start gap-2.5">
         <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-600" />
         <div className="min-w-0 flex-1">

@@ -92,13 +92,13 @@ const NAVIGATE: readonly PaletteAction[] = [
     to: '/settings/project/general',
   },
   {
-    id: 'settings-keys',
-    label: 'API keys',
+    id: 'settings-key',
+    label: 'Project key',
     hint: 'Settings',
-    keywords: 'tokens secret sdk',
+    keywords: 'api keys tokens secret sdk',
     icon: KeyRound,
     iconColor: 'text-violet-600',
-    to: '/settings/project/keys',
+    to: '/settings/project/key',
   },
 ];
 
