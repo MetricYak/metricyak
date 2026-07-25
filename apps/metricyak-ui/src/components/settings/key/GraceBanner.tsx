@@ -19,9 +19,12 @@ export function GraceBanner({
   onRevokeNow,
 }: GraceBannerProps): React.JSX.Element {
   return (
-    <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3.5 sm:px-5">
+    <div
+      role="status"
+      className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3.5 sm:px-5"
+    >
       <div className="flex items-start gap-2.5">
-        <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-600" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">
             Previous key still works for {formatCountdown(expiresAt, now)}
@@ -41,6 +44,9 @@ export function GraceBanner({
             >
               Copy
             </CopyButton>
+          </div>
+
+          <div className="mt-2 flex justify-end">
             <Button
               variant="ghost"
               size="sm"

@@ -26,13 +26,13 @@ export function QuickStart({ keyValue, ingestUrl }: QuickStartProps): React.JSX.
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
         <div className="relative">
-          <pre className="overflow-x-auto rounded-md border border-input bg-metricyak-50 px-3 py-2.5 pr-20 font-mono text-[12px] leading-relaxed text-foreground">
+          <pre className="overflow-x-auto rounded-md border border-input bg-metricyak-50 px-3 py-2.5 pr-24 font-mono text-[12px] leading-relaxed text-foreground">
             {snippet}
           </pre>
           <CopyButton
             value={snippet}
             label="Copy the example request"
-            className="absolute right-2 top-2 rounded-md border border-input bg-background px-2 py-1"
+            className="absolute right-2 top-2 rounded-md border border-input bg-background px-2.5 py-1.5"
           >
             Copy
           </CopyButton>
