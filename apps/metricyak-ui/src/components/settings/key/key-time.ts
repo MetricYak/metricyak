@@ -7,7 +7,7 @@ function pluralize(count: number, unit: string): string {
   return `${count} ${unit}${count === 1 ? '' : 's'} ago`;
 }
 
-function asDate(iso: string): string {
+export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
@@ -19,7 +19,7 @@ export function formatLastUsed(iso: string | null, now: Date): string {
   if (!iso) return 'Never used';
 
   const elapsed = now.getTime() - new Date(iso).getTime();
-  if (elapsed >= FALLBACK_AFTER_MS) return `Last used ${asDate(iso)}`;
+  if (elapsed >= FALLBACK_AFTER_MS) return `Last used ${formatDate(iso)}`;
   if (elapsed < MINUTE_MS) return 'Last used just now';
   if (elapsed < HOUR_MS) return `Last used ${pluralize(Math.floor(elapsed / MINUTE_MS), 'minute')}`;
   if (elapsed < DAY_MS) return `Last used ${pluralize(Math.floor(elapsed / HOUR_MS), 'hour')}`;

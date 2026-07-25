@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCountdown, formatLastUsed } from '../key-time';
+import { formatCountdown, formatDate, formatLastUsed } from '../key-time';
 
 const NOW = new Date('2026-07-25T12:00:00.000Z');
 
@@ -64,5 +64,11 @@ describe('formatCountdown', () => {
 
   it('reports an elapsed deadline as expired', () => {
     expect(formatCountdown(ago(MINUTE), NOW)).toBe('expired');
+  });
+});
+
+describe('formatDate', () => {
+  it('formats a date for display', () => {
+    expect(formatDate('2026-03-12T09:30:00.000Z')).toBe('12 Mar 2026');
   });
 });
