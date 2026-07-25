@@ -58,7 +58,7 @@ const oneEvent = { events: [{ name: 'signup_completed' }] };
 
 describe('ingest authentication', () => {
   it('accepts a valid bearer key and routes to its project', async () => {
-    const { app, enqueued } = createIngestApp();
+    const { app, enqueued, validated } = createIngestApp();
 
     const res = await app.request('/v1/ingest', {
       method: 'POST',
@@ -68,6 +68,7 @@ describe('ingest authentication', () => {
 
     expect(res.status).toBe(202);
     expect(enqueued).toHaveLength(1);
+    expect(validated).toEqual([VALID_KEY]);
   });
 
   it('rejects a request with no Authorization header', async () => {
@@ -122,23 +123,36 @@ describe('ingest authentication', () => {
   });
 });
 
-function createIngestAppWithTracker(shouldWrite: boolean) {
+type TrackerAppOptions = {
+  readonly shouldWrite: boolean;
+  readonly touchLastUsedRejects?: boolean;
+};
+
+function createIngestAppWithTracker(options: TrackerAppOptions) {
   const touched: string[] = [];
+  const enqueued: unknown[] = [];
 
   const container = {
-    producer: { enqueue: async () => undefined },
-    lastUsed: { shouldWrite: () => shouldWrite },
+    producer: {
+      enqueue: async (batch: unknown) => {
+        enqueued.push(batch);
+      },
+    },
+    lastUsed: { shouldWrite: () => options.shouldWrite },
     repos: {
       projectKeys: {
         findValidByKey: async () => ({ id: 'key-1', projectId: PROJECT_ID }),
         touchLastUsed: async (keyId: string) => {
+          if (options.touchLastUsedRejects) {
+            throw new Error('canceling statement due to statement timeout');
+          }
           touched.push(keyId);
         },
       },
     },
   } as unknown as Container;
 
-  return { app: createApp(container), touched };
+  return { app: createApp(container), touched, enqueued };
 }
 
 async function ingestWithValidKey(app: ReturnType<typeof createApp>): Promise<Response> {
@@ -151,7 +165,7 @@ async function ingestWithValidKey(app: ReturnType<typeof createApp>): Promise<Re
 
 describe('last-used write throttling', () => {
   it('records the key as used when the tracker allows a write', async () => {
-    const { app, touched } = createIngestAppWithTracker(true);
+    const { app, touched } = createIngestAppWithTracker({ shouldWrite: true });
 
     await ingestWithValidKey(app);
 
@@ -159,10 +173,22 @@ describe('last-used write throttling', () => {
   });
 
   it('skips the write when the tracker throttles it', async () => {
-    const { app, touched } = createIngestAppWithTracker(false);
+    const { app, touched } = createIngestAppWithTracker({ shouldWrite: false });
 
     await ingestWithValidKey(app);
 
     expect(touched).toEqual([]);
+  });
+
+  it('accepts the batch when recording the key as used fails', async () => {
+    const { app, enqueued } = createIngestAppWithTracker({
+      shouldWrite: true,
+      touchLastUsedRejects: true,
+    });
+
+    const res = await ingestWithValidKey(app);
+
+    expect(res.status).toBe(202);
+    expect(enqueued).toHaveLength(1);
   });
 });

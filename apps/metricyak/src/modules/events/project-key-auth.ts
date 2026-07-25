@@ -24,7 +24,16 @@ export function projectKeyAuth(): MiddlewareHandler<AppEnv> {
     }
 
     if (lastUsed.shouldWrite(record.id, now)) {
-      await repos.projectKeys.touchLastUsed(record.id, now);
+      await repos.projectKeys.touchLastUsed(record.id, now).catch((error: unknown) => {
+        console.error(
+          JSON.stringify({
+            level: 'error',
+            msg: 'failed to record project key use',
+            keyId: record.id,
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      });
     }
 
     c.set('projectKey', record);
