@@ -10,16 +10,23 @@ interface RevokeKeyDialogProps {
   open: boolean;
   projectName: string;
   lastUsedAt: string | null;
+  hasGrace: boolean;
   now: Date;
   busy: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
+const CONSEQUENCE =
+  'Everything sending events with this key stops immediately. Events sent before you deploy a new key are rejected and cannot be recovered.';
+
+const GRACE_CONSEQUENCE = `${CONSEQUENCE} The previous key is revoked at the same time.`;
+
 export function RevokeKeyDialog({
   open,
   projectName,
   lastUsedAt,
+  hasGrace,
   now,
   busy,
   onConfirm,
@@ -31,18 +38,18 @@ export function RevokeKeyDialog({
     if (open) setConfirmation('');
   }, [open]);
 
-  const matches = confirmation.trim() === projectName.trim();
+  const expected = projectName.trim();
+  const matches = expected.length > 0 && confirmation.trim() === expected;
 
   return (
     <SettingsDialog
       open={open}
       onClose={onCancel}
       title="Revoke the project key?"
-      description="Everything sending events with this key stops immediately. Events sent before you deploy a new key are rejected and cannot be recovered."
-      dismissable={!busy}
+      description={hasGrace ? GRACE_CONSEQUENCE : CONSEQUENCE}
       footer={
         <>
-          <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
           <Button
@@ -60,8 +67,11 @@ export function RevokeKeyDialog({
       <p className="text-sm text-muted-foreground">{formatLastUsed(lastUsedAt, now)}.</p>
 
       <div className="mt-4">
-        <Label htmlFor="revoke-confirmation" className="text-sm font-medium text-foreground">
-          Type <span className="font-semibold">{projectName}</span> to confirm
+        <Label
+          htmlFor="revoke-confirmation"
+          className="block break-words text-sm font-medium text-foreground"
+        >
+          Type <span className="font-semibold">{expected}</span> to confirm
         </Label>
         <Input
           id="revoke-confirmation"
@@ -71,8 +81,8 @@ export function RevokeKeyDialog({
             if (e.key === 'Enter' && matches && !busy) onConfirm();
           }}
           autoComplete="off"
-          autoFocus
-          disabled={busy}
+          data-autofocus
+          readOnly={busy}
           className="mt-1.5"
         />
       </div>

@@ -25,13 +25,14 @@ export function KeyCard({
   return (
     <Card className="gap-0 overflow-hidden py-0">
       <CardContent className="px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-5">
+        <p className="mb-1.5 text-sm font-medium text-foreground">Current key</p>
         <div className="flex flex-wrap items-center gap-3">
           <code className="min-w-0 flex-1 break-all rounded-md border border-input bg-metricyak-50 px-3 py-2 font-mono text-[13px] text-foreground">
             {keyValue}
           </code>
           <CopyButton
             value={keyValue}
-            label="Copy project key"
+            label="Copy current key"
             className="shrink-0 rounded-md border border-input bg-background px-3 py-2"
           >
             Copy
@@ -42,7 +43,7 @@ export function KeyCard({
         </p>
       </CardContent>
 
-      <CardFooter className="min-h-13 flex-wrap items-center justify-between gap-2 border-t bg-metricyak-50 px-4 py-2.5 sm:px-5">
+      <CardFooter className="min-h-13 flex-wrap items-center justify-between gap-2 border-t px-4 py-2.5 sm:px-5">
         <Button variant="outline" size="sm" onClick={onRoll} disabled={busy}>
           Roll key
         </Button>

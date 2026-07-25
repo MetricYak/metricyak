@@ -7,18 +7,22 @@ const PROJECT_ID = 'd6ceaf26-fd71-4c38-90f1-2de20b946d00';
 
 function createStubbedApp() {
   const generatedFor: string[] = [];
+  const createdNames: string[] = [];
 
   const container = {
     repos: {
       organizations: { get: async () => ({ id: ORG_ID }) },
       projects: {
-        create: async () => ({
-          id: PROJECT_ID,
-          organizationId: ORG_ID,
-          name: 'Proj',
-          createdAt: new Date('2026-07-25T12:00:00.000Z'),
-          updatedAt: new Date('2026-07-25T12:00:00.000Z'),
-        }),
+        create: async ({ name }: { name: string }) => {
+          createdNames.push(name);
+          return {
+            id: PROJECT_ID,
+            organizationId: ORG_ID,
+            name,
+            createdAt: new Date('2026-07-25T12:00:00.000Z'),
+            updatedAt: new Date('2026-07-25T12:00:00.000Z'),
+          };
+        },
       },
       projectKeys: {
         generate: async (projectId: string) => {
@@ -36,20 +40,42 @@ function createStubbedApp() {
     },
   } as unknown as Container;
 
-  return { app: createApp(container), generatedFor };
+  return { app: createApp(container), generatedFor, createdNames };
+}
+
+function postProject(app: ReturnType<typeof createApp>, name: string): Promise<Response> {
+  return app.request(`/v1/organizations/${ORG_ID}/projects`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
 }
 
 describe('project creation', () => {
   it('mints a project key for the new project', async () => {
     const { app, generatedFor } = createStubbedApp();
 
-    const res = await app.request(`/v1/organizations/${ORG_ID}/projects`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Proj' }),
-    });
+    const res = await postProject(app, 'Proj');
 
     expect(res.status).toBe(201);
     expect(generatedFor).toEqual([PROJECT_ID]);
+  });
+
+  it('trims surrounding whitespace from the name', async () => {
+    const { app, createdNames } = createStubbedApp();
+
+    const res = await postProject(app, '  Proj  ');
+
+    expect(res.status).toBe(201);
+    expect(createdNames).toEqual(['Proj']);
+  });
+
+  it('rejects a name that is only whitespace', async () => {
+    const { app, createdNames } = createStubbedApp();
+
+    const res = await postProject(app, '   ');
+
+    expect(res.status).toBe(400);
+    expect(createdNames).toEqual([]);
   });
 });

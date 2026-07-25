@@ -22,7 +22,7 @@ export const UpdateProjectParams = z.object({
 });
 
 export const CreateProjectRequest = z.object({
-  name: z.string().min(1, 'The name must not be empty.').openapi({
+  name: z.string().trim().min(1, 'The name must not be empty.').openapi({
     description: 'The name for the new project.',
     example: 'iOS App',
   }),
@@ -31,6 +31,7 @@ export const CreateProjectRequest = z.object({
 export const UpdateProjectRequest = z.object({
   name: z
     .string()
+    .trim()
     .min(1, 'The name must not be empty.')
     .max(128, 'The name must be 128 characters or fewer.')
     .openapi({

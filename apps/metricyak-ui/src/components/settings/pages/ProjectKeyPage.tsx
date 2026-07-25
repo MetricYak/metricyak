@@ -1,7 +1,8 @@
 import { KeyRound, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  type GraceProjectKey,
   generateProjectKey,
   getProjectKey,
   type ProjectKeyState,
@@ -13,12 +14,13 @@ import type { Project } from '@/api/projects';
 import { GraceBanner } from '@/components/settings/key/GraceBanner';
 import { KeyCard } from '@/components/settings/key/KeyCard';
 import { QuickStart } from '@/components/settings/key/QuickStart';
-import { RevokeGraceDialog } from '@/components/settings/key/RevokeGraceDialog';
 import { RevokeKeyDialog } from '@/components/settings/key/RevokeKeyDialog';
 import { RollKeyDialog } from '@/components/settings/key/RollKeyDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { ApiError } from '@/lib/api';
 
 const CLOCK_TICK_MS = 60_000;
 
@@ -46,8 +48,47 @@ function useTickingClock(): Date {
   return now;
 }
 
+function useIsShowing(): React.RefObject<boolean> {
+  const showing = useRef(true);
+
+  useEffect(() => {
+    showing.current = true;
+    return () => {
+      showing.current = false;
+    };
+  }, []);
+
+  return showing;
+}
+
+function unexpiredGrace(state: ProjectKeyState | null, now: Date): GraceProjectKey | null {
+  const grace = state?.grace ?? null;
+  if (!grace) return null;
+  return new Date(grace.expiresAt) > now ? grace : null;
+}
+
+function describeFailure(error: unknown): string | undefined {
+  return error instanceof ApiError ? error.message : undefined;
+}
+
+function KeyPageSkeleton(): React.JSX.Element {
+  return (
+    <div className="mt-6 space-y-6" role="status" aria-busy="true" aria-label="Loading project key">
+      <div
+        aria-hidden="true"
+        className="h-30 animate-pulse rounded-lg border border-border bg-metricyak-50"
+      />
+      <div
+        aria-hidden="true"
+        className="h-36 animate-pulse rounded-lg border border-border bg-metricyak-50"
+      />
+    </div>
+  );
+}
+
 function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
   const now = useTickingClock();
+  const showing = useIsShowing();
 
   const [state, setState] = useState<ProjectKeyState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,17 +120,21 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
 
   const runAction = async (
     action: (projectId: string) => Promise<ProjectKeyState>,
-    onSuccess: () => void,
+    successMessage: string,
     failureMessage: string,
   ): Promise<void> => {
     if (busy) return;
     setBusy(true);
     try {
-      setState(await action(project.id));
+      const next = await action(project.id);
+      if (!showing.current) return;
       setDialog('none');
-      onSuccess();
-    } catch {
-      toast.error(failureMessage);
+      setState(next);
+      toast.success(successMessage);
+    } catch (error) {
+      if (!showing.current) return;
+      setDialog('none');
+      toast.error(failureMessage, { description: describeFailure(error) });
       await resyncKey();
     } finally {
       setBusy(false);
@@ -98,7 +143,7 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
 
   const settled = !loading && !errored;
   const activeKey = settled ? (state?.active ?? null) : null;
-  const graceKey = settled ? (state?.grace ?? null) : null;
+  const graceKey = settled ? unexpiredGrace(state, now) : null;
   const hasNoKey = settled && state !== null && state.active === null;
   const ingestUrl = `${window.location.origin}/v1/ingest`;
 
@@ -106,9 +151,7 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
     <div className="w-full max-w-2xl px-4 py-6 sm:px-8 sm:py-8">
       <PageHeader />
 
-      {loading && (
-        <div className="mt-6 h-32 animate-pulse rounded-lg border border-border bg-metricyak-50" />
-      )}
+      {loading && <KeyPageSkeleton />}
 
       {!loading && errored && (
         <Card className="mt-6 flex flex-col items-start gap-3 px-5 py-6">
@@ -117,20 +160,6 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
             Try again
           </Button>
         </Card>
-      )}
-
-      {activeKey && (
-        <div className="mt-6">
-          <KeyCard
-            keyValue={activeKey.key}
-            createdAt={activeKey.createdAt}
-            lastUsedAt={activeKey.lastUsedAt}
-            now={now}
-            busy={busy}
-            onRoll={() => setDialog('roll')}
-            onRevoke={() => setDialog('revoke')}
-          />
-        </div>
       )}
 
       <div role="status" className="sr-only">
@@ -151,6 +180,20 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
 
       {activeKey && (
         <div className="mt-6">
+          <KeyCard
+            keyValue={activeKey.key}
+            createdAt={activeKey.createdAt}
+            lastUsedAt={activeKey.lastUsedAt}
+            now={now}
+            busy={busy}
+            onRoll={() => setDialog('roll')}
+            onRevoke={() => setDialog('revoke')}
+          />
+        </div>
+      )}
+
+      {activeKey && (
+        <div className="mt-6">
           <QuickStart keyValue={activeKey.key} ingestUrl={ingestUrl} />
         </div>
       )}
@@ -162,7 +205,8 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
           </span>
           <h2 className="mt-4 text-sm font-semibold text-foreground">No project key</h2>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Events sent to this project are rejected until you generate one.
+            Events sent to this project are rejected until you generate one. Generating a key takes
+            a moment and you can roll or revoke it whenever you like.
           </p>
           <Button
             variant="raised"
@@ -172,7 +216,7 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
             onClick={() =>
               void runAction(
                 generateProjectKey,
-                () => toast.success('Project key generated'),
+                'Project key generated',
                 'Could not generate a key',
               )
             }
@@ -186,18 +230,12 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
       <RollKeyDialog
         open={dialog === 'roll'}
         lastUsedAt={activeKey?.lastUsedAt ?? null}
+        hasGrace={graceKey !== null}
         now={now}
         busy={busy}
         onCancel={() => setDialog('none')}
         onConfirm={() =>
-          void runAction(
-            rollProjectKey,
-            () =>
-              toast.success('Project key rolled', {
-                description: 'The previous key keeps working for 24 hours.',
-              }),
-            'Could not roll the key',
-          )
+          void runAction(rollProjectKey, 'Project key rolled', 'Could not roll the key')
         }
       />
 
@@ -205,26 +243,28 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
         open={dialog === 'revoke'}
         projectName={project.name}
         lastUsedAt={activeKey?.lastUsedAt ?? null}
+        hasGrace={graceKey !== null}
         now={now}
         busy={busy}
         onCancel={() => setDialog('none')}
         onConfirm={() =>
-          void runAction(
-            revokeProjectKey,
-            () => toast.success('Project key revoked'),
-            'Could not revoke the key',
-          )
+          void runAction(revokeProjectKey, 'Project key revoked', 'Could not revoke the key')
         }
       />
 
-      <RevokeGraceDialog
+      <ConfirmDialog
         open={dialog === 'revoke-grace'}
+        title="Revoke the previous key now?"
+        description="Anything still using the previous key stops immediately. Your current key is unaffected."
+        confirmLabel="Revoke now"
+        busyLabel="Revoking…"
+        destructive
         busy={busy}
         onCancel={() => setDialog('none')}
         onConfirm={() =>
           void runAction(
             revokeGraceKey,
-            () => toast.success('Previous key revoked'),
+            'Previous key revoked',
             'Could not revoke the previous key',
           )
         }

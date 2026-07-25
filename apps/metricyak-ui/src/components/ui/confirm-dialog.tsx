@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { Button } from '@/components/ui/button';
 
@@ -8,6 +9,8 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   cancelLabel?: string;
   destructive?: boolean;
+  busy?: boolean;
+  busyLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -19,6 +22,8 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel = 'Cancel',
   destructive = false,
+  busy = false,
+  busyLabel,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps): React.JSX.Element {
@@ -31,15 +36,17 @@ export function ConfirmDialog({
       className="max-w-sm"
       footer={
         <>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} data-autofocus>
             {cancelLabel}
           </Button>
           <Button
             type="button"
             variant={destructive ? 'destructive' : 'default'}
             onClick={onConfirm}
+            disabled={busy}
           >
-            {confirmLabel}
+            {busy && <Loader2 className="size-3.5 animate-spin" />}
+            {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
           </Button>
         </>
       }
