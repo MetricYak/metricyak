@@ -60,10 +60,6 @@ const IngestEvents = z.union([
 
 export const IngestRequest = z
   .object({
-    project_key: z.string().min(1, 'The project_key must not be empty.').openapi({
-      description: 'Publishable project key.',
-      example: 'myk_bV69kLXz4PqRmaSTV2NZeK7YdJjMhKFWgqi5fexR9s2',
-    }),
     events: IngestEvents,
   })
   .openapi('IngestRequest');

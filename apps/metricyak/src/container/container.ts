@@ -18,6 +18,7 @@ import {
 import { createMetricReads, type MetricReads } from '@/modules/aggregates/aggregates.reads.js';
 import { createClickHouseReadsAggregates } from '@/modules/aggregates/clickhouse-reads.js';
 import { createClickHouseEventsReads, type EventsReads } from '@/modules/events/events-reads.js';
+import { LastUsedTracker } from '@/modules/events/last-used-tracker.js';
 
 export type Repositories = {
   readonly projectKeys: ProjectKeysRepository;
@@ -35,15 +36,22 @@ export type Container = {
   readonly signals: MonitorSignalsProducer;
   readonly evalProducer: MonitorEvalProducer;
   readonly repos: Repositories;
+  readonly lastUsed: LastUsedTracker;
   readonly reads: MetricReads;
   readonly eventsReads: EventsReads;
   readonly clickhouse: ClickHouseClient;
   readonly dirty: MonitorDirtyBuffer;
 };
 
+export type ResolvedProjectKey = {
+  readonly id: string;
+  readonly projectId: string;
+};
+
 export type AppEnv = {
   Variables: {
     container: Container;
+    projectKey?: ResolvedProjectKey;
   };
 };
 
@@ -67,8 +75,20 @@ export function createContainer(
     projects: new ProjectsRepository(db),
   };
 
+  const lastUsed = new LastUsedTracker();
   const reads = createMetricReads({ aggregates: createClickHouseReadsAggregates(clickhouse) });
   const eventsReads = createClickHouseEventsReads(clickhouse);
 
-  return { db, producer, signals, evalProducer, repos, reads, eventsReads, clickhouse, dirty };
+  return {
+    db,
+    producer,
+    signals,
+    evalProducer,
+    repos,
+    lastUsed,
+    reads,
+    eventsReads,
+    clickhouse,
+    dirty,
+  };
 }

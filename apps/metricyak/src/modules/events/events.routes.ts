@@ -13,6 +13,7 @@ import {
   ListEventsQuery,
   ListEventsResponse,
 } from '@/modules/events/events.schemas.js';
+import { projectKeyAuth } from '@/modules/events/project-key-auth.js';
 
 export const ingestRoute = createRoute({
   method: 'post',
@@ -23,6 +24,7 @@ export const ingestRoute = createRoute({
       required: true,
     },
   },
+  security: [{ projectKey: [] }],
   responses: {
     202: {
       content: { 'application/json': { schema: IngestResponse } },
@@ -35,12 +37,14 @@ export const ingestRoute = createRoute({
 
 const eventsRouter = createRouter();
 
-eventsRouter.openapi(ingestRoute, async (c) => {
-  const { project_key, events } = c.req.valid('json');
-  const { producer, repos } = c.var.container;
+eventsRouter.use('/ingest', projectKeyAuth());
 
-  const keyRecord = await repos.projectKeys.findActiveByKey(project_key);
-  if (!keyRecord) {
+eventsRouter.openapi(ingestRoute, async (c) => {
+  const { events } = c.req.valid('json');
+  const { producer } = c.var.container;
+
+  const projectKey = c.get('projectKey');
+  if (!projectKey) {
     throw new UnauthorizedError('You are not allowed to perform this action.');
   }
 
@@ -58,7 +62,7 @@ eventsRouter.openapi(ingestRoute, async (c) => {
   );
 
   await producer.enqueue({
-    projectId: keyRecord.projectId,
+    projectId: projectKey.projectId,
     batchId: computeBatchId(storedEvents.map((e) => e.id)),
     events: storedEvents,
   });
