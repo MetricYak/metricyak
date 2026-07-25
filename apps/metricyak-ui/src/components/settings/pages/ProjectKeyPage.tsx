@@ -1,4 +1,4 @@
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -55,17 +55,23 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>('none');
 
-  const loadKey = useCallback(async (): Promise<void> => {
-    setLoading(true);
+  const resyncKey = useCallback(async (): Promise<void> => {
     try {
       setState(await getProjectKey(project.id));
       setErrored(false);
     } catch {
       setErrored(true);
+    }
+  }, [project.id]);
+
+  const loadKey = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      await resyncKey();
     } finally {
       setLoading(false);
     }
-  }, [project.id]);
+  }, [resyncKey]);
 
   useEffect(() => {
     void loadKey();
@@ -84,6 +90,7 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
       onSuccess();
     } catch {
       toast.error(failureMessage);
+      await resyncKey();
     } finally {
       setBusy(false);
     }
@@ -126,19 +133,21 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
         </div>
       )}
 
-      <div role="status">
-        {graceKey ? (
-          <div className="mt-6">
-            <GraceBanner
-              keyValue={graceKey.key}
-              expiresAt={graceKey.expiresAt}
-              now={now}
-              busy={busy}
-              onRevokeNow={() => setDialog('revoke-grace')}
-            />
-          </div>
-        ) : null}
+      <div role="status" className="sr-only">
+        {graceKey ? 'The previous project key still works during a grace period.' : ''}
       </div>
+
+      {graceKey && (
+        <div className="mt-6">
+          <GraceBanner
+            keyValue={graceKey.key}
+            expiresAt={graceKey.expiresAt}
+            now={now}
+            busy={busy}
+            onRevokeNow={() => setDialog('revoke-grace')}
+          />
+        </div>
+      )}
 
       {activeKey && (
         <div className="mt-6">
@@ -168,7 +177,8 @@ function ProjectKeyPanel({ project }: { project: Project }): React.JSX.Element {
               )
             }
           >
-            Generate key
+            {busy && <Loader2 className="size-3.5 animate-spin" />}
+            {busy ? 'Generating…' : 'Generate key'}
           </Button>
         </div>
       )}
