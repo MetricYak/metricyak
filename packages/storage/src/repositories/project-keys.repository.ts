@@ -1,93 +1,149 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { Database } from '@/client.js';
-import { generatePublishableKey, hashKey } from '@/lib/keys.js';
+import { generatePublishableKey } from '@/lib/keys.js';
 import { projectKeys } from '@/schema/project-keys.js';
 
-export type CreateProjectKeyInput = {
-  projectId: string;
-  name: string;
-};
-
 export type ProjectKeyRecord = {
-  id: string;
-  projectId: string;
-  name: string;
-  createdAt: Date;
-  revokedAt: Date | null;
-  updatedAt: Date;
+  readonly id: string;
+  readonly projectId: string;
+  readonly key: string;
+  readonly createdAt: Date;
+  readonly lastUsedAt: Date | null;
+  readonly expiresAt: Date | null;
 };
 
-export type CreatedProjectKeyRecord = ProjectKeyRecord & {
-  key: string;
+export type ProjectKeyState = {
+  readonly active: ProjectKeyRecord | null;
+  readonly grace: ProjectKeyRecord | null;
 };
+
+type ProjectKeyRow = typeof projectKeys.$inferSelect;
+
+function toRecord(row: ProjectKeyRow): ProjectKeyRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    key: row.key,
+    createdAt: row.createdAt,
+    lastUsedAt: row.lastUsedAt ?? null,
+    expiresAt: row.expiresAt ?? null,
+  };
+}
+
+function partitionByState(rows: readonly ProjectKeyRow[], now: Date): ProjectKeyState {
+  const activeRow = rows.find((row) => row.expiresAt === null);
+  const graceRow = rows.find((row) => row.expiresAt !== null && row.expiresAt > now);
+  return {
+    active: activeRow ? toRecord(activeRow) : null,
+    grace: graceRow ? toRecord(graceRow) : null,
+  };
+}
 
 export class ProjectKeysRepository {
   constructor(private readonly db: Database) {}
 
-  async findActiveByKey(key: string): Promise<{ id: string; projectId: string } | null> {
+  async findValidByKey(key: string, now: Date): Promise<{ id: string; projectId: string } | null> {
     const [row] = await this.db
       .select({ id: projectKeys.id, projectId: projectKeys.projectId })
       .from(projectKeys)
-      .where(and(eq(projectKeys.key, hashKey(key)), isNull(projectKeys.revokedAt)))
+      .where(
+        and(
+          eq(projectKeys.key, key),
+          isNull(projectKeys.revokedAt),
+          sql`(${projectKeys.expiresAt} is null or ${projectKeys.expiresAt} > ${now})`,
+        ),
+      )
       .limit(1);
-
     return row ?? null;
   }
 
-  async create(input: CreateProjectKeyInput): Promise<CreatedProjectKeyRecord> {
-    const key = generatePublishableKey();
-
-    const [record] = await this.db
-      .insert(projectKeys)
-      .values({ projectId: input.projectId, name: input.name, key: hashKey(key) })
-      .returning();
-
-    if (!record) {
-      throw new Error('Failed to insert project key.');
-    }
-
-    return {
-      id: record.id,
-      projectId: record.projectId,
-      name: record.name,
-      key,
-      createdAt: record.createdAt,
-      revokedAt: record.revokedAt ?? null,
-      updatedAt: record.updatedAt,
-    };
+  async getState(projectId: string, now: Date): Promise<ProjectKeyState> {
+    const rows = await this.db
+      .select()
+      .from(projectKeys)
+      .where(and(eq(projectKeys.projectId, projectId), isNull(projectKeys.revokedAt)));
+    return partitionByState(rows, now);
   }
 
-  async revoke(projectId: string, keyId: string): Promise<boolean> {
+  async hasAnyKey(projectId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: projectKeys.id })
+      .from(projectKeys)
+      .where(eq(projectKeys.projectId, projectId))
+      .limit(1);
+    return row !== undefined;
+  }
+
+  async generate(projectId: string): Promise<ProjectKeyRecord> {
+    const [row] = await this.db
+      .insert(projectKeys)
+      .values({ projectId, key: generatePublishableKey() })
+      .returning();
+    if (!row) throw new Error('Failed to insert project key.');
+    return toRecord(row);
+  }
+
+  async roll(projectId: string, graceMs: number, now: Date): Promise<ProjectKeyState | null> {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .update(projectKeys)
+        .set({ revokedAt: now })
+        .where(
+          and(
+            eq(projectKeys.projectId, projectId),
+            isNull(projectKeys.revokedAt),
+            isNotNull(projectKeys.expiresAt),
+          ),
+        );
+
+      const demoted = await tx
+        .update(projectKeys)
+        .set({ expiresAt: new Date(now.getTime() + graceMs) })
+        .where(
+          and(
+            eq(projectKeys.projectId, projectId),
+            isNull(projectKeys.revokedAt),
+            isNull(projectKeys.expiresAt),
+          ),
+        )
+        .returning();
+
+      if (demoted.length === 0) return null;
+
+      const [created] = await tx
+        .insert(projectKeys)
+        .values({ projectId, key: generatePublishableKey() })
+        .returning();
+      if (!created) throw new Error('Failed to insert project key.');
+
+      return partitionByState([...demoted, created], now);
+    });
+  }
+
+  async revokeAll(projectId: string, now: Date): Promise<boolean> {
     const result = await this.db
       .update(projectKeys)
-      .set({ revokedAt: new Date() })
-      .where(
-        and(
-          eq(projectKeys.id, keyId),
-          eq(projectKeys.projectId, projectId),
-          isNull(projectKeys.revokedAt),
-        ),
-      );
-
+      .set({ revokedAt: now })
+      .where(and(eq(projectKeys.projectId, projectId), isNull(projectKeys.revokedAt)));
     return (result.rowCount ?? 0) > 0;
   }
 
-  async listByProject(projectId: string): Promise<ProjectKeyRecord[]> {
-    const rows = await this.db
-      .select({
-        id: projectKeys.id,
-        projectId: projectKeys.projectId,
-        name: projectKeys.name,
-        createdAt: projectKeys.createdAt,
-        revokedAt: projectKeys.revokedAt,
-        updatedAt: projectKeys.updatedAt,
-      })
-      .from(projectKeys)
-      .where(eq(projectKeys.projectId, projectId));
+  async revokeGrace(projectId: string, now: Date): Promise<boolean> {
+    const result = await this.db
+      .update(projectKeys)
+      .set({ revokedAt: now })
+      .where(
+        and(
+          eq(projectKeys.projectId, projectId),
+          isNull(projectKeys.revokedAt),
+          isNotNull(projectKeys.expiresAt),
+          gt(projectKeys.expiresAt, now),
+        ),
+      );
+    return (result.rowCount ?? 0) > 0;
+  }
 
-    return rows.map((r) => ({
-      ...r,
-      revokedAt: r.revokedAt ?? null,
-    }));
+  async touchLastUsed(keyId: string, now: Date): Promise<void> {
+    await this.db.update(projectKeys).set({ lastUsedAt: now }).where(eq(projectKeys.id, keyId));
   }
 }

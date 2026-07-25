@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { createDatabase, type Database } from '@/client.js';
-import { hashKey } from '@/lib/keys.js';
 import { organizations, projectKeys, projects } from '@/schema/index.js';
 
 const ROOT_ENV = '../../.env';
@@ -27,8 +26,7 @@ export async function seed(db: Database): Promise<void> {
     .values({
       id: DEV_PROJECT_KEY_ID,
       projectId: DEV_PROJECT_ID,
-      name: 'Dev Key',
-      key: hashKey(DEV_PROJECT_KEY),
+      key: DEV_PROJECT_KEY,
     })
     .onConflictDoNothing();
 }
