@@ -1,12 +1,13 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from '@/client.js';
+import { PG_CODES, pgErrorCode } from '@/lib/pg-error.js';
 import { ProjectKeysRepository } from '@/repositories/project-keys.repository.js';
 import { ProjectsRepository } from '@/repositories/projects.repository.js';
 import * as schema from '@/schema/index.js';
@@ -63,14 +64,17 @@ describe('ProjectKeysRepository (integration)', () => {
   it('rejects a second active key for the same project', async () => {
     await keys.generate(projectId);
 
-    await expect(keys.generate(projectId)).rejects.toThrow();
+    const rejection = await keys.generate(projectId).catch((error: unknown) => error);
+
+    expect(pgErrorCode(rejection)).toBe(PG_CODES.uniqueViolation);
   });
 
   it('allows an active key per project independently', async () => {
-    await keys.generate(projectId);
+    const mine = await keys.generate(projectId);
     const other = await keys.generate(otherProjectId);
 
     expect(other.projectId).toBe(otherProjectId);
+    expect((await keys.getState(projectId, NOW)).active?.key).toBe(mine.key);
   });
 
   it('reports the active key and no grace key before any roll', async () => {
@@ -94,6 +98,19 @@ describe('ProjectKeysRepository (integration)', () => {
 
   it('returns null when rolling a project with no active key', async () => {
     expect(await keys.roll(projectId, GRACE_MS, NOW)).toBeNull();
+  });
+
+  it('leaves the grace key valid when rolling a project whose active key was revoked', async () => {
+    const original = await keys.generate(projectId);
+    await keys.roll(projectId, GRACE_MS, NOW);
+    await db
+      .update(projectKeysTable)
+      .set({ revokedAt: NOW })
+      .where(and(eq(projectKeysTable.projectId, projectId), isNull(projectKeysTable.expiresAt)));
+
+    expect(await keys.roll(projectId, GRACE_MS, NOW)).toBeNull();
+
+    expect(await keys.findValidByKey(original.key, NOW)).not.toBeNull();
   });
 
   it('revokes the outgoing grace key when rolling twice', async () => {
@@ -193,6 +210,7 @@ describe('ProjectKeysRepository (integration)', () => {
 
     const rows = await db.select().from(projectKeysTable);
 
+    expect(rows).toHaveLength(1);
     expect(rows.every((row) => row.revokedAt !== null)).toBe(true);
   });
 });

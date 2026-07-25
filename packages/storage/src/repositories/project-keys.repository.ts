@@ -85,6 +85,21 @@ export class ProjectKeysRepository {
 
   async roll(projectId: string, graceMs: number, now: Date): Promise<ProjectKeyState | null> {
     return this.db.transaction(async (tx) => {
+      const [active] = await tx
+        .select({ id: projectKeys.id })
+        .from(projectKeys)
+        .where(
+          and(
+            eq(projectKeys.projectId, projectId),
+            isNull(projectKeys.revokedAt),
+            isNull(projectKeys.expiresAt),
+          ),
+        )
+        .for('update')
+        .limit(1);
+
+      if (!active) return null;
+
       await tx
         .update(projectKeys)
         .set({ revokedAt: now })
@@ -107,8 +122,6 @@ export class ProjectKeysRepository {
           ),
         )
         .returning();
-
-      if (demoted.length === 0) return null;
 
       const [created] = await tx
         .insert(projectKeys)
