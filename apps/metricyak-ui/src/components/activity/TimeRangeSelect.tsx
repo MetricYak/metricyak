@@ -1,15 +1,20 @@
 import { Check, ChevronDown, Clock } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
 import { useState } from 'react';
-import { TIME_RANGES, type TimeRange, timeRangeLabel } from '@/api/events';
+import { TIME_RANGES, type TimeRange, type TimeRangeOption, timeRangeLabel } from '@/api/events';
 import { cn } from '@/lib/utils';
 
 interface TimeRangeSelectProps {
   value: TimeRange;
   onChange: (range: TimeRange) => void;
+  options?: readonly TimeRangeOption[];
 }
 
-export function TimeRangeSelect({ value, onChange }: TimeRangeSelectProps): React.JSX.Element {
+export function TimeRangeSelect({
+  value,
+  onChange,
+  options = TIME_RANGES,
+}: TimeRangeSelectProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
 
   return (
@@ -44,7 +49,7 @@ export function TimeRangeSelect({ value, onChange }: TimeRangeSelectProps): Reac
           }}
         >
           <DropdownMenu.RadioGroup value={value} onValueChange={(v) => onChange(v as TimeRange)}>
-            {TIME_RANGES.map((option) => (
+            {options.map((option) => (
               <DropdownMenu.RadioItem
                 key={option.id}
                 value={option.id}
