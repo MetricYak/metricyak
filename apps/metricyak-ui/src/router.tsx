@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { App } from './App';
 import { NotFoundPage } from './components/shell/NotFoundPage';
-import { PlaceholderPage } from './components/shell/PlaceholderPage';
 import { ProjectRouteGuard } from './components/shell/ProjectRouteGuard';
 import { RootRedirect } from './components/shell/RootRedirect';
 
@@ -55,7 +54,13 @@ export const router = createBrowserRouter([
                       ).MetricDefinitionsPage,
                     }),
                   },
-                  { path: 'explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
+                  {
+                    path: 'explore',
+                    lazy: async () => ({
+                      Component: (await import('./components/metrics/explore/MetricExplorePage'))
+                        .MetricExplorePage,
+                    }),
+                  },
                 ],
               },
               {
