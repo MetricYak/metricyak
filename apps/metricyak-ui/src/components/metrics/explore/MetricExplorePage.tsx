@@ -231,7 +231,10 @@ export function MetricExplorePage(): React.JSX.Element {
   const showing = lastGood && lastGood.metricId === metricId ? lastGood : null;
 
   return (
-    <PageContainer width="wide" className="flex flex-col gap-4 py-6">
+    <PageContainer
+      width="wide"
+      className="flex flex-col gap-4 py-6 md:h-full md:min-h-0 md:overflow-hidden"
+    >
       <ExploreToolbar
         projectId={projectId}
         metrics={metrics}
@@ -242,7 +245,10 @@ export function MetricExplorePage(): React.JSX.Element {
         onChange={applyState}
       />
 
-      <Surface padding="none" className="p-4">
+      <Surface
+        padding="none"
+        className="flex min-h-80 flex-col p-4 md:min-h-0 md:flex-1 md:overflow-hidden"
+      >
         {failed && showing ? (
           <StaleBanner
             onRetry={loadSeries}
@@ -250,7 +256,13 @@ export function MetricExplorePage(): React.JSX.Element {
           />
         ) : null}
 
-        <div ref={chartFrame} className="relative">
+        {showing?.compare && hasNoRecordedValue(showing.compare) ? (
+          <p className="mb-3 text-muted-foreground text-xs">
+            Nothing recorded in the previous period, so there's no comparison to draw.
+          </p>
+        ) : null}
+
+        <div ref={chartFrame} className="relative min-h-64 flex-1">
           {metricMissing ? (
             <CenteredMessage title="That metric isn't in this project">
               Pick another from the menu above.

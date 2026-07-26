@@ -169,7 +169,7 @@ export function MetricChart({
   };
 
   return (
-    <ChartContainer>
+    <ChartContainer height="100%">
       <LineChart
         accessibilityLayer
         data={rows}
@@ -200,7 +200,7 @@ export function MetricChart({
           cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
           content={<MetricChartTooltip granularity={granularity} />}
         />
-        {series.length >= 2 ? (
+        {series.length >= 2 || compareSeries ? (
           <Legend
             verticalAlign="bottom"
             height={28}

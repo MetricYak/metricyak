@@ -20,7 +20,7 @@ export function ChartContainer({
   className,
   children,
 }: {
-  height?: number;
+  height?: number | string;
   className?: string;
   children: React.ReactElement;
 }): React.JSX.Element {
