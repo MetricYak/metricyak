@@ -42,6 +42,20 @@ describe('bucketStarts', () => {
     ]);
   });
 
+  it('aligns the grid to the granularity boundary so it matches toStartOfInterval', () => {
+    const starts = bucketStarts(
+      new Date('2026-07-26T19:54:45.000Z'),
+      new Date('2026-07-26T22:00:00.000Z'),
+      '1h',
+    );
+
+    expect(starts.map((d) => d.toISOString())).toEqual([
+      '2026-07-26T19:00:00.000Z',
+      '2026-07-26T20:00:00.000Z',
+      '2026-07-26T21:00:00.000Z',
+    ]);
+  });
+
   it('returns an empty grid when from is not before to', () => {
     const at = new Date('2026-07-26T00:00:00.000Z');
     expect(bucketStarts(at, at, '1h')).toEqual([]);
@@ -49,6 +63,19 @@ describe('bucketStarts', () => {
 });
 
 describe('buildSeries', () => {
+  it('reads partials landing on aligned buckets when the window starts mid-bucket', () => {
+    const series = buildSeries({
+      definition: countDefinition,
+      partials: [partial({ bucketStart: new Date('2026-07-26T19:00:00.000Z'), count: 5 })],
+      from: new Date('2026-07-26T19:54:45.000Z'),
+      to: new Date('2026-07-26T21:00:00.000Z'),
+      granularity: '1h',
+      maxSeries: 6,
+    });
+
+    expect(series[0]?.points.map((p) => p.value)).toEqual([5, 0]);
+  });
+
   it('emits one point per bucket, zero-filling gaps for a count metric', () => {
     const series = buildSeries({
       definition: countDefinition,

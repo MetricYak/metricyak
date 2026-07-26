@@ -6,11 +6,6 @@ import { createRouter } from '@/http/router.js';
 import { orNotFound } from '@/http/scope.js';
 import { type DimensionFilter, MAX_CHART_SERIES } from '@/modules/aggregates/aggregates.reads.js';
 import {
-  bucketCountFor,
-  type Granularity,
-  MAX_SERIES_BUCKETS,
-} from '@/modules/aggregates/engine/series.js';
-import {
   MetricEventsQuery,
   MetricParams,
   SeriesQuery,
@@ -18,6 +13,11 @@ import {
   ValueQuery,
   ValueResponse,
 } from '@/modules/aggregates/aggregates.schemas.js';
+import {
+  bucketCountFor,
+  type Granularity,
+  MAX_SERIES_BUCKETS,
+} from '@/modules/aggregates/engine/series.js';
 import { ListEventsResponse } from '@/modules/events/events.schemas.js';
 
 export function parseFilters(raw: string | string[] | undefined): DimensionFilter[] {
