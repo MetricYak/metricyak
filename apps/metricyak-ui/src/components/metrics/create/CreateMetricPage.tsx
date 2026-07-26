@@ -46,8 +46,12 @@ export function CreateMetricPage(): React.JSX.Element {
   const { control, handleSubmit, setError } = form;
   const { fields, append, remove } = useFieldArray({ control, name: 'events' });
   const events = form.watch('events');
-  const { events: seenEvents, loading: seenLoading } = useRecentlySeenEvents();
-  const showFirstEventCallout = !seenLoading && seenEvents.length === 0;
+  const {
+    names: seenEventNames,
+    loading: seenLoading,
+    failed: seenFailed,
+  } = useRecentlySeenEvents();
+  const showFirstEventCallout = !seenLoading && !seenFailed && seenEventNames.length === 0;
   const isDirty = form.formState.isDirty && !submitting;
 
   useEffect(() => {

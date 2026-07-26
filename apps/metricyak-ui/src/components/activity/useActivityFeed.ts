@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { listRecentEvents, type PlatformActivity, subscribeToEvents } from '@/api/events';
+import { listRecentEvents, type RealEvent } from '@/api/events';
+import { usePolling } from '@/hooks/usePolling';
 
 const MAX_ROWS = 250;
+const FEED_POLL_MS = 3000;
+const MAX_ARRIVALS = 2000;
 
 export interface ActivityFeed {
-  items: PlatformActivity[];
+  items: RealEvent[];
   freshIds: Set<string>;
   bufferedCount: number;
   live: boolean;
@@ -18,8 +21,8 @@ export interface ActivityFeed {
 }
 
 export function useActivityFeed(projectId: string | null): ActivityFeed {
-  const [items, setItems] = useState<PlatformActivity[]>([]);
-  const [buffer, setBuffer] = useState<PlatformActivity[]>([]);
+  const [items, setItems] = useState<RealEvent[]>([]);
+  const [buffer, setBuffer] = useState<RealEvent[]>([]);
   const [freshIds, setFreshIds] = useState<Set<string>>(() => new Set());
   const [live, setLiveState] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,10 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
   const atTopRef = useRef(true);
   const followingRef = useRef(true);
   const arrivalsRef = useRef<number[]>([]);
+  const itemsRef = useRef<RealEvent[]>([]);
+  itemsRef.current = items;
+  const bufferRef = useRef<RealEvent[]>([]);
+  bufferRef.current = buffer;
 
   const recomputeFollowing = useCallback((): boolean => {
     followingRef.current = liveRef.current && atTopRef.current;
@@ -92,32 +99,42 @@ export function useActivityFeed(projectId: string | null): ActivityFeed {
         setLoading(false);
       });
 
-    const unsubscribe = subscribeToEvents(projectId, (activity) => {
-      if (!active) return;
-
-      const now = Date.now();
-      const arrivals = arrivalsRef.current;
-      arrivals.push(now);
-      const cutoff = now - 60_000;
-      while (arrivals.length && (arrivals[0] as number) < cutoff) arrivals.shift();
-
-      if (followingRef.current) {
-        setItems((prev) => [activity, ...prev].slice(0, MAX_ROWS));
-        setFreshIds((prev) => {
-          const next = new Set(prev);
-          next.add(activity.id);
-          return next;
-        });
-      } else {
-        setBuffer((prev) => [activity, ...prev]);
-      }
-    });
-
     return () => {
       active = false;
-      unsubscribe();
     };
   }, [projectId, reloadKey]);
+
+  // Newly-seen events go straight to the visible rows while the user is following
+  // the top of the feed, and into the buffer otherwise so the "new events" count
+  // is what interrupts them — never a list that jumps under the cursor.
+  const absorbArrivals = useCallback((recent: readonly RealEvent[]): void => {
+    const known = new Set([...itemsRef.current, ...bufferRef.current].map((event) => event.id));
+    const arrived = recent.filter((event) => !known.has(event.id));
+    if (arrived.length === 0) return;
+
+    const arrivedAt = Date.now();
+    arrivalsRef.current = [...arrivalsRef.current, ...arrived.map(() => arrivedAt)].slice(
+      -MAX_ARRIVALS,
+    );
+
+    if (followingRef.current) {
+      setItems((prev) => [...arrived, ...prev].slice(0, MAX_ROWS));
+      setFreshIds(new Set(arrived.map((event) => event.id)));
+      return;
+    }
+    setBuffer((prev) => [...arrived, ...prev]);
+  }, []);
+
+  usePolling(
+    () => {
+      if (!projectId) return;
+      listRecentEvents(projectId)
+        .then(absorbArrivals)
+        .catch(() => undefined);
+    },
+    FEED_POLL_MS,
+    projectId != null,
+  );
 
   useEffect(() => {
     if (freshIds.size === 0) return;

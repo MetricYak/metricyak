@@ -185,8 +185,8 @@ function LiveStream({ feed }: { feed: ReturnType<typeof useActivityFeed> }): Rea
                   <EventRow
                     key={activity.id}
                     event={activity}
-                    time={formatRelative(activity.receivedAt, nowMs)}
-                    timeTitle={formatFull(activity.receivedAt)}
+                    time={formatRelative(activity.timestamp, nowMs)}
+                    timeTitle={formatFull(activity.timestamp)}
                     fresh={freshIds.has(activity.id)}
                   />
                 ))
