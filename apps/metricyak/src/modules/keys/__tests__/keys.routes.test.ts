@@ -38,17 +38,24 @@ function createStubbedApp(overrides: Partial<Stub> = {}) {
     ...overrides,
   };
 
+  const mint = () => {
+    stub.generated.push('myk_generated');
+    const record = keyRecord('myk_generated', null);
+    stub.state = { active: record, grace: null };
+    return record;
+  };
+
   const container = {
     repos: {
       projects: { get: async () => ({ id: PROJECT_ID }) },
       projectKeys: {
         getState: async () => stub.state,
         hasAnyKey: async () => stub.anyKey,
-        generate: async () => {
-          stub.generated.push('myk_generated');
-          const record = keyRecord('myk_generated', null);
-          stub.state = { active: record, grace: null };
-          return record;
+        generate: async () => mint(),
+        generateIfNoneActive: async () => {
+          if (stub.state.active) return false;
+          mint();
+          return true;
         },
         roll: async () => {
           stub.rolled += 1;

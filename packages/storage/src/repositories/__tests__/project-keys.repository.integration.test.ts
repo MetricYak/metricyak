@@ -69,6 +69,33 @@ describe('ProjectKeysRepository (integration)', () => {
     expect(pgErrorCode(rejection)).toBe(PG_CODES.uniqueViolation);
   });
 
+  it('generates a key for a project that has none', async () => {
+    expect(await keys.generateIfNoneActive(projectId)).toBe(true);
+    expect((await keys.getState(projectId, NOW)).active).not.toBeNull();
+  });
+
+  it('leaves an existing active key untouched rather than conflicting', async () => {
+    const original = await keys.generate(projectId);
+
+    expect(await keys.generateIfNoneActive(projectId)).toBe(false);
+    expect((await keys.getState(projectId, NOW)).active?.key).toBe(original.key);
+  });
+
+  it('settles concurrent generation on one key instead of raising a unique violation', async () => {
+    const outcomes = await Promise.allSettled([
+      keys.generateIfNoneActive(projectId),
+      keys.generateIfNoneActive(projectId),
+      keys.generateIfNoneActive(projectId),
+    ]);
+
+    expect(outcomes.every((outcome) => outcome.status === 'fulfilled')).toBe(true);
+    const rows = await db
+      .select()
+      .from(projectKeysTable)
+      .where(eq(projectKeysTable.projectId, projectId));
+    expect(rows).toHaveLength(1);
+  });
+
   it('allows an active key per project independently', async () => {
     const mine = await keys.generate(projectId);
     const other = await keys.generate(otherProjectId);
