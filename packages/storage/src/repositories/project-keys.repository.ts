@@ -1,5 +1,5 @@
 import { and, eq, gt, isNotNull, isNull, sql } from 'drizzle-orm';
-import type { Database } from '@/client.js';
+import type { Database, Executor } from '@/client.js';
 import { generatePublishableKey } from '@/lib/keys.js';
 import { projectKeys } from '@/schema/project-keys.js';
 
@@ -74,13 +74,25 @@ export class ProjectKeysRepository {
     return row !== undefined;
   }
 
-  async generate(projectId: string): Promise<ProjectKeyRecord> {
-    const [row] = await this.db
+  async generate(projectId: string, executor: Executor = this.db): Promise<ProjectKeyRecord> {
+    const [row] = await executor
       .insert(projectKeys)
       .values({ projectId, key: generatePublishableKey() })
       .returning();
     if (!row) throw new Error('Failed to insert project key.');
     return toRecord(row);
+  }
+
+  async generateIfNoneActive(projectId: string, executor: Executor = this.db): Promise<boolean> {
+    const inserted = await executor
+      .insert(projectKeys)
+      .values({ projectId, key: generatePublishableKey() })
+      .onConflictDoNothing({
+        target: projectKeys.projectId,
+        where: sql`revoked_at is null and expires_at is null`,
+      })
+      .returning();
+    return inserted.length > 0;
   }
 
   async roll(projectId: string, graceMs: number, now: Date): Promise<ProjectKeyState | null> {

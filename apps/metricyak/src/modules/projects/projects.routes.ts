@@ -100,8 +100,11 @@ projectsRouter.openapi(createProjectRoute, async (c) => {
 
   orNotFound(await organizations.get(organizationId), 'The organization could not be found.');
 
-  const record = await projects.create({ organizationId, name });
-  await projectKeys.generate(record.id);
+  const record = await c.var.container.db.transaction(async (tx) => {
+    const created = await projects.create({ organizationId, name }, tx);
+    await projectKeys.generate(created.id, tx);
+    return created;
+  });
 
   return respond(
     c,
