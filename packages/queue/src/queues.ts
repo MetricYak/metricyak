@@ -68,6 +68,9 @@ export type MonitorRelayJob = {
   tickAt: string;
 };
 
+// Must stay comfortably above KAFKA_FLUSH_INTERVAL_MS in @metricyak/clickhouse: an
+// eval that fires before ClickHouse has flushed the triggering event reads a stale
+// value, and nothing re-triggers it until the next event or the backstop.
 export const MONITOR_DEBOUNCE_MS = 5000;
 
 export const MONITOR_DRAIN_QUEUE = 'monitor-drain' as const;
