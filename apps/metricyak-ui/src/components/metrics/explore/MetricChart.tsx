@@ -1,4 +1,3 @@
-import { useReducedMotion } from 'motion/react';
 import { type MouseEvent, useMemo, useRef } from 'react';
 import {
   CartesianGrid,
@@ -122,10 +121,10 @@ export function MetricChart({
   selection,
   onSelect,
 }: MetricChartProps): React.JSX.Element {
-  const reduceMotion = useReducedMotion();
   const rows = useMemo(() => toChartRows(series, compareSeries), [series, compareSeries]);
-  const dragStart = useRef<{ label: string; x: number } | null>(null);
+  const dragStart = useRef<{ label: string | null; x: number } | null>(null);
   const dragEnd = useRef<string | null>(null);
+  const draggedRef = useRef(false);
 
   const finePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
   const step = GRANULARITY_MS[granularity];
@@ -142,29 +141,38 @@ export function MetricChart({
   };
 
   const handleMouseDown: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
-    const label = activeLabelOf(state);
-    if (!finePointer || label === null) return;
-    dragStart.current = { label, x: state.activeCoordinate?.x ?? 0 };
-    dragEnd.current = label;
+    if (!finePointer) return;
+    dragStart.current = { label: activeLabelOf(state), x: state.activeCoordinate?.x ?? 0 };
+    dragEnd.current = null;
   };
 
   const handleMouseMove: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
     const label = activeLabelOf(state);
-    if (dragStart.current && label !== null) dragEnd.current = label;
+    if (!dragStart.current) return;
+    if (dragStart.current.label === null) dragStart.current.label = label;
+    if (label !== null) dragEnd.current = label;
   };
 
   const handleMouseUp: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
     const start = dragStart.current;
     dragStart.current = null;
     if (!start) return;
+
     const moved = Math.abs((state.activeCoordinate?.x ?? start.x) - start.x);
-    const end = moved < DRAG_THRESHOLD_PX ? start.label : (dragEnd.current ?? start.label);
+    const end = dragEnd.current ?? activeLabelOf(state);
+    if (moved < DRAG_THRESHOLD_PX || start.label === null || end === null) return;
+
+    draggedRef.current = true;
     emitSelection(start.label, end);
   };
 
   const handleClick: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
+    if (draggedRef.current) {
+      draggedRef.current = false;
+      return;
+    }
     const label = activeLabelOf(state);
-    if (finePointer || label === null) return;
+    if (label === null) return;
     emitSelection(label, label);
   };
 
@@ -228,8 +236,7 @@ export function MetricChart({
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
-            isAnimationActive={!reduceMotion}
-            animationDuration={200}
+            isAnimationActive={false}
           />
         ))}
         {compareSeries ? (
@@ -242,8 +249,7 @@ export function MetricChart({
             strokeDasharray="4 4"
             dot={false}
             activeDot={{ r: 3 }}
-            isAnimationActive={!reduceMotion}
-            animationDuration={200}
+            isAnimationActive={false}
           />
         ) : null}
       </LineChart>

@@ -7,10 +7,13 @@ import { listMetrics, type Metric } from '@/api/metrics';
 import { PageContainer } from '@/components/shell/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/surface';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { usePanelHeight } from '@/hooks/usePanelHeight';
 import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
-import { type ExploreState, readExploreState, writeExploreState } from './explore-url';
+import { BucketEventsPanel } from './BucketEventsPanel';
 import { ExploreToolbar } from './ExploreToolbar';
+import { type ExploreState, readExploreState, writeExploreState } from './explore-url';
 import { granularityFor } from './granularity';
 import { MetricChart } from './MetricChart';
 
@@ -97,6 +100,13 @@ export function MetricExplorePage(): React.JSX.Element {
   const [chartWidth, setChartWidth] = useState(DEFAULT_CHART_WIDTH);
   const chartFrame = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const panel = usePanelHeight({
+    minHeight: 160,
+    maxHeight: 520,
+    defaultHeight: 280,
+    storageKey: 'metricyak.explore-panel-height',
+  });
 
   const applyState = useCallback(
     (next: ExploreState): void => {
@@ -146,6 +156,8 @@ export function MetricExplorePage(): React.JSX.Element {
 
   const granularity = state.granularity ?? granularityFor(state.range, chartWidth);
   const metricId = requestedMetric?.id ?? null;
+  const drilling = state.selection !== null && !metricMissing;
+  const fullScreenPanel = !isDesktop;
 
   const loadSeries = useCallback((): void => {
     if (!metricId) return;
@@ -250,10 +262,7 @@ export function MetricExplorePage(): React.JSX.Element {
         className="flex min-h-80 flex-col p-4 md:min-h-0 md:flex-1 md:overflow-hidden"
       >
         {failed && showing ? (
-          <StaleBanner
-            onRetry={loadSeries}
-            onDismiss={() => setFailed(false)}
-          />
+          <StaleBanner onRetry={loadSeries} onDismiss={() => setFailed(false)} />
         ) : null}
 
         {showing?.compare && hasNoRecordedValue(showing.compare) ? (
@@ -262,7 +271,10 @@ export function MetricExplorePage(): React.JSX.Element {
           </p>
         ) : null}
 
-        <div ref={chartFrame} className="relative min-h-64 flex-1">
+        <div
+          ref={chartFrame}
+          className={cn('relative min-h-64 flex-1', drilling && fullScreenPanel && 'hidden')}
+        >
           {metricMissing ? (
             <CenteredMessage title="That metric isn't in this project">
               Pick another from the menu above.
@@ -309,6 +321,34 @@ export function MetricExplorePage(): React.JSX.Element {
             <ChartSkeleton />
           )}
         </div>
+
+        {drilling && metricId && state.selection ? (
+          <>
+            {fullScreenPanel ? null : (
+              <div
+                {...panel.handleProps}
+                data-resizing={panel.resizing}
+                className="group/handle -mx-4 mt-2 h-3 shrink-0 cursor-row-resize touch-none select-none"
+              >
+                <div className="pointer-events-none mt-1.5 h-px w-full bg-border transition-[transform,background-color] group-hover/handle:scale-y-[3] group-hover/handle:bg-ring group-data-[resizing=true]/handle:scale-y-[3] group-data-[resizing=true]/handle:bg-ring" />
+              </div>
+            )}
+            <div
+              className={cn('flex min-h-0 flex-col', fullScreenPanel ? 'flex-1' : 'shrink-0')}
+              style={fullScreenPanel ? undefined : { height: panel.height }}
+            >
+              <BucketEventsPanel
+                key={`${state.selection.from}..${state.selection.to}`}
+                projectId={projectId}
+                metricId={metricId}
+                selection={state.selection}
+                filters={state.filters}
+                fullScreen={fullScreenPanel}
+                onClose={() => applyState({ ...state, selection: null })}
+              />
+            </div>
+          </>
+        ) : null}
       </Surface>
     </PageContainer>
   );
