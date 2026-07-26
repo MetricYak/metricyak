@@ -33,6 +33,24 @@ export function windowLabel(duration: string): string {
   return `${amount} ${unit}${amount === 1 ? '' : 's'}`;
 }
 
+const AWAITING_THRESHOLD = '…';
+
+type PreviewArgs = {
+  metricName: string | null;
+  operator: ConditionOperator;
+  value: number | null;
+  window: string;
+  holdFor?: string;
+};
+
+export function previewSentence(args: PreviewArgs): string {
+  if (!args.metricName) return 'Pick a metric to watch.';
+  const amount = args.value == null ? AWAITING_THRESHOLD : formatThreshold(args.value);
+  const held = args.holdFor && !/^0/.test(args.holdFor);
+  const holdClause = held ? ` — sustained for ${windowLabel(args.holdFor ?? '')}` : '';
+  return `Alert me when ${args.metricName} is ${operatorPhrase(args.operator)} ${amount} over the last ${windowLabel(args.window)}${holdClause}.`;
+}
+
 type SentenceArgs = {
   metricName: string;
   operator: ConditionOperator;
@@ -43,15 +61,10 @@ type SentenceArgs = {
 };
 
 export function conditionSentence(args: SentenceArgs): string {
-  const phrase = operatorPhrase(args.operator);
-  const amount = formatThreshold(args.value);
-  const windowText = windowLabel(args.window);
   if (!args.long) {
-    return `${args.metricName} ${phrase} ${amount} · last ${windowText}`;
+    return `${args.metricName} ${operatorPhrase(args.operator)} ${formatThreshold(args.value)} · last ${windowLabel(args.window)}`;
   }
-  const held = args.holdFor && !/^0/.test(args.holdFor);
-  const holdClause = held ? ` — sustained for ${windowLabel(args.holdFor ?? '')}` : '';
-  return `Alert me when ${args.metricName} is ${phrase} ${amount} over the last ${windowText}${holdClause}.`;
+  return previewSentence(args);
 }
 
 export function defaultMonitorName(args: {

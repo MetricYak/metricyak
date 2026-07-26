@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { BellRing } from 'lucide-react';
+import { BellRing, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { type Path, useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -28,17 +28,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Surface } from '@/components/ui/surface';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useProjectContext } from '@/contexts/ProjectContext';
 import { ApiError } from '@/lib/api';
 import { MonitorPreviewPanel } from './MonitorPreviewPanel';
 import {
+  advancedSummary,
   availableOperatorOptions,
   defaultMonitorFormValues,
   HOLD_FOR_OPTIONS,
   MISSING_DATA_OPTIONS,
   type MonitorFormValues,
   monitorFormSchema,
+  thresholdPlaceholder,
   toCreateMonitorInput,
   WINDOW_OPTIONS,
 } from './schema';
@@ -230,7 +233,7 @@ export function CreateMonitorPage(): React.JSX.Element {
                               <Input
                                 type="number"
                                 step="any"
-                                placeholder="5000"
+                                placeholder={thresholdPlaceholder(selectedMetric)}
                                 {...field}
                                 onChange={(event) => field.onChange(event.target.valueAsNumber)}
                               />
@@ -298,18 +301,50 @@ export function CreateMonitorPage(): React.JSX.Element {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={control}
+                      name="enabled"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between gap-4 border-border border-t pt-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Start watching now</FormLabel>
+                            <p className="text-muted-foreground text-sm">
+                              {field.value
+                                ? 'This monitor begins evaluating as soon as you create it.'
+                                : 'Created paused. Turn it on from the monitor page.'}
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                   </Surface>
 
-                  <Surface padding="lg" className="space-y-4">
+                  <Surface padding="none" className="overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setShowAdvanced((current) => !current)}
-                      className="font-medium text-foreground text-sm hover:underline"
+                      aria-expanded={showAdvanced}
+                      aria-controls="monitor-advanced-panel"
+                      className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
-                      {showAdvanced ? 'Hide advanced' : 'Advanced'}
+                      <ChevronRight
+                        className={`size-4 shrink-0 text-muted-foreground transition-transform ${
+                          showAdvanced ? 'rotate-90' : ''
+                        }`}
+                      />
+                      <span className="font-medium text-foreground text-sm">Advanced</span>
+                      <span className="ml-auto truncate text-muted-foreground text-sm">
+                        {advancedSummary(values.holdFor, values.missingData)}
+                      </span>
                     </button>
                     {showAdvanced ? (
-                      <div className="flex flex-wrap gap-4">
+                      <div
+                        id="monitor-advanced-panel"
+                        className="flex flex-wrap gap-4 border-border border-t px-5 py-4"
+                      >
                         <FormField
                           control={control}
                           name="holdFor"
@@ -368,6 +403,7 @@ export function CreateMonitorPage(): React.JSX.Element {
                     value={values.value}
                     window={values.window}
                     holdFor={values.holdFor}
+                    enabled={values.enabled}
                   />
                 </aside>
               </div>

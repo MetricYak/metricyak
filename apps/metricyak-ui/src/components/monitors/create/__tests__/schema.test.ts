@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { Metric } from '@/api/metrics';
 import {
+  advancedSummary,
   availableOperatorOptions,
   isFractionalMetric,
+  isPercentageMetric,
   monitorFormSchema,
+  thresholdPlaceholder,
   toCreateMonitorInput,
 } from '@/components/monitors/create/schema';
 
@@ -59,6 +62,51 @@ describe('availableOperatorOptions', () => {
   });
 });
 
+const CONVERSION_DEFINITION = {
+  events: [
+    { key: 'completed', source: 'web', type: 'checkout_completed', aggregation: 'count' as const },
+    { key: 'started', source: 'web', type: 'checkout_started', aggregation: 'count' as const },
+  ],
+  value: 'completed / started * 100',
+};
+
+describe('isPercentageMetric', () => {
+  it('is true for a ratio scaled to 100', () => {
+    expect(isPercentageMetric(CONVERSION_DEFINITION)).toBe(true);
+  });
+  it('is false for a bare ratio', () => {
+    expect(isPercentageMetric({ ...CONVERSION_DEFINITION, value: 'completed / started' })).toBe(
+      false,
+    );
+  });
+  it('is false without a division', () => {
+    expect(isPercentageMetric(metric().definition)).toBe(false);
+  });
+});
+
+describe('thresholdPlaceholder', () => {
+  it('suggests a percentage for a rate metric', () => {
+    expect(thresholdPlaceholder(metric({ definition: CONVERSION_DEFINITION }))).toBe('70');
+  });
+  it('suggests a fraction for a non-percentage ratio', () => {
+    expect(
+      thresholdPlaceholder(
+        metric({ definition: { ...CONVERSION_DEFINITION, value: 'completed / started' } }),
+      ),
+    ).toBe('0.5');
+  });
+  it('suggests a count for a plain count metric', () => {
+    expect(thresholdPlaceholder(metric())).toBe('5000');
+  });
+});
+
+describe('advancedSummary', () => {
+  it('summarises the collapsed advanced settings', () => {
+    expect(advancedSummary('0m', 'skip')).toBe('Fires immediately · Ignores missing data');
+    expect(advancedSummary('15m', 'fire')).toBe('Fires after 15 minutes · Alerts on missing data');
+  });
+});
+
 describe('monitorFormSchema', () => {
   it('requires a metric and a threshold value', () => {
     const result = monitorFormSchema.safeParse({
@@ -67,6 +115,7 @@ describe('monitorFormSchema', () => {
       window: '1d',
       holdFor: '0m',
       missingData: 'skip',
+      enabled: true,
       name: '',
       description: '',
     });
@@ -84,6 +133,7 @@ describe('toCreateMonitorInput', () => {
         window: '1d',
         holdFor: '0m',
         missingData: 'skip',
+        enabled: true,
         name: '',
         description: '',
       },
@@ -99,5 +149,23 @@ describe('toCreateMonitorInput', () => {
       enabled: true,
       missingData: 'skip',
     });
+  });
+
+  it('carries a paused monitor through as enabled false', () => {
+    const input = toCreateMonitorInput(
+      {
+        metricId: 'm1',
+        operator: 'lt',
+        value: 70,
+        window: '1h',
+        holdFor: '0m',
+        missingData: 'skip',
+        enabled: false,
+        name: '',
+        description: '',
+      },
+      metric(),
+    );
+    expect(input.enabled).toBe(false);
   });
 });
