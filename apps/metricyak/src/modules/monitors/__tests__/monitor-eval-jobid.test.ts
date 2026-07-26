@@ -14,4 +14,8 @@ describe('monitorEvalJobId', () => {
     const slotB = new Date('2026-07-17T00:01:00.000Z');
     expect(monitorEvalJobId(monitorId, slotA)).not.toBe(monitorEvalJobId(monitorId, slotB));
   });
+
+  it('contains no colon, which BullMQ rejects in a custom job id', () => {
+    expect(monitorEvalJobId(monitorId, new Date('2026-07-17T00:00:00.000Z'))).not.toContain(':');
+  });
 });
