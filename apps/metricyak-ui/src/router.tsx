@@ -2,131 +2,141 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { App } from './App';
 import { NotFoundPage } from './components/shell/NotFoundPage';
 import { PlaceholderPage } from './components/shell/PlaceholderPage';
+import { ProjectRouteGuard } from './components/shell/ProjectRouteGuard';
+import { RootRedirect } from './components/shell/RootRedirect';
 
 export const router = createBrowserRouter([
+  { path: '/', element: <RootRedirect /> },
   {
-    path: '/',
+    path: '/projects/:projectId',
     element: <App />,
     children: [
-      { index: true, element: <PlaceholderPage title="Dashboard" /> },
       {
-        path: 'activity',
-        lazy: async () => ({
-          Component: (await import('./components/activity/ActivityPage')).ActivityPage,
-        }),
+        element: <ProjectRouteGuard />,
         children: [
-          { index: true, element: <Navigate to="/activity/live" replace /> },
+          { index: true, element: <Navigate to="metrics/explore" replace /> },
           {
-            path: 'live',
+            path: 'activity',
             lazy: async () => ({
-              Component: (await import('./components/activity/ActivityPage')).ActivityLiveView,
-            }),
-          },
-          {
-            path: 'explore',
-            lazy: async () => ({
-              Component: (await import('./components/activity/ActivityPage')).ActivityExploreView,
-            }),
-          },
-          { path: '*', element: <NotFoundPage /> },
-        ],
-      },
-      {
-        path: 'metrics',
-        children: [
-          {
-            lazy: async () => ({
-              Component: (await import('./components/metrics/MetricsPage')).MetricsPage,
+              Component: (await import('./components/activity/ActivityPage')).ActivityPage,
             }),
             children: [
-              { index: true, element: <Navigate to="/metrics/definitions" replace /> },
+              { index: true, element: <Navigate to="live" replace /> },
               {
-                path: 'definitions',
+                path: 'live',
+                lazy: async () => ({
+                  Component: (await import('./components/activity/ActivityPage')).ActivityLiveView,
+                }),
+              },
+              {
+                path: 'explore',
+                lazy: async () => ({
+                  Component: (await import('./components/activity/ActivityPage'))
+                    .ActivityExploreView,
+                }),
+              },
+              { path: '*', element: <NotFoundPage /> },
+            ],
+          },
+          {
+            path: 'metrics',
+            children: [
+              {
+                lazy: async () => ({
+                  Component: (await import('./components/metrics/MetricsPage')).MetricsPage,
+                }),
+                children: [
+                  { index: true, element: <Navigate to="definitions" replace /> },
+                  {
+                    path: 'definitions',
+                    lazy: async () => ({
+                      Component: (
+                        await import('./components/metrics/definitions/MetricDefinitionsPage')
+                      ).MetricDefinitionsPage,
+                    }),
+                  },
+                  { path: 'explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
+                ],
+              },
+              {
+                path: 'definitions/new',
+                lazy: async () => ({
+                  Component: (await import('./components/metrics/create/CreateMetricPage'))
+                    .CreateMetricPage,
+                }),
+              },
+              {
+                path: 'definitions/:metricId',
                 lazy: async () => ({
                   Component: (
-                    await import('./components/metrics/definitions/MetricDefinitionsPage')
-                  ).MetricDefinitionsPage,
+                    await import('./components/metrics/definitions/MetricDefinitionDetailPage')
+                  ).MetricDefinitionDetailPage,
                 }),
               },
-              { path: 'explorer', element: <PlaceholderPage title="Metrics · Explorer" /> },
+              { path: '*', element: <NotFoundPage /> },
             ],
           },
           {
-            path: 'definitions/new',
-            lazy: async () => ({
-              Component: (await import('./components/metrics/create/CreateMetricPage'))
-                .CreateMetricPage,
-            }),
-          },
-          {
-            path: 'definitions/:metricId',
-            lazy: async () => ({
-              Component: (
-                await import('./components/metrics/definitions/MetricDefinitionDetailPage')
-              ).MetricDefinitionDetailPage,
-            }),
-          },
-          { path: '*', element: <NotFoundPage /> },
-        ],
-      },
-      {
-        path: 'monitors',
-        children: [
-          {
-            index: true,
-            lazy: async () => ({
-              Component: (await import('./components/monitors/MonitorsPage')).MonitorsPage,
-            }),
-          },
-          {
-            path: 'new',
-            lazy: async () => ({
-              Component: (await import('./components/monitors/create/CreateMonitorPage'))
-                .CreateMonitorPage,
-            }),
-          },
-          {
-            path: ':monitorId',
-            lazy: async () => ({
-              Component: (await import('./components/monitors/MonitorDetailPage'))
-                .MonitorDetailPage,
-            }),
-          },
-          { path: '*', element: <NotFoundPage /> },
-        ],
-      },
-      {
-        path: 'settings',
-        lazy: async () => ({
-          Component: (await import('./components/settings/SettingsPage')).SettingsPage,
-        }),
-        children: [
-          { index: true, element: <Navigate to="/settings/project/general" replace /> },
-          {
-            path: 'project',
+            path: 'monitors',
             children: [
-              { index: true, element: <Navigate to="/settings/project/general" replace /> },
               {
-                path: 'general',
+                index: true,
                 lazy: async () => ({
-                  Component: (await import('./components/settings/pages/ProjectGeneralPage'))
-                    .ProjectGeneralPage,
+                  Component: (await import('./components/monitors/MonitorsPage')).MonitorsPage,
                 }),
               },
               {
-                path: 'key',
+                path: 'new',
                 lazy: async () => ({
-                  Component: (await import('./components/settings/pages/ProjectKeyPage'))
-                    .ProjectKeyPage,
+                  Component: (await import('./components/monitors/create/CreateMonitorPage'))
+                    .CreateMonitorPage,
                 }),
               },
-              { path: 'keys', element: <Navigate to="/settings/project/key" replace /> },
+              {
+                path: ':monitorId',
+                lazy: async () => ({
+                  Component: (await import('./components/monitors/MonitorDetailPage'))
+                    .MonitorDetailPage,
+                }),
+              },
+              { path: '*', element: <NotFoundPage /> },
+            ],
+          },
+          {
+            path: 'settings',
+            lazy: async () => ({
+              Component: (await import('./components/settings/SettingsPage')).SettingsPage,
+            }),
+            children: [
+              { index: true, element: <Navigate to="project/general" replace /> },
+              {
+                path: 'project',
+                children: [
+                  { index: true, element: <Navigate to="general" replace /> },
+                  {
+                    path: 'general',
+                    lazy: async () => ({
+                      Component: (await import('./components/settings/pages/ProjectGeneralPage'))
+                        .ProjectGeneralPage,
+                    }),
+                  },
+                  {
+                    path: 'key',
+                    lazy: async () => ({
+                      Component: (await import('./components/settings/pages/ProjectKeyPage'))
+                        .ProjectKeyPage,
+                    }),
+                  },
+                  { path: 'keys', element: <Navigate to="../key" replace /> },
+                ],
+              },
+              { path: '*', element: <NotFoundPage /> },
             ],
           },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
+  { path: '*', element: <NotFoundPage /> },
 ]);
