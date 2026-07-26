@@ -6,6 +6,11 @@ import { createRouter } from '@/http/router.js';
 import { orNotFound } from '@/http/scope.js';
 import { type DimensionFilter, MAX_CHART_SERIES } from '@/modules/aggregates/aggregates.reads.js';
 import {
+  bucketCountFor,
+  type Granularity,
+  MAX_SERIES_BUCKETS,
+} from '@/modules/aggregates/engine/series.js';
+import {
   MetricEventsQuery,
   MetricParams,
   SeriesQuery,
@@ -50,6 +55,31 @@ function assertDeclaredDimensions(
         ),
       ]);
     }
+  }
+}
+
+function assertChartableWindow(from: Date, to: Date, granularity: Granularity): void {
+  if (to.getTime() <= from.getTime()) {
+    throw new ValidationError([
+      errorItem(
+        ERROR_TYPES.validation,
+        'empty_window',
+        'The "to" time must be after the "from" time.',
+        'to',
+      ),
+    ]);
+  }
+
+  const buckets = bucketCountFor(from, to, granularity);
+  if (buckets > MAX_SERIES_BUCKETS) {
+    throw new ValidationError([
+      errorItem(
+        ERROR_TYPES.validation,
+        'granularity_too_fine',
+        `A ${granularity} granularity over this window needs ${buckets} buckets, above the limit of ${MAX_SERIES_BUCKETS}. Use a coarser granularity or a shorter window.`,
+        'granularity',
+      ),
+    ]);
   }
 }
 
@@ -132,12 +162,15 @@ router.openapi(seriesRoute, async (c) => {
     ...(splitBy ? [{ name: splitBy, attribute: 'splitBy' }] : []),
   ]);
 
-  const series = await reads.series(
-    metric,
-    projectId,
-    { from: new Date(from), to: new Date(to) },
-    { granularity, splitBy, filters, maxSeries: MAX_CHART_SERIES },
-  );
+  const window = { from: new Date(from), to: new Date(to) };
+  assertChartableWindow(window.from, window.to, granularity);
+
+  const series = await reads.series(metric, projectId, window, {
+    granularity,
+    splitBy,
+    filters,
+    maxSeries: MAX_CHART_SERIES,
+  });
 
   return respond(
     c,

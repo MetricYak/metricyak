@@ -17,6 +17,8 @@ export const GRANULARITY_MS: Readonly<Record<Granularity, number>> = {
   '1d': 24 * 60 * 60_000,
 };
 
+export const MAX_SERIES_BUCKETS = 180;
+
 export type SeriesPoint = { start: Date; value: number | null };
 
 export type MetricSeries = { dimValue: string | null; points: SeriesPoint[] };
@@ -30,6 +32,11 @@ export type BuildSeriesParams = {
   splitBy?: string;
   maxSeries: number;
 };
+
+export function bucketCountFor(from: Date, to: Date, granularity: Granularity): number {
+  const span = to.getTime() - from.getTime();
+  return span <= 0 ? 0 : Math.ceil(span / GRANULARITY_MS[granularity]);
+}
 
 export function bucketStarts(from: Date, to: Date, granularity: Granularity): Date[] {
   const step = GRANULARITY_MS[granularity];

@@ -136,6 +136,30 @@ describe('GET /v1/projects/:projectId/metrics/:metricId/series', () => {
     expect(res.status).toBe(404);
   });
 
+  it('rejects a granularity needing more buckets than the cap allows', async () => {
+    const res = await buildApp(recordingAggregates().aggregates).request(
+      `/v1/projects/${projectId}/metrics/${metricId}/series?from=2026-06-26T00:00:00.000Z&to=2026-07-26T00:00:00.000Z&granularity=1m`,
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it('accepts a window sitting exactly on the bucket cap', async () => {
+    const res = await buildApp(recordingAggregates().aggregates).request(
+      `/v1/projects/${projectId}/metrics/${metricId}/series?from=2026-07-26T00:00:00.000Z&to=2026-07-26T03:00:00.000Z&granularity=1m`,
+    );
+
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects a window whose end is not after its start', async () => {
+    const res = await buildApp(recordingAggregates().aggregates).request(
+      `/v1/projects/${projectId}/metrics/${metricId}/series?from=2026-07-26T02:00:00.000Z&to=2026-07-26T02:00:00.000Z&granularity=1h`,
+    );
+
+    expect(res.status).toBe(400);
+  });
+
   it('rejects a splitBy that is not a declared dimension', async () => {
     const res = await buildApp(recordingAggregates().aggregates).request(
       `${seriesUrl}&splitBy=nope`,
