@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { App } from './App';
+import { LegacyMetricRedirect } from './components/metrics/LegacyMetricRedirect';
 import { NotFoundPage } from './components/shell/NotFoundPage';
 import { ProjectRouteGuard } from './components/shell/ProjectRouteGuard';
 import { RootRedirect } from './components/shell/RootRedirect';
@@ -45,15 +46,17 @@ export const router = createBrowserRouter([
                   Component: (await import('./components/metrics/MetricsPage')).MetricsPage,
                 }),
                 children: [
-                  { index: true, element: <Navigate to="definitions" replace /> },
+                  { index: true, element: <Navigate to="explore" replace /> },
                   {
-                    path: 'definitions',
+                    path: 'catalogue',
                     lazy: async () => ({
                       Component: (
                         await import('./components/metrics/definitions/MetricDefinitionsPage')
                       ).MetricDefinitionsPage,
                     }),
                   },
+                  { path: 'definitions', element: <Navigate to="../catalogue" replace /> },
+                  { path: 'explorer', element: <Navigate to="../explore" replace /> },
                   {
                     path: 'explore',
                     lazy: async () => ({
@@ -64,20 +67,22 @@ export const router = createBrowserRouter([
                 ],
               },
               {
-                path: 'definitions/new',
+                path: 'catalogue/new',
                 lazy: async () => ({
                   Component: (await import('./components/metrics/create/CreateMetricPage'))
                     .CreateMetricPage,
                 }),
               },
               {
-                path: 'definitions/:metricId',
+                path: 'catalogue/:metricId',
                 lazy: async () => ({
                   Component: (
                     await import('./components/metrics/definitions/MetricDefinitionDetailPage')
                   ).MetricDefinitionDetailPage,
                 }),
               },
+              { path: 'definitions/new', element: <Navigate to="../catalogue/new" replace /> },
+              { path: 'definitions/:metricId', element: <LegacyMetricRedirect /> },
               { path: '*', element: <NotFoundPage /> },
             ],
           },

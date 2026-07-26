@@ -67,7 +67,7 @@ export function CreateMetricPage(): React.JSX.Element {
 
   const requestLeave = (): void => {
     if (isDirty) setShowDiscard(true);
-    else navigate(to('/metrics/definitions'));
+    else navigate(to('/metrics/catalogue'));
   };
 
   const onSubmit = async (values: MetricFormValues): Promise<void> => {
@@ -83,7 +83,7 @@ export function CreateMetricPage(): React.JSX.Element {
       });
 
       toast.success('Metric created', { description: metric.name });
-      navigate(to(`/metrics/definitions?m=${encodeURIComponent(metric.id)}`), {
+      navigate(to(`/metrics/catalogue?m=${encodeURIComponent(metric.id)}`), {
         state: { justCreatedId: metric.id },
       });
     } catch (error) {
@@ -114,7 +114,7 @@ export function CreateMetricPage(): React.JSX.Element {
         title="New metric"
         description="Choose the events this number counts and how to add them up."
         width="wide"
-        backTo={to('/metrics/definitions')}
+        backTo={to('/metrics/catalogue')}
         backLabel="Back to definitions"
         onBackClick={(event) => {
           event.preventDefault();
@@ -202,7 +202,7 @@ export function CreateMetricPage(): React.JSX.Element {
         confirmLabel="Discard"
         cancelLabel="Keep editing"
         destructive
-        onConfirm={() => navigate(to('/metrics/definitions'))}
+        onConfirm={() => navigate(to('/metrics/catalogue'))}
         onCancel={() => setShowDiscard(false)}
       />
     </div>

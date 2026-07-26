@@ -104,7 +104,7 @@ export function MetricDefinitionsPage(): React.JSX.Element {
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="font-semibold text-foreground text-sm">No metrics yet</p>
             <Button asChild className="raised">
-              <Link to={to('/metrics/definitions/new')}>
+              <Link to={to('/metrics/catalogue/new')}>
                 <Plus className="size-4" />
                 New metric
               </Link>
@@ -139,7 +139,7 @@ export function MetricDefinitionsPage(): React.JSX.Element {
             {metrics.length} {metrics.length === 1 ? 'metric' : 'metrics'}
           </span>
           <Button asChild size="sm" className="raised">
-            <Link to={to('/metrics/definitions/new')}>
+            <Link to={to('/metrics/catalogue/new')}>
               <Plus className="size-4" />
               New metric
             </Link>

@@ -42,7 +42,7 @@ const ACTIONS: readonly PaletteAction[] = [
     keywords: 'add define event',
     icon: Plus,
     iconColor: 'text-metricyak-brand-orange',
-    toSuffix: '/metrics/definitions/new',
+    toSuffix: '/metrics/catalogue/new',
   },
 ];
 
@@ -63,7 +63,7 @@ const NAVIGATE: readonly PaletteAction[] = [
     keywords: 'measures',
     icon: BarChart3,
     iconColor: 'text-blue-600',
-    toSuffix: '/metrics/definitions',
+    toSuffix: '/metrics/catalogue',
   },
   {
     id: 'monitors',

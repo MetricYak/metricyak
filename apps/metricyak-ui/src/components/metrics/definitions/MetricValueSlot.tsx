@@ -1,7 +1,17 @@
 import { LineChart } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/surface';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 
-export function MetricValueSlot({ variant }: { variant: 'row' | 'panel' }): React.JSX.Element {
+export function MetricValueSlot({
+  variant,
+  metricId,
+}: {
+  variant: 'row' | 'panel';
+  metricId?: string;
+}): React.JSX.Element {
+  const { to } = useProjectRoute();
   if (variant === 'row') {
     return (
       <span
@@ -31,16 +41,24 @@ export function MetricValueSlot({ variant }: { variant: 'row' | 'panel' }): Reac
     );
   }
 
+  if (!metricId) return <span />;
+
   return (
     <Surface
       padding="none"
-      className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center"
+      className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center"
     >
       <LineChart className="size-5 text-muted-foreground" />
-      <p className="font-medium text-foreground text-sm">Live values coming soon</p>
+      <p className="font-medium text-foreground text-sm">See how this metric moves</p>
       <p className="max-w-xs text-muted-foreground text-sm">
-        This metric's current value and trend will show here once values start rolling up.
+        Chart it over time, split it by a dimension, and open the events behind any point.
       </p>
+      <Button asChild className="raised mt-1">
+        <Link to={to(`/metrics/explore?m=${encodeURIComponent(metricId)}`)}>
+          <LineChart className="size-4" />
+          Explore this metric
+        </Link>
+      </Button>
     </Surface>
   );
 }

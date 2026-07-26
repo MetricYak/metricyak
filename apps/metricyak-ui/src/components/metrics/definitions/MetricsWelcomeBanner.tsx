@@ -46,7 +46,7 @@ export function MetricsWelcomeBanner({ onDismiss }: { onDismiss: () => void }): 
         metrics you define here.
       </p>
       <Button asChild className="raised mt-6">
-        <Link to={to('/metrics/definitions/new')}>Create your first metric</Link>
+        <Link to={to('/metrics/catalogue/new')}>Create your first metric</Link>
       </Button>
     </div>
   );

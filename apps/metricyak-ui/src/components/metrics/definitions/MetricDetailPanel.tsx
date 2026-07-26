@@ -39,7 +39,7 @@ export function MetricDetailPanel({
         </p>
       </div>
 
-      <MetricValueSlot variant="panel" />
+      <MetricValueSlot variant="panel" metricId={metric.id} />
 
       <section>
         <h3 className="font-semibold text-foreground text-sm">Definition</h3>

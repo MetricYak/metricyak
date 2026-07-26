@@ -5,11 +5,11 @@ import { PageTabs } from '@/components/shell/PageTabs';
 import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
 
-type View = 'definitions' | 'explorer';
+type View = 'explore' | 'catalogue';
 
 const TABS: { id: View; label: string }[] = [
-  { id: 'definitions', label: 'Definitions' },
-  { id: 'explorer', label: 'Explorer' },
+  { id: 'explore', label: 'Explore' },
+  { id: 'catalogue', label: 'Catalogue' },
 ];
 
 function TabBar({
@@ -65,7 +65,7 @@ export function MetricsPage(): React.JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
   const { to } = useProjectRoute();
-  const view: View = location.pathname.endsWith('/metrics/explorer') ? 'explorer' : 'definitions';
+  const view: View = location.pathname.includes('/metrics/catalogue') ? 'catalogue' : 'explore';
 
   return (
     <div className="flex h-full flex-col">

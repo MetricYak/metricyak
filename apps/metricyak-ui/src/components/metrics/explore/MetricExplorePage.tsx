@@ -230,7 +230,7 @@ export function MetricExplorePage(): React.JSX.Element {
             Define a metric and its trend shows up here as events arrive.
           </p>
           <Button asChild className="raised mt-1">
-            <Link to={to('/metrics/definitions/new')}>
+            <Link to={to('/metrics/catalogue/new')}>
               <Plus className="size-4" />
               New metric
             </Link>
@@ -253,7 +253,7 @@ export function MetricExplorePage(): React.JSX.Element {
         metric={requestedMetric}
         state={state}
         window={window}
-        catalogueHref={to(`/metrics/definitions/${metricId ?? ''}`)}
+        catalogueHref={to(`/metrics/catalogue/${metricId ?? ''}`)}
         onChange={applyState}
       />
 

@@ -5,7 +5,7 @@ export function MetricDefinitionDetailPage(): React.JSX.Element {
   const { metricId } = useParams<{ metricId: string }>();
   const { to } = useProjectRoute();
   const destination = metricId
-    ? to(`/metrics/definitions?m=${encodeURIComponent(metricId)}`)
-    : to('/metrics/definitions');
+    ? to(`/metrics/catalogue?m=${encodeURIComponent(metricId)}`)
+    : to('/metrics/catalogue');
   return <Navigate to={destination} replace />;
 }
