@@ -21,6 +21,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 
 interface PaletteAction {
   id: string;
@@ -29,7 +30,7 @@ interface PaletteAction {
   keywords?: string;
   icon: LucideIcon;
   iconColor: string;
-  to: string;
+  toSuffix: string;
   badge?: string;
 }
 
@@ -41,7 +42,7 @@ const ACTIONS: readonly PaletteAction[] = [
     keywords: 'add define event',
     icon: Plus,
     iconColor: 'text-metricyak-brand-orange',
-    to: '/metrics/definitions/new',
+    toSuffix: '/metrics/definitions/new',
   },
 ];
 
@@ -53,7 +54,7 @@ const NAVIGATE: readonly PaletteAction[] = [
     keywords: 'events feed',
     icon: Activity,
     iconColor: 'text-emerald-600',
-    to: '/activity/live',
+    toSuffix: '/activity/live',
   },
   {
     id: 'metrics',
@@ -62,7 +63,7 @@ const NAVIGATE: readonly PaletteAction[] = [
     keywords: 'measures',
     icon: BarChart3,
     iconColor: 'text-blue-600',
-    to: '/metrics/definitions',
+    toSuffix: '/metrics/definitions',
   },
   {
     id: 'monitors',
@@ -71,7 +72,7 @@ const NAVIGATE: readonly PaletteAction[] = [
     keywords: 'notify',
     icon: BellRing,
     iconColor: 'text-amber-600',
-    to: '/monitors',
+    toSuffix: '/monitors',
   },
   {
     id: 'settings',
@@ -80,7 +81,7 @@ const NAVIGATE: readonly PaletteAction[] = [
     keywords: 'preferences',
     icon: Settings,
     iconColor: 'text-slate-500',
-    to: '/settings/project/general',
+    toSuffix: '/settings/project/general',
   },
   {
     id: 'settings-general',
@@ -89,7 +90,7 @@ const NAVIGATE: readonly PaletteAction[] = [
     keywords: 'name',
     icon: SlidersHorizontal,
     iconColor: 'text-slate-500',
-    to: '/settings/project/general',
+    toSuffix: '/settings/project/general',
   },
   {
     id: 'settings-key',
@@ -98,7 +99,7 @@ const NAVIGATE: readonly PaletteAction[] = [
     keywords: 'api keys tokens secret sdk',
     icon: KeyRound,
     iconColor: 'text-violet-600',
-    to: '/settings/project/key',
+    toSuffix: '/settings/project/key',
   },
 ];
 
@@ -110,6 +111,7 @@ export function CommandPalette(): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const { to } = useProjectRoute();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -130,16 +132,16 @@ export function CommandPalette(): React.JSX.Element {
     if (!open) setSearch('');
   }, [open]);
 
-  const run = (to: string): void => {
+  const run = (suffix: string): void => {
     setOpen(false);
-    navigate(to);
+    navigate(to(suffix));
   };
 
   const renderItem = (action: PaletteAction): React.JSX.Element => (
     <CommandItem
       key={action.id}
       value={`${action.label} ${action.hint} ${action.keywords ?? ''}`}
-      onSelect={() => run(action.to)}
+      onSelect={() => run(action.toSuffix)}
       className="gap-2.5 rounded-md px-3 py-1.5 data-[selected=true]:bg-primary/12! data-[selected=true]:text-foreground"
     >
       <action.icon className={`size-4 ${action.iconColor}`} />

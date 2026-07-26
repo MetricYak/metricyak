@@ -13,6 +13,7 @@ import { Surface } from '@/components/ui/surface';
 import { Switch } from '@/components/ui/switch';
 import { useProjectContext } from '@/contexts/ProjectContext';
 import { usePolling } from '@/hooks/usePolling';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
 import { MonitorStatusBadge } from './MonitorStatusBadge';
 
@@ -29,6 +30,7 @@ function MonitorDetailView({
   monitorId: string;
 }): React.JSX.Element {
   const navigate = useNavigate();
+  const { to } = useProjectRoute();
 
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [metricName, setMetricName] = useState<string | null>(null);
@@ -89,7 +91,7 @@ function MonitorDetailView({
     try {
       await deleteMonitor(projectId, monitor.monitorId);
       toast.success('Monitor deleted', { description: monitor.name });
-      navigate('/monitors');
+      navigate(to('/monitors'));
     } catch {
       toast.error("Couldn't delete the monitor");
       setConfirmDelete(false);
@@ -101,7 +103,7 @@ function MonitorDetailView({
       <PageContainer width="content" className="py-16">
         <div className="flex flex-col items-center gap-1 text-center">
           <p className="font-semibold text-foreground text-sm">Couldn't load this monitor</p>
-          <Button variant="outline" className="mt-2" onClick={() => navigate('/monitors')}>
+          <Button variant="outline" className="mt-2" onClick={() => navigate(to('/monitors'))}>
             Back to monitors
           </Button>
         </div>
@@ -159,7 +161,7 @@ function MonitorDetailView({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <PageContainer width="content" className="py-6">
           <Link
-            to="/monitors"
+            to={to('/monitors')}
             className="mb-3 inline-flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
@@ -254,13 +256,14 @@ export function MonitorDetailPage(): React.JSX.Element {
   const projectId = activeProject?.id ?? null;
   const { monitorId } = useParams();
   const navigate = useNavigate();
+  const { to } = useProjectRoute();
 
   if (!projectId || !monitorId) {
     return (
       <PageContainer width="content" className="py-16">
         <div className="flex flex-col items-center gap-1 text-center">
           <p className="font-semibold text-foreground text-sm">No monitor selected</p>
-          <Button variant="outline" className="mt-2" onClick={() => navigate('/monitors')}>
+          <Button variant="outline" className="mt-2" onClick={() => navigate(to('/monitors'))}>
             Back to monitors
           </Button>
         </div>

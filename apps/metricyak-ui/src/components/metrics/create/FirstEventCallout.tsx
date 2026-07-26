@@ -1,8 +1,11 @@
 import { ArrowUpRight, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Surface } from '@/components/ui/surface';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 
 export function FirstEventCallout(): React.JSX.Element {
+  const { to } = useProjectRoute();
+
   return (
     <Surface className="flex items-start gap-3">
       <Radio className="mt-0.5 size-4 shrink-0 text-metricyak-brand-orange" />
@@ -14,14 +17,14 @@ export function FirstEventCallout(): React.JSX.Element {
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
           <Link
-            to="/settings/project/key"
+            to={to('/settings/project/key')}
             className="inline-flex items-center gap-1 font-medium text-brand-orange-text text-sm hover:underline"
           >
             Get your project key
             <ArrowUpRight className="size-3.5" />
           </Link>
           <Link
-            to="/activity/live"
+            to={to('/activity/live')}
             className="inline-flex items-center gap-1 font-medium text-brand-orange-text text-sm hover:underline"
           >
             Watch the live feed

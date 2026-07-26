@@ -6,6 +6,7 @@ import { PageContainer } from '@/components/shell/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/surface';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { MetricDetailPanel } from './MetricDetailPanel';
 import { MetricList } from './MetricList';
 import { isWelcomeBannerDismissed, MetricsWelcomeBanner } from './MetricsWelcomeBanner';
@@ -49,6 +50,7 @@ export function MetricDefinitionsPage(): React.JSX.Element {
   const projectId = activeProject?.id ?? null;
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const { to } = useProjectRoute();
   const selectedParam = searchParams.get('m');
 
   const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -102,7 +104,7 @@ export function MetricDefinitionsPage(): React.JSX.Element {
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <p className="font-semibold text-foreground text-sm">No metrics yet</p>
             <Button asChild className="raised">
-              <Link to="/metrics/definitions/new">
+              <Link to={to('/metrics/definitions/new')}>
                 <Plus className="size-4" />
                 New metric
               </Link>
@@ -137,7 +139,7 @@ export function MetricDefinitionsPage(): React.JSX.Element {
             {metrics.length} {metrics.length === 1 ? 'metric' : 'metrics'}
           </span>
           <Button asChild size="sm" className="raised">
-            <Link to="/metrics/definitions/new">
+            <Link to={to('/metrics/definitions/new')}>
               <Plus className="size-4" />
               New metric
             </Link>

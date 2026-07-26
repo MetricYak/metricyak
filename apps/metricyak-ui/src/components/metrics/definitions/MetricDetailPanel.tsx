@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Metric } from '@/api/metrics';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/surface';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { DefinitionSummary } from './DefinitionSummary';
 import { formatDateAgo } from './format';
 import { MetricValueSlot } from './MetricValueSlot';
@@ -14,6 +15,8 @@ export function MetricDetailPanel({
   metric: Metric;
   justCreated?: boolean;
 }): React.JSX.Element {
+  const { to } = useProjectRoute();
+
   return (
     <div className="space-y-6">
       {justCreated ? (
@@ -54,7 +57,7 @@ export function MetricDetailPanel({
           Get told the moment {metric.name} crosses a threshold.
         </p>
         <Button asChild className="raised mt-4">
-          <Link to={`/monitors/new?metric=${encodeURIComponent(metric.id)}`}>
+          <Link to={to(`/monitors/new?metric=${encodeURIComponent(metric.id)}`)}>
             <BellPlus className="size-4" />
             Add monitor
           </Link>
