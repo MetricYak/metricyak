@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getMetricDimensionValues } from '@/api/metric-series';
 import {
   Command,
@@ -93,23 +93,20 @@ export function AddFilterPopover({
   const [open, setOpen] = useState(false);
   const [dimension, setDimension] = useState<string | null>(null);
   const [state, setState] = useState<ValuesState>({ kind: 'loading' });
-  const [attempt, setAttempt] = useState(0);
+
+  const loadValues = useCallback(
+    (name: string): void => {
+      setState({ kind: 'loading' });
+      getMetricDimensionValues(projectId, metricId, name, from, to)
+        .then((values) => setState({ kind: 'ready', values }))
+        .catch(() => setState({ kind: 'failed' }));
+    },
+    [projectId, metricId, from, to],
+  );
 
   useEffect(() => {
-    if (!dimension) return;
-    let cancelled = false;
-    setState({ kind: 'loading' });
-    getMetricDimensionValues(projectId, metricId, dimension, from, to)
-      .then((values) => {
-        if (!cancelled) setState({ kind: 'ready', values });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ kind: 'failed' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, metricId, dimension, from, to, attempt]);
+    if (dimension) loadValues(dimension);
+  }, [dimension, loadValues]);
 
   const close = (): void => {
     setOpen(false);
@@ -158,7 +155,7 @@ export function AddFilterPopover({
             </button>
             <ValueList
               state={state}
-              onRetry={() => setAttempt((count) => count + 1)}
+              onRetry={() => loadValues(dimension)}
               onPick={(value) => {
                 onAdd({ name: dimension, value });
                 close();
