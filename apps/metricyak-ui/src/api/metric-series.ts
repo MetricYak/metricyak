@@ -8,6 +8,8 @@ export type SeriesResponse = { granularity: Granularity; series: MetricSeries[] 
 
 export type DimensionFilter = { name: string; value: string };
 
+export const OTHER_DIM_VALUE = '$other';
+
 type DimensionBreakdown = {
   value: number | null;
   breakdown?: { dimValue: string; value: number | null }[];
