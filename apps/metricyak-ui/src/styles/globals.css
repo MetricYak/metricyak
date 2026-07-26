@@ -62,6 +62,15 @@
 
   --brand-orange-text: #b0480f;
 
+  --chart-1: #d9591a;
+  --chart-2: #2a6fd6;
+  --chart-3: #1a8f5c;
+  --chart-4: #6b46c1;
+  --chart-5: #d63384;
+  --chart-6: #a16207;
+  --chart-other: var(--metricyak-500);
+  --chart-compare: var(--metricyak-400);
+
   --sidebar-bg: var(--metricyak-300);
   --sidebar-foreground: var(--metricyak-900);
   --sidebar-accent: var(--metricyak-400);
@@ -102,6 +111,15 @@
 
   --brand-orange-text: #e0672a;
 
+  --chart-1: #e06a2e;
+  --chart-2: #4a8de8;
+  --chart-3: #2aa876;
+  --chart-4: #8b5cf6;
+  --chart-5: #e0508f;
+  --chart-6: #bd7f1a;
+  --chart-other: var(--metricyak-500);
+  --chart-compare: var(--metricyak-600);
+
   --sidebar-bg: var(--metricyak-800);
   --sidebar-foreground: var(--metricyak-50);
   --sidebar-accent: var(--metricyak-700);
@@ -128,6 +146,15 @@
   --color-metricyak-brand-orange: var(--metricyak-brand-orange);
   --color-brand-orange-text: var(--brand-orange-text);
   --color-button-orange: var(--button-orange);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-other: var(--chart-other);
+  --color-chart-compare: var(--chart-compare);
 
   --color-background: var(--background);
   --color-canvas: var(--canvas);
