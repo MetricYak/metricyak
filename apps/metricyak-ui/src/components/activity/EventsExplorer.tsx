@@ -14,18 +14,10 @@ import {
   DataTablePagination,
 } from '@/components/data-table/DataTablePagination';
 import { cn } from '@/lib/utils';
-import { formatCompact } from './format';
+import { formatCompact, formatPropertyValue } from './format';
 import { TimeRangeSelect } from './TimeRangeSelect';
 
 const PROPERTIES_PREVIEW_LIMIT = 6;
-
-function formatPropertyPreviewValue(value: unknown): string {
-  if (value === null || value === undefined) return '—';
-  if (typeof value === 'boolean') return value ? 'true' : 'false';
-  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2);
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value);
-}
 
 function PropertiesPreviewCell({
   properties,
@@ -41,7 +33,7 @@ function PropertiesPreviewCell({
         <span key={key} className="truncate">
           <span className="text-metricyak-500">{key}</span>
           <span className="text-metricyak-400">=</span>
-          <span className="text-metricyak-700">{formatPropertyPreviewValue(value)}</span>
+          <span className="text-metricyak-700">{formatPropertyValue(value)}</span>
         </span>
       ))}
       {overflow > 0 && <span className="text-metricyak-400">+{overflow}</span>}

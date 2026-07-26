@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import type { Database } from '@/client.js';
+import type { Database, Executor } from '@/client.js';
 import { projects } from '@/schema/projects.js';
 
 export type CreateProjectInput = {
@@ -35,8 +35,8 @@ export class ProjectsRepository {
     return this.db.select().from(projects).where(eq(projects.organizationId, organizationId));
   }
 
-  async create(input: CreateProjectInput): Promise<ProjectRecord> {
-    const [project] = await this.db
+  async create(input: CreateProjectInput, executor: Executor = this.db): Promise<ProjectRecord> {
+    const [project] = await executor
       .insert(projects)
       .values({ organizationId: input.organizationId, name: input.name })
       .returning();

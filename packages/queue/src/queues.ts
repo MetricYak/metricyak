@@ -42,8 +42,12 @@ export type MonitorEvalDispatch = {
 // Slot-scoped BullMQ job id. A failed slot is retained under THIS id and can never
 // dedup-block the next slot (a distinct id). At-most-once firing is enforced by the
 // FOR UPDATE lock in runMonitorEval, not by this id.
+//
+// The separator must not be ':' — BullMQ reserves it as its Redis key delimiter and
+// rejects any custom job id containing one ("Custom Id cannot contain :"), which fails
+// the whole enqueueBulk and silently stalls every monitor evaluation.
 export function monitorEvalJobId(monitorId: string, nextEvalAt: Date): string {
-  return `${monitorId}:${nextEvalAt.getTime()}`;
+  return `${monitorId}-${nextEvalAt.getTime()}`;
 }
 
 export const MONITOR_SIGNALS_QUEUE = 'monitor-signals' as const;
@@ -64,6 +68,9 @@ export type MonitorRelayJob = {
   tickAt: string;
 };
 
+// Must stay comfortably above KAFKA_FLUSH_INTERVAL_MS in @metricyak/clickhouse: an
+// eval that fires before ClickHouse has flushed the triggering event reads a stale
+// value, and nothing re-triggers it until the next event or the backstop.
 export const MONITOR_DEBOUNCE_MS = 5000;
 
 export const MONITOR_DRAIN_QUEUE = 'monitor-drain' as const;

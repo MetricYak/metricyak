@@ -1,6 +1,6 @@
-import { BellRing } from 'lucide-react';
+import { BellRing, PauseCircle } from 'lucide-react';
 import type { ConditionOperator } from '@/api/monitors';
-import { conditionSentence } from '@/components/monitors/condition-sentence';
+import { previewSentence } from '@/components/monitors/condition-sentence';
 import { Surface } from '@/components/ui/surface';
 
 interface MonitorPreviewPanelProps {
@@ -9,6 +9,7 @@ interface MonitorPreviewPanelProps {
   value: number | undefined;
   window: string;
   holdFor: string;
+  enabled: boolean;
 }
 
 export function MonitorPreviewPanel({
@@ -17,8 +18,9 @@ export function MonitorPreviewPanel({
   value,
   window,
   holdFor,
+  enabled,
 }: MonitorPreviewPanelProps): React.JSX.Element {
-  const ready = metricName != null && value != null && Number.isFinite(value);
+  const threshold = value != null && Number.isFinite(value) ? value : null;
   return (
     <Surface padding="lg" className="space-y-3">
       <div className="flex items-center gap-2">
@@ -26,17 +28,17 @@ export function MonitorPreviewPanel({
         <h2 className="font-semibold text-foreground text-sm">Preview</h2>
       </div>
       <p className="text-foreground text-sm leading-relaxed">
-        {ready
-          ? conditionSentence({
-              metricName: metricName ?? '',
-              operator,
-              value: value ?? 0,
-              window,
-              holdFor,
-              long: true,
-            })
-          : 'Pick a metric and a threshold to see what this monitor will do.'}
+        {previewSentence({ metricName, operator, value: threshold, window, holdFor })}
       </p>
+      {metricName && threshold == null ? (
+        <p className="text-muted-foreground text-sm">Enter a threshold to finish the sentence.</p>
+      ) : null}
+      {!enabled ? (
+        <p className="flex items-center gap-1.5 text-muted-foreground text-sm">
+          <PauseCircle className="size-3.5" />
+          Created paused — turn it on when you're ready.
+        </p>
+      ) : null}
     </Surface>
   );
 }

@@ -1,5 +1,5 @@
 import { ArrowLeft, BellRing } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { listMetrics } from '@/api/metrics';
@@ -12,11 +12,14 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Surface } from '@/components/ui/surface';
 import { Switch } from '@/components/ui/switch';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { usePolling } from '@/hooks/usePolling';
 import { cn } from '@/lib/utils';
 import { MonitorStatusBadge } from './MonitorStatusBadge';
 
 type Tab = 'overview' | 'settings';
 type LoadState = 'loading' | 'ready' | 'error';
+
+const MONITOR_POLL_MS = 5000;
 
 function MonitorDetailView({
   projectId,
@@ -32,6 +35,7 @@ function MonitorDetailView({
   const [state, setState] = useState<LoadState>('loading');
   const [tab, setTab] = useState<Tab>('overview');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const pendingTogglesRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,15 +55,32 @@ function MonitorDetailView({
     };
   }, [projectId, monitorId]);
 
+  // Status, last value and last-evaluated time all move on their own once the
+  // worker starts evaluating, so keep them current without a manual reload. A
+  // failed tick leaves the last good monitor on screen.
+  usePolling(
+    () => {
+      if (pendingTogglesRef.current > 0) return;
+      getMonitor(projectId, monitorId)
+        .then(setMonitor)
+        .catch(() => undefined);
+    },
+    MONITOR_POLL_MS,
+    state === 'ready',
+  );
+
   const toggleEnabled = async (): Promise<void> => {
     if (!monitor) return;
     const next = !monitor.enabled;
+    pendingTogglesRef.current += 1;
     setMonitor({ ...monitor, enabled: next });
     try {
       await setMonitorEnabled(projectId, monitor.monitorId, next);
     } catch {
       setMonitor({ ...monitor, enabled: monitor.enabled });
       toast.error("Couldn't update the monitor");
+    } finally {
+      pendingTogglesRef.current -= 1;
     }
   };
 

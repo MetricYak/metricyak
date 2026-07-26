@@ -1,5 +1,6 @@
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface CopyButtonProps {
@@ -32,7 +33,7 @@ export function CopyButton({
       if (timer.current) window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setCopied(false), 1600);
     } catch {
-      // Clipboard blocked (e.g. insecure context) — nothing sensible to do.
+      toast.error('Could not copy', { description: 'Select the text and copy it manually.' });
     }
   };
 
@@ -42,7 +43,8 @@ export function CopyButton({
       onClick={() => void copy()}
       aria-label={copied ? `${label} — copied` : label}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md text-muted-foreground transition-colors hover:text-foreground',
+        'inline-flex items-center gap-1.5 rounded-md text-muted-foreground outline-none transition-colors hover:text-foreground',
+        'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
         className,
       )}
     >

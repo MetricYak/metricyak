@@ -69,15 +69,12 @@ export function EventFieldGroup({ index, onRemove }: EventFieldGroupProps): Reac
               <FormControl>
                 <EventCombobox
                   value={field.value}
-                  onSelect={(event) => {
-                    field.onChange(event.name);
+                  onSelect={(name) => {
+                    field.onChange(name);
                     if (!watch(`events.${index}.key`)) {
-                      setValue(`events.${index}.key`, suggestShortName(event.name), {
+                      setValue(`events.${index}.key`, suggestShortName(name), {
                         shouldValidate: true,
                       });
-                    }
-                    if (event.source) {
-                      setValue(`events.${index}.source`, event.source, { shouldValidate: true });
                     }
                   }}
                 />

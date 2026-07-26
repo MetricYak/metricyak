@@ -24,6 +24,22 @@ export const EVENTS_PROJECTION = `
   if(JSONExtractRaw(raw, 'properties') != '', JSONExtractRaw(raw, 'properties'), '{}') AS properties
 `;
 
+/**
+ * How long a partially-filled block may sit in the Kafka engine before it is flushed
+ * into `events` and becomes queryable.
+ *
+ * This is an upper bound on ingestion lag, and monitor evaluation races it: an event
+ * marks its monitor dirty immediately, but the eval that follows reads `events`. If
+ * the flush interval exceeds the dirty-set debounce, the eval triggered BY an event
+ * runs before that event is visible and reads a stale value — and nothing re-triggers
+ * it until the next event or the half-hourly backstop.
+ *
+ * So this MUST stay comfortably below MONITOR_DEBOUNCE_MS in @metricyak/queue.
+ * ClickHouse's default (stream_flush_interval_ms, 7500ms) is larger than that debounce,
+ * which is why it has to be set explicitly rather than inherited.
+ */
+const KAFKA_FLUSH_INTERVAL_MS = 1000;
+
 export type KafkaIngestionOptions = {
   /** Broker addresses ClickHouse dials from inside its own network, e.g. ['kafka:29092']. */
   brokers: string[];
@@ -70,7 +86,8 @@ export async function setupKafkaIngestion(
         kafka_group_name = '${consumerGroup}',
         kafka_format = 'JSONAsString',
         kafka_handle_error_mode = 'stream',
-        kafka_num_consumers = 1
+        kafka_num_consumers = 1,
+        kafka_flush_interval_ms = ${KAFKA_FLUSH_INTERVAL_MS}
     `,
   });
 

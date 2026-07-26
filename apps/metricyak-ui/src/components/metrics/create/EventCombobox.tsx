@@ -1,6 +1,6 @@
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { listRecentEvents } from '@/api/events';
+import { listRecentEventNames } from '@/api/events';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -14,44 +14,46 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useProjectContext } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
 
-export type SeenEvent = { name: string; source: string };
-
 export interface RecentlySeenEvents {
-  events: SeenEvent[];
+  names: string[];
   loading: boolean;
+  failed: boolean;
 }
 
 export function useRecentlySeenEvents(): RecentlySeenEvents {
   const { activeProject } = useProjectContext();
-  const [events, setEvents] = useState<SeenEvent[]>([]);
+  const [names, setNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!activeProject) return;
     let cancelled = false;
     setLoading(true);
-    listRecentEvents(activeProject.id, 200).then((activities) => {
-      if (cancelled) return;
-      const seen = new Map<string, SeenEvent>();
-      for (const activity of activities) {
-        if (!seen.has(activity.name)) {
-          seen.set(activity.name, { name: activity.name, source: activity.source });
-        }
-      }
-      setEvents([...seen.values()].sort((a, b) => a.name.localeCompare(b.name)));
-      setLoading(false);
-    });
+    setFailed(false);
+    listRecentEventNames(activeProject.id)
+      .then((recentNames) => {
+        if (cancelled) return;
+        setNames(recentNames);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setNames([]);
+        setFailed(true);
+        setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [activeProject]);
 
-  return { events, loading };
+  return { names, loading, failed };
 }
 
 interface EventComboboxProps {
   value: string;
-  onSelect: (event: SeenEvent) => void;
+  onSelect: (name: string) => void;
   placeholder?: string;
 }
 
@@ -62,15 +64,15 @@ export function EventCombobox({
 }: EventComboboxProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { events } = useRecentlySeenEvents();
+  const { names } = useRecentlySeenEvents();
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (!needle) return events;
-    return events.filter((event) => event.name.toLowerCase().includes(needle));
-  }, [events, search]);
+    if (!needle) return names;
+    return names.filter((name) => name.toLowerCase().includes(needle));
+  }, [names, search]);
 
-  const exactMatch = events.some((event) => event.name === search.trim());
+  const exactMatch = names.includes(search.trim());
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -103,23 +105,18 @@ export function EventCombobox({
             </CommandEmpty>
             {filtered.length > 0 ? (
               <CommandGroup heading="From your recent activity">
-                {filtered.map((event) => (
+                {filtered.map((name) => (
                   <CommandItem
-                    key={event.name}
-                    value={event.name}
+                    key={name}
+                    value={name}
                     onSelect={() => {
-                      onSelect(event);
+                      onSelect(name);
                       setSearch('');
                       setOpen(false);
                     }}
                   >
-                    <Check
-                      className={cn('size-4', value === event.name ? 'opacity-100' : 'opacity-0')}
-                    />
-                    <span className="flex-1 truncate">{event.name}</span>
-                    <span className="rounded bg-metricyak-100 px-1.5 py-0.5 text-[11px] text-metricyak-600">
-                      {event.source}
-                    </span>
+                    <Check className={cn('size-4', value === name ? 'opacity-100' : 'opacity-0')} />
+                    <span className="flex-1 truncate">{name}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -129,7 +126,7 @@ export function EventCombobox({
                 <CommandItem
                   value={search}
                   onSelect={() => {
-                    onSelect({ name: search.trim(), source: '' });
+                    onSelect(search.trim());
                     setSearch('');
                     setOpen(false);
                   }}

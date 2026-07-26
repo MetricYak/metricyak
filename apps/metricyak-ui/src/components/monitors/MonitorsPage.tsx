@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { usePolling } from '@/hooks/usePolling';
 import { MonitorStatusBadge } from './MonitorStatusBadge';
 
 type StatusOption = MonitorStatusFilter | 'all';
@@ -52,6 +53,8 @@ type MonitorsQuery = {
 
 const DEFAULT_QUERY: MonitorsQuery = { page: 0, pageSize: 25, q: '', status: 'all' };
 
+const MONITORS_POLL_MS = 5000;
+
 function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
   const [query, setQuery] = useState<MonitorsQuery>(DEFAULT_QUERY);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
@@ -61,6 +64,7 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
   const [errored, setErrored] = useState(false);
   const [loadedOnce, setLoadedOnce] = useState(false);
   const reqRef = useRef(0);
+  const pendingTogglesRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,10 +80,10 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
     };
   }, [projectId]);
 
-  useEffect(() => {
-    const reqId = ++reqRef.current;
-    setLoading(true);
-    const run = (): void => {
+  const fetchMonitors = useCallback(
+    (silent: boolean): void => {
+      const reqId = ++reqRef.current;
+      if (!silent) setLoading(true);
       listMonitors(projectId, {
         page: query.page,
         pageSize: query.pageSize,
@@ -94,19 +98,34 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
           setLoadedOnce(true);
         })
         .catch(() => {
-          if (reqId === reqRef.current) setErrored(true);
+          // A failed background refresh keeps the last good rows on screen rather
+          // than blanking the table the user is watching.
+          if (reqId === reqRef.current && !silent) setErrored(true);
         })
         .finally(() => {
-          if (reqId === reqRef.current) setLoading(false);
+          if (reqId === reqRef.current && !silent) setLoading(false);
         });
-    };
-    const handle = setTimeout(run, 250);
+    },
+    [projectId, query],
+  );
+
+  useEffect(() => {
+    const handle = setTimeout(() => fetchMonitors(false), 250);
     return () => clearTimeout(handle);
-  }, [projectId, query]);
+  }, [fetchMonitors]);
+
+  // A background refresh that started before an optimistic toggle committed would
+  // land with the pre-toggle value and visibly flip the switch back. Skip the tick
+  // instead; the next one picks up the settled state.
+  usePolling(() => {
+    if (pendingTogglesRef.current > 0) return;
+    fetchMonitors(true);
+  }, MONITORS_POLL_MS);
 
   const toggleEnabled = useCallback(
     async (monitor: Monitor): Promise<void> => {
       const next = !monitor.enabled;
+      pendingTogglesRef.current += 1;
       setMonitors((prev) =>
         prev.map((m) => (m.monitorId === monitor.monitorId ? { ...m, enabled: next } : m)),
       );
@@ -119,6 +138,8 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
           ),
         );
         toast.error("Couldn't update the monitor");
+      } finally {
+        pendingTogglesRef.current -= 1;
       }
     },
     [projectId],

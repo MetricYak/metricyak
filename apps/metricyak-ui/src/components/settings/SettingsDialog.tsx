@@ -13,6 +13,11 @@ interface SettingsDialogProps {
   dismissable?: boolean;
 }
 
+function focusInitialElement(dialog: HTMLDialogElement): void {
+  const requested = dialog.querySelector('[data-autofocus]');
+  if (requested instanceof HTMLElement) requested.focus();
+}
+
 export function SettingsDialog({
   open,
   onClose,
@@ -24,13 +29,19 @@ export function SettingsDialog({
   dismissable = true,
 }: SettingsDialogProps): React.JSX.Element {
   const ref = useRef<HTMLDialogElement>(null);
-  const titleId = `dialog-title-${title.replace(/\s+/g, '-').toLowerCase()}`;
+  const slug = title.replace(/\s+/g, '-').toLowerCase();
+  const titleId = `dialog-title-${slug}`;
+  const descriptionId = `dialog-description-${slug}`;
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (open && !el.open) el.showModal();
-    else if (!open && el.open) el.close();
+    if (open && !el.open) {
+      el.showModal();
+      focusInitialElement(el);
+    } else if (!open && el.open) {
+      el.close();
+    }
   }, [open]);
 
   return (
@@ -38,6 +49,7 @@ export function SettingsDialog({
     <dialog
       ref={ref}
       aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
       className={cn(
         'dialog w-[calc(100vw-2rem)] max-w-md p-0 backdrop:backdrop-blur-[2px]',
         className,
@@ -56,14 +68,18 @@ export function SettingsDialog({
             <h2 id={titleId} className="text-base font-semibold text-foreground">
               {title}
             </h2>
-            {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+            {description && (
+              <p id={descriptionId} className="mt-1 text-sm text-muted-foreground">
+                {description}
+              </p>
+            )}
           </div>
           {dismissable && (
             <button
               type="button"
               onClick={onClose}
               aria-label="Close dialog"
-              className="-mr-1 -mt-1 shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="-mr-2 -mt-2 shrink-0 rounded-md p-2 text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <X className="size-4" />
             </button>

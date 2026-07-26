@@ -96,11 +96,15 @@ projectsRouter.openapi(listProjectsRoute, async (c) => {
 projectsRouter.openapi(createProjectRoute, async (c) => {
   const { organizationId } = c.req.valid('param');
   const { name } = c.req.valid('json');
-  const { organizations, projects } = c.var.container.repos;
+  const { organizations, projects, projectKeys } = c.var.container.repos;
 
   orNotFound(await organizations.get(organizationId), 'The organization could not be found.');
 
-  const record = await projects.create({ organizationId, name });
+  const record = await c.var.container.db.transaction(async (tx) => {
+    const created = await projects.create({ organizationId, name }, tx);
+    await projectKeys.generate(created.id, tx);
+    return created;
+  });
 
   return respond(
     c,
