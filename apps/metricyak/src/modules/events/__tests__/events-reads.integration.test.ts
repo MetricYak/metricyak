@@ -127,6 +127,55 @@ describe('listEventsPage (integration)', () => {
     expect(result.events.map((e) => e.id)).toEqual(['00000000-0000-0000-0000-0000000000d1']);
   });
 
+  it('restricts to the given event names and property predicates', async () => {
+    await client.insert({
+      table: 'events',
+      format: 'JSONEachRow',
+      values: [
+        {
+          id: '00000000-0000-0000-0000-0000000000f1',
+          project_id: PROJECT_ID,
+          insert_id: 'h1',
+          name: 'signup',
+          timestamp: '2026-01-01 00:00:00.000',
+          properties: JSON.stringify({ plan: 'pro', geo: { country: 'US' } }),
+        },
+        {
+          id: '00000000-0000-0000-0000-0000000000f2',
+          project_id: PROJECT_ID,
+          insert_id: 'h2',
+          name: 'signup',
+          timestamp: '2026-01-01 00:01:00.000',
+          properties: JSON.stringify({ plan: 'free', geo: { country: 'US' } }),
+        },
+        {
+          id: '00000000-0000-0000-0000-0000000000f3',
+          project_id: PROJECT_ID,
+          insert_id: 'h3',
+          name: 'page.viewed',
+          timestamp: '2026-01-01 00:02:00.000',
+          properties: JSON.stringify({ plan: 'pro', geo: { country: 'US' } }),
+        },
+      ],
+    });
+
+    const result = await listEventsPage(client, {
+      projectId: PROJECT_ID,
+      from: null,
+      to: null,
+      sort: 'desc',
+      page: 0,
+      pageSize: 25,
+      names: ['signup'],
+      propertyEquals: [
+        { path: 'plan', value: 'pro' },
+        { path: 'geo.country', value: 'US' },
+      ],
+    });
+
+    expect(result.events.map((e) => e.id)).toEqual(['00000000-0000-0000-0000-0000000000f1']);
+  });
+
   it('does not double-count a duplicate physical row before a background merge runs', async () => {
     const duplicateRow = {
       id: '00000000-0000-0000-0000-0000000000e1',
