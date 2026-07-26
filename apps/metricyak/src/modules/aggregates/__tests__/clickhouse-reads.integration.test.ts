@@ -5,6 +5,7 @@ import { GenericContainer, type StartedTestContainer, Wait } from 'testcontainer
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createMetricReads } from '@/modules/aggregates/aggregates.reads.js';
 import {
+  chBucketPartials,
   chWindowPartials,
   createClickHouseReadsAggregates,
 } from '@/modules/aggregates/clickhouse-reads.js';
@@ -245,6 +246,69 @@ describe('clickhouse-reads (integration)', () => {
       const country = partials.filter((p) => p.dimName === 'country');
       const byVal = Object.fromEntries(country.map((p) => [p.dimValue, p]));
       expect(byVal.US).toMatchObject({ count: 1, sum: 10 });
+    });
+  });
+
+  describe('chBucketPartials', () => {
+    const metric: MetricSummary = {
+      metricId: 'metric-1',
+      version: 1,
+      name: 'Purchases',
+      definition: {
+        events: [
+          {
+            key: 'purchases',
+            source: 'web',
+            type: 'purchase',
+            aggregation: 'sum',
+            field: '$properties.amount',
+          },
+        ],
+        dimensions: ['country'],
+      },
+    };
+    const window = { from: new Date('2026-01-01T00:00:00Z'), to: new Date('2026-01-01T00:04:00Z') };
+
+    it('groups partials onto UTC granularity boundaries', async () => {
+      await seedPurchases();
+
+      const partials = await chBucketPartials(client, {
+        metric,
+        projectId: PROJECT_ID,
+        window,
+        granularity: '1m',
+        filters: [],
+      });
+
+      const totals = partials
+        .filter((p) => p.dimName === TOTAL_SENTINEL)
+        .sort((a, b) => a.bucketStart.getTime() - b.bucketStart.getTime());
+      expect(totals.map((p) => p.bucketStart.toISOString())).toEqual([
+        '2026-01-01T00:00:00.000Z',
+        '2026-01-01T00:01:00.000Z',
+        '2026-01-01T00:02:00.000Z',
+        '2026-01-01T00:03:00.000Z',
+      ]);
+      expect(totals.map((p) => p.sum)).toEqual([10, 5, 7, 0]);
+    });
+
+    it('restricts every partial to the requested dimension filter', async () => {
+      await seedPurchases();
+
+      const partials = await chBucketPartials(client, {
+        metric,
+        projectId: PROJECT_ID,
+        window,
+        granularity: '1h',
+        filters: [{ name: 'country', value: 'CA' }],
+      });
+
+      const totals = partials.filter((p) => p.dimName === TOTAL_SENTINEL);
+      expect(totals).toHaveLength(1);
+      expect(totals[0]).toMatchObject({ count: 1, sum: 7 });
+      expect(totals[0]?.bucketStart.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+      const country = partials.filter((p) => p.dimName === 'country');
+      expect(country.map((p) => p.dimValue)).toEqual(['CA']);
     });
   });
 
