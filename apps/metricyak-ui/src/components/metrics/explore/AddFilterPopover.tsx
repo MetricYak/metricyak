@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Command,
   CommandEmpty,
@@ -86,16 +86,27 @@ export function AddFilterPopover({
   const [open, setOpen] = useState(false);
   const [dimension, setDimension] = useState<string | null>(null);
   const [state, setState] = useState<ValuesState>({ kind: 'loading' });
+  const requestId = useRef(0);
+  const latestLoadValues = useRef(loadValues);
 
-  const requestValues = useCallback(
-    (name: string): void => {
-      setState({ kind: 'loading' });
-      loadValues(name)
-        .then((values) => setState({ kind: 'ready', values }))
-        .catch(() => setState({ kind: 'failed' }));
-    },
-    [loadValues],
-  );
+  useEffect(() => {
+    latestLoadValues.current = loadValues;
+  }, [loadValues]);
+
+  const requestValues = useCallback((name: string): void => {
+    const id = ++requestId.current;
+    setState({ kind: 'loading' });
+    latestLoadValues
+      .current(name)
+      .then((values) => {
+        if (id !== requestId.current) return;
+        setState({ kind: 'ready', values });
+      })
+      .catch(() => {
+        if (id !== requestId.current) return;
+        setState({ kind: 'failed' });
+      });
+  }, []);
 
   useEffect(() => {
     if (dimension) requestValues(dimension);
