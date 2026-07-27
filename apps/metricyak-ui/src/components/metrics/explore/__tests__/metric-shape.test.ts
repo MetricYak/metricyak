@@ -72,6 +72,19 @@ describe('toExploreMetric', () => {
     expect(metric.expression).toBe('average(refund_issued.amount_usd)');
   });
 
+  it('does not let one key match inside another event field name', () => {
+    const metric = toExploreMetric(
+      metricWith({
+        events: [
+          { key: 'a', source: 's', type: 'order', aggregation: 'average', field: 'amount_usd' },
+          { key: 's', source: 's', type: 'session_start', aggregation: 'count' },
+        ],
+        value: 'a / s',
+      }),
+    );
+    expect(metric.expression).toBe('average(order.amount_usd) / count(session_start)');
+  });
+
   it('exposes declared dimensions and defaults them to empty', () => {
     const withDims = toExploreMetric(
       metricWith({

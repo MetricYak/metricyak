@@ -33,9 +33,12 @@ function eventExpression(event: MetricEvent): string {
 function expressionOf(definition: MetricDefinition): string {
   const single = definition.events[0];
   if (!definition.value) return single ? eventExpression(single) : '';
-  return definition.events.reduce(
-    (expression, event) => expression.replaceAll(event.key, eventExpression(event)),
-    definition.value,
+  const expressionsByKey = new Map(
+    definition.events.map((event) => [event.key, eventExpression(event)] as const),
+  );
+  return definition.value.replace(
+    /[A-Za-z_][A-Za-z0-9_]*/g,
+    (token) => expressionsByKey.get(token) ?? token,
   );
 }
 
