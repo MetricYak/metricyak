@@ -35,10 +35,15 @@ function bucketOptionId(startMs: number): string {
 }
 
 function barFill(inWindow: boolean, unusual: boolean): string {
-  if (inWindow) return unusual ? 'var(--chart-5)' : 'var(--chart-1)';
+  if (inWindow) return unusual ? 'var(--chart-unusual)' : 'var(--chart-1)';
   return unusual
-    ? 'color-mix(in oklab, var(--chart-5) 42%, var(--chart-bar-idle))'
+    ? 'color-mix(in oklab, var(--chart-unusual) 42%, var(--chart-bar-idle))'
     : 'var(--chart-bar-idle)';
+}
+
+function barRing(inWindow: boolean, unusual: boolean): string | undefined {
+  if (!unusual || !inWindow) return undefined;
+  return '0 0 0 1px color-mix(in oklab, var(--chart-unusual) 60%, var(--foreground))';
 }
 
 export function MetricChart({
@@ -230,6 +235,7 @@ export function MetricChart({
                         hoverIndex === index
                           ? `color-mix(in oklab, ${barFill(inWindow, unusual)} 78%, var(--foreground))`
                           : barFill(inWindow, unusual),
+                      boxShadow: barRing(inWindow, unusual),
                     }}
                   />
                 </div>
