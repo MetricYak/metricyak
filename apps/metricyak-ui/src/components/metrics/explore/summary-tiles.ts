@@ -17,7 +17,7 @@ function changeTile(metric: ExploreMetric, stats: WindowStats): SummaryTile {
     value: formatChangeRatio(stats.changeRatio),
     footnote:
       stats.baseline === null
-        ? 'no prior window to compare'
+        ? 'no prior value to compare'
         : `prior ${formatMetricAmount(stats.baseline, metric.valueFormat)}`,
   };
 }

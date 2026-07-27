@@ -67,14 +67,14 @@ describe('summaryTilesFor', () => {
     expect(change?.footnote).toBe('prior 0');
   });
 
-  it('says so when there is no prior window to compare', () => {
+  it('blames the missing prior value, not a missing prior window', () => {
     const [, change] = summaryTilesFor(
       metricOf({}),
       { ...stats, baseline: null, changeRatio: null },
       '1h',
     );
     expect(change?.value).toBe('—');
-    expect(change?.footnote).toBe('no prior window to compare');
+    expect(change?.footnote).toBe('no prior value to compare');
   });
 
   it('reports how many buckets carried a value, not how many the window holds', () => {
@@ -92,6 +92,28 @@ describe('summaryTilesFor', () => {
     );
     expect(tiles[0]?.label).toBe('Rate over selection');
     expect(tiles[0]?.value).toBe('3.15%');
+  });
+
+  it('names the aggregation for the kinds that report an extreme or a sum', () => {
+    expect(summaryTilesFor(metricOf({ kind: 'sum' }), stats, '1h')[0]?.label).toBe(
+      'Total over selection',
+    );
+    expect(summaryTilesFor(metricOf({ kind: 'min' }), stats, '1h')[0]?.label).toBe(
+      'Lowest over selection',
+    );
+    expect(summaryTilesFor(metricOf({ kind: 'max' }), stats, '1h')[0]?.label).toBe(
+      'Highest over selection',
+    );
+  });
+
+  it('formats the prior value as the metric but the bucket count as a count', () => {
+    const tiles = summaryTilesFor(
+      metricOf({ kind: 'ratio', valueFormat: 'percent' }),
+      { ...stats, baseline: 0.04, pointCount: 18 },
+      '1h',
+    );
+    expect(tiles[1]?.footnote).toBe('prior 4.00%');
+    expect(tiles[3]?.value).toBe('18');
   });
 
   it('leads an average metric with its mean', () => {
