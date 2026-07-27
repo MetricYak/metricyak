@@ -50,6 +50,8 @@ export function MetricEventsPanel({
   if (windowKey !== lastWindowKey) {
     setLastWindowKey(windowKey);
     setPage(0);
+    setLoaded(null);
+    setFailed(false);
   }
 
   const columns = useMemo<ColumnDef<RealEvent, unknown>[]>(() => eventColumns('Time'), []);
