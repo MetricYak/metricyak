@@ -4,11 +4,19 @@ import {
   type ExploreState,
   readExploreState,
   resolveWindow,
+  windowSpanMs,
   writeExploreState,
 } from '@/components/metrics/explore/explore-url';
+import {
+  bucketCountFor,
+  granularityForSpan,
+  MAX_SERIES_BUCKETS,
+  MAX_SERVABLE_SPAN_MS,
+} from '@/components/metrics/explore/granularity';
 
 const NOW_MS = Date.UTC(2026, 6, 27, 11, 0);
 const HOUR_MS = 3_600_000;
+const DAY_MS = 24 * HOUR_MS;
 
 function read(query: string): ExploreState {
   return readExploreState(new URLSearchParams(query));
@@ -26,6 +34,34 @@ describe('readExploreState', () => {
       fromMs: NOW_MS - HOUR_MS,
       toMs: NOW_MS,
     });
+  });
+
+  it('shortens a custom window that is wider than the series API can serve', () => {
+    expect(read(`range=custom&from=${NOW_MS - 400 * DAY_MS}&to=${NOW_MS}`).window).toEqual({
+      kind: 'custom',
+      fromMs: NOW_MS - MAX_SERVABLE_SPAN_MS,
+      toMs: NOW_MS,
+    });
+  });
+
+  it('leaves a custom window at the servable ceiling alone', () => {
+    const fromMs = NOW_MS - MAX_SERVABLE_SPAN_MS;
+    expect(read(`range=custom&from=${fromMs}&to=${NOW_MS}`).window).toEqual({
+      kind: 'custom',
+      fromMs,
+      toMs: NOW_MS,
+    });
+  });
+
+  it('keeps every custom window inside the series bucket cap', () => {
+    for (const daysBack of [1, 199, 200, 201, 400, 4000]) {
+      const window = read(`range=custom&from=${NOW_MS - daysBack * DAY_MS}&to=${NOW_MS}`).window;
+      const spanMs = windowSpanMs(window, NOW_MS);
+      expect(spanMs).toBeLessThanOrEqual(MAX_SERVABLE_SPAN_MS);
+      expect(bucketCountFor(spanMs, granularityForSpan(spanMs, 2400))).toBeLessThanOrEqual(
+        MAX_SERIES_BUCKETS,
+      );
+    }
   });
 
   it('rejects a custom window that ends before it starts', () => {

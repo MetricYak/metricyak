@@ -3,6 +3,7 @@ import {
   EXPLORE_TIME_RANGES,
   GRANULARITIES,
   type Granularity,
+  MAX_SERVABLE_SPAN_MS,
 } from '@/components/metrics/explore/granularity';
 
 export type ExploreFilter = { readonly name: string; readonly value: string };
@@ -50,12 +51,18 @@ function readEpochMs(raw: string | null): number | null {
   return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
+function earliestServableStart(toMs: number): number {
+  return toMs - MAX_SERVABLE_SPAN_MS;
+}
+
 function readWindow(params: URLSearchParams): ExploreWindow {
   const raw = params.get(RANGE_KEY);
   if (raw === CUSTOM_RANGE) {
     const fromMs = readEpochMs(params.get(FROM_KEY));
     const toMs = readEpochMs(params.get(TO_KEY));
-    if (fromMs !== null && toMs !== null && toMs > fromMs) return { kind: 'custom', fromMs, toMs };
+    if (fromMs !== null && toMs !== null && toMs > fromMs) {
+      return { kind: 'custom', fromMs: Math.max(fromMs, earliestServableStart(toMs)), toMs };
+    }
     return DEFAULT_EXPLORE_WINDOW;
   }
   const match = EXPLORE_TIME_RANGES.find((option) => option.id === raw);

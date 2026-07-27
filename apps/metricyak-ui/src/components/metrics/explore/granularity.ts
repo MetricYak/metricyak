@@ -47,8 +47,11 @@ const FINEST_GRANULARITY_BY_SPAN: readonly {
 
 const MIN_BUCKET_PX = 5;
 const FALLBACK_CHART_WIDTH_PX = 900;
+const MIN_READABLE_BUCKETS = 2;
+const COARSEST_GRANULARITY: Granularity = '1d';
 
 export const MAX_SERIES_BUCKETS = 200;
+export const MAX_SERVABLE_SPAN_MS = MAX_SERIES_BUCKETS * GRANULARITY_MS[COARSEST_GRANULARITY];
 
 export const EXPLORE_TIME_RANGES: readonly TimeRangeOption[] = TIME_RANGES.filter(
   (option) => option.id !== 'all',
@@ -60,31 +63,38 @@ export function bucketCountFor(spanMs: number, granularity: Granularity): number
 
 function finestGranularityFor(spanMs: number): Granularity {
   const match = FINEST_GRANULARITY_BY_SPAN.find((entry) => spanMs <= entry.upToMs);
-  return match ? match.finest : '1d';
+  return match ? match.finest : COARSEST_GRANULARITY;
 }
 
-function bucketBudget(chartWidthPx: number): number {
+function bucketsPerChartWidth(chartWidthPx: number): number {
   const width = chartWidthPx > 0 ? chartWidthPx : FALLBACK_CHART_WIDTH_PX;
-  return Math.max(1, Math.min(MAX_SERIES_BUCKETS, Math.floor(width / MIN_BUCKET_PX)));
+  return Math.max(1, Math.floor(width / MIN_BUCKET_PX));
+}
+
+export function granularityChoicesFor(spanMs: number): Granularity[] {
+  const servable = GRANULARITIES.filter(
+    (granularity) => bucketCountFor(spanMs, granularity) <= MAX_SERIES_BUCKETS,
+  );
+  const readable = servable.filter(
+    (granularity) => bucketCountFor(spanMs, granularity) >= MIN_READABLE_BUCKETS,
+  );
+  if (readable.length > 0) return readable;
+  if (servable.length > 0) return servable;
+  return [COARSEST_GRANULARITY];
 }
 
 export function granularityForSpan(spanMs: number, chartWidthPx: number): Granularity {
-  const maxBuckets = bucketBudget(chartWidthPx);
-  const start = GRANULARITIES.indexOf(finestGranularityFor(spanMs));
+  const choices = granularityChoicesFor(spanMs);
+  const displayBudget = bucketsPerChartWidth(chartWidthPx);
+  const finestIndexForSpan = GRANULARITIES.indexOf(finestGranularityFor(spanMs));
 
-  for (let index = start; index < GRANULARITIES.length; index += 1) {
-    const candidate = GRANULARITIES[index];
-    if (candidate && bucketCountFor(spanMs, candidate) <= maxBuckets) return candidate;
-  }
-  return '1d';
-}
+  const fitsChart = choices.filter(
+    (granularity) =>
+      GRANULARITIES.indexOf(granularity) >= finestIndexForSpan &&
+      bucketCountFor(spanMs, granularity) <= displayBudget,
+  );
 
-export function granularityChoicesFor(spanMs: number, chartWidthPx: number): Granularity[] {
-  const maxBuckets = bucketBudget(chartWidthPx);
-  return GRANULARITIES.filter((granularity) => {
-    const count = bucketCountFor(spanMs, granularity);
-    return count >= 2 && count <= maxBuckets;
-  });
+  return fitsChart[0] ?? choices[choices.length - 1] ?? COARSEST_GRANULARITY;
 }
 
 const CLOCK_TICK_FORMAT = new Intl.DateTimeFormat(undefined, {
