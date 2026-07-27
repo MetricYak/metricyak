@@ -13,6 +13,19 @@ function valuesByDimension(entries: readonly DimensionValue[]): Map<string, numb
   return new Map(entries.map((entry) => [entry.dimValue, entry.value] as const));
 }
 
+function levelOfAbsentValue(kind: MetricKind): number | null {
+  return isAdditive(kind) ? 0 : null;
+}
+
+function levelIn(
+  levels: Map<string, number | null>,
+  value: string,
+  whenAbsent: number | null,
+): number | null {
+  const level = levels.get(value);
+  return level === undefined ? whenAbsent : level;
+}
+
 function changeOf(current: number | null, prior: number | null): number | null {
   return current === null || prior === null ? null : current - prior;
 }
@@ -43,12 +56,12 @@ function sharesAreMeaningful(kind: MetricKind, rows: readonly BreakdownRow[]): b
   return isAdditive(kind) && everyRowIsComparable(rows) && netChangeCarriesTheMovement(rows);
 }
 
-function levelOf(row: BreakdownRow): number {
+function reportedLevelOf(row: BreakdownRow): number {
   return Math.abs(row.current ?? row.prior ?? 0);
 }
 
 function movementOf(row: BreakdownRow): number {
-  return row.change === null ? levelOf(row) : Math.abs(row.change);
+  return row.change === null ? reportedLevelOf(row) : Math.abs(row.change);
 }
 
 function comparabilityOf(row: BreakdownRow): number {
@@ -76,16 +89,18 @@ export function breakdownRows({ kind, current, prior }: BreakdownRequest): Break
   const priorByValue = valuesByDimension(prior);
   const dimensionValues = [...new Set([...currentByValue.keys(), ...priorByValue.keys()])];
 
+  const absentLevel = levelOfAbsentValue(kind);
+
   const rows = dimensionValues.map((value) => {
-    const currentValue = currentByValue.get(value) ?? null;
-    const priorValue = priorByValue.get(value) ?? null;
-    const change = changeOf(currentValue, priorValue);
+    const currentLevel = levelIn(currentByValue, value, absentLevel);
+    const priorLevel = levelIn(priorByValue, value, absentLevel);
+    const change = changeOf(currentLevel, priorLevel);
     return {
       value,
-      current: currentValue,
-      prior: priorValue,
+      current: currentLevel,
+      prior: priorLevel,
       change,
-      changeRatio: changeRatioOf(change, priorValue),
+      changeRatio: changeRatioOf(change, priorLevel),
       shareOfChange: null,
     };
   });

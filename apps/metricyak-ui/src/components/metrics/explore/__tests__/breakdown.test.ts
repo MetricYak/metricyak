@@ -51,9 +51,28 @@ describe('breakdownRows', () => {
     expect(rows.every((row) => row.shareOfChange === null)).toBe(true);
   });
 
-  it('keeps a value that appears on only one side', () => {
+  it('reads a value missing from one side of an additive metric as zero', () => {
     const rows = breakdownRows({
       kind: 'count',
+      current: [{ dimValue: 'new_value', value: 12 }],
+      prior: [{ dimValue: 'gone_value', value: 9 }],
+    });
+    const appeared = rows.find((row) => row.value === 'new_value');
+    const vanished = rows.find((row) => row.value === 'gone_value');
+    expect(appeared?.prior).toBe(0);
+    expect(appeared?.change).toBe(12);
+    expect(vanished?.current).toBe(0);
+    expect(vanished?.change).toBe(-9);
+  });
+
+  it.each([
+    'ratio',
+    'average',
+    'min',
+    'max',
+  ] as const)('keeps a value that appears on only one side of a %s metric uncompared', (kind) => {
+    const rows = breakdownRows({
+      kind,
       current: [{ dimValue: 'new_value', value: 12 }],
       prior: [{ dimValue: 'gone_value', value: 9 }],
     });
@@ -62,6 +81,17 @@ describe('breakdownRows', () => {
     expect(appeared?.prior).toBeNull();
     expect(appeared?.change).toBeNull();
     expect(vanished?.current).toBeNull();
+    expect(vanished?.change).toBeNull();
+  });
+
+  it('reads an explicitly unknown level as unknown rather than zero', () => {
+    const rows = breakdownRows({
+      kind: 'count',
+      current: [{ dimValue: 'a', value: null }],
+      prior: [{ dimValue: 'a', value: 5 }],
+    });
+    expect(rows[0]?.current).toBeNull();
+    expect(rows[0]?.change).toBeNull();
   });
 
   it('has no change ratio when the prior level was zero', () => {
@@ -139,9 +169,25 @@ describe('breakdownRows', () => {
     expect(rows.every((row) => row.shareOfChange === null)).toBe(true);
   });
 
-  it('attributes no share while a value is missing from one side', () => {
+  it('attributes the whole change to a value that only the current window reported', () => {
     const rows = breakdownRows({
       kind: 'count',
+      current: [
+        { dimValue: 'steady', value: 100 },
+        { dimValue: 'appeared', value: 40 },
+      ],
+      prior: [{ dimValue: 'steady', value: 100 }],
+    });
+    const appeared = rows.find((row) => row.value === 'appeared');
+    expect(appeared?.change).toBe(40);
+    expect(appeared?.shareOfChange).toBeCloseTo(1);
+    expect(appeared?.changeRatio).toBeNull();
+    expect(rows.find((row) => row.value === 'steady')?.shareOfChange).toBe(0);
+  });
+
+  it('attributes no share while a value is missing from one side of a ratio metric', () => {
+    const rows = breakdownRows({
+      kind: 'ratio',
       current: [
         { dimValue: 'a', value: 10 },
         { dimValue: 'appeared', value: 40 },
@@ -168,7 +214,7 @@ describe('breakdownRows', () => {
 
   it('ranks a value with no comparable change below one that did not move', () => {
     const rows = breakdownRows({
-      kind: 'count',
+      kind: 'average',
       current: [
         { dimValue: 'appeared', value: 40 },
         { dimValue: 'flat', value: 7 },
@@ -180,7 +226,7 @@ describe('breakdownRows', () => {
 
   it('ranks values with no comparable change by their level', () => {
     const rows = breakdownRows({
-      kind: 'count',
+      kind: 'average',
       current: [
         { dimValue: 'small', value: 3 },
         { dimValue: 'large', value: 30 },
@@ -188,6 +234,18 @@ describe('breakdownRows', () => {
       prior: [{ dimValue: 'vanished', value: 12 }],
     });
     expect(rows.map((row) => row.value)).toEqual(['large', 'vanished', 'small']);
+  });
+
+  it('ranks a value that appeared in an additive metric by the change it brought', () => {
+    const rows = breakdownRows({
+      kind: 'count',
+      current: [
+        { dimValue: 'appeared', value: 40 },
+        { dimValue: 'nudged', value: 9 },
+      ],
+      prior: [{ dimValue: 'nudged', value: 7 }],
+    });
+    expect(rows.map((row) => row.value)).toEqual(['appeared', 'nudged']);
   });
 
   it('orders equal changes by dimension value', () => {
@@ -231,7 +289,19 @@ describe('largestChange', () => {
     expect(largestChange([])).toBe(0);
   });
 
-  it('ignores values that appear on only one side', () => {
+  it('ignores values that have no comparable change', () => {
+    const rows = breakdownRows({
+      kind: 'average',
+      current: [
+        { dimValue: 'appeared', value: 900 },
+        { dimValue: 'a', value: 14 },
+      ],
+      prior: [{ dimValue: 'a', value: 10 }],
+    });
+    expect(largestChange(rows)).toBe(4);
+  });
+
+  it('counts the change a value brought when it appeared in an additive metric', () => {
     const rows = breakdownRows({
       kind: 'count',
       current: [
@@ -240,6 +310,6 @@ describe('largestChange', () => {
       ],
       prior: [{ dimValue: 'a', value: 10 }],
     });
-    expect(largestChange(rows)).toBe(4);
+    expect(largestChange(rows)).toBe(900);
   });
 });
