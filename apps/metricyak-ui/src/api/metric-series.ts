@@ -10,7 +10,7 @@ export type DimensionFilter = { name: string; value: string };
 
 export const OTHER_DIM_VALUE = '$other';
 
-type DimensionBreakdown = {
+export type ValueResponse = {
   value: number | null;
   breakdown?: { dimValue: string; value: number | null }[];
 };
@@ -67,6 +67,24 @@ export function getMetricEvents(
   );
 }
 
+export function getMetricValue(
+  projectId: string,
+  metricId: string,
+  params: {
+    from: string;
+    to: string;
+    splitBy?: string | null;
+    filters: readonly DimensionFilter[];
+  },
+): Promise<ValueResponse> {
+  const search = new URLSearchParams({ from: params.from, to: params.to });
+  if (params.splitBy) search.set('splitBy', params.splitBy);
+  appendFilters(search, params.filters);
+  return apiFetch<ValueResponse>(
+    `/v1/projects/${projectId}/metrics/${metricId}/value?${search.toString()}`,
+  );
+}
+
 export async function getMetricDimensionValues(
   projectId: string,
   metricId: string,
@@ -74,9 +92,11 @@ export async function getMetricDimensionValues(
   from: string,
   to: string,
 ): Promise<string[]> {
-  const search = new URLSearchParams({ from, to, splitBy: dimension });
-  const result = await apiFetch<DimensionBreakdown>(
-    `/v1/projects/${projectId}/metrics/${metricId}/value?${search.toString()}`,
-  );
+  const result = await getMetricValue(projectId, metricId, {
+    from,
+    to,
+    splitBy: dimension,
+    filters: [],
+  });
   return (result.breakdown ?? []).map((entry) => entry.dimValue);
 }
