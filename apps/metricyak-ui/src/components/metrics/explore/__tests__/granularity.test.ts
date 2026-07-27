@@ -1,60 +1,94 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bucketCount,
+  bucketCountFor,
   EXPLORE_TIME_RANGES,
-  formatTick,
-  granularityFor,
+  GRANULARITY_MS,
+  granularityChoicesFor,
+  granularityForSpan,
+  MAX_SERIES_BUCKETS,
 } from '@/components/metrics/explore/granularity';
 
-describe('granularityFor', () => {
-  it('maps each range to its default granularity at desktop width', () => {
-    expect(granularityFor('15m', 900)).toBe('1m');
-    expect(granularityFor('1h', 900)).toBe('1m');
-    expect(granularityFor('6h', 900)).toBe('5m');
-    expect(granularityFor('24h', 900)).toBe('15m');
-    expect(granularityFor('7d', 900)).toBe('1h');
-    expect(granularityFor('30d', 900)).toBe('4h');
-    expect(granularityFor('month', 900)).toBe('1d');
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+const WIDE_CHART_PX = 900;
+
+describe('granularityForSpan', () => {
+  it('picks a bucket size that suits the span', () => {
+    expect(granularityForSpan(15 * MINUTE_MS, WIDE_CHART_PX)).toBe('1m');
+    expect(granularityForSpan(6 * HOUR_MS, WIDE_CHART_PX)).toBe('5m');
+    expect(granularityForSpan(24 * HOUR_MS, WIDE_CHART_PX)).toBe('15m');
+    expect(granularityForSpan(7 * DAY_MS, WIDE_CHART_PX)).toBe('1h');
+    expect(granularityForSpan(30 * DAY_MS, WIDE_CHART_PX)).toBe('4h');
+    expect(granularityForSpan(180 * DAY_MS, WIDE_CHART_PX)).toBe('1d');
   });
 
-  it('coarsens when the viewport cannot give each bucket 4px', () => {
-    expect(granularityFor('7d', 360)).not.toBe('1h');
+  it('widens buckets rather than crushing them on a narrow chart', () => {
+    expect(granularityForSpan(7 * DAY_MS, 240)).not.toBe('1h');
   });
 
-  it('never returns a granularity finer than the width allows', () => {
-    const granularity = granularityFor('30d', 320);
-    expect(['4h', '1d']).toContain(granularity);
+  it('keeps every bucket at least a few pixels wide', () => {
+    const narrow = 320;
+    const granularity = granularityForSpan(30 * DAY_MS, narrow);
+    expect(bucketCountFor(30 * DAY_MS, granularity)).toBeLessThanOrEqual(narrow / 5);
+  });
+
+  it('falls back to a sane width when the chart has not been measured', () => {
+    expect(granularityForSpan(7 * DAY_MS, 0)).toBe('1h');
   });
 });
 
-describe('bucketCount', () => {
-  it('counts the buckets a range needs at a granularity', () => {
-    const nowMs = new Date('2026-07-26T12:00:00.000Z').getTime();
-    expect(bucketCount('24h', '1h', nowMs)).toBe(24);
-    expect(bucketCount('7d', '4h', nowMs)).toBe(42);
+describe('granularityChoicesFor', () => {
+  it('offers only bucket sizes that render more than one bar and still fit', () => {
+    const choices = granularityChoicesFor(7 * DAY_MS, WIDE_CHART_PX);
+    expect(choices.length).toBeGreaterThan(0);
+    for (const choice of choices) {
+      const count = bucketCountFor(7 * DAY_MS, choice);
+      expect(count).toBeGreaterThanOrEqual(2);
+      expect(count).toBeLessThanOrEqual(WIDE_CHART_PX / 5);
+    }
+  });
+
+  it('always includes whatever the automatic pick would be', () => {
+    const span = 30 * DAY_MS;
+    expect(granularityChoicesFor(span, WIDE_CHART_PX)).toContain(
+      granularityForSpan(span, WIDE_CHART_PX),
+    );
+  });
+});
+
+describe('bucketCountFor', () => {
+  it('counts whole buckets across the span', () => {
+    expect(bucketCountFor(DAY_MS, '1h')).toBe(24);
+    expect(bucketCountFor(DAY_MS, '1d')).toBe(1);
   });
 });
 
 describe('EXPLORE_TIME_RANGES', () => {
-  it('offers every range except all time', () => {
+  it('leaves out all time, which has no bounded span to chart', () => {
     expect(EXPLORE_TIME_RANGES.some((option) => option.id === 'all')).toBe(false);
-    expect(EXPLORE_TIME_RANGES.some((option) => option.id === '24h')).toBe(true);
+    expect(EXPLORE_TIME_RANGES.some((option) => option.id === '7d')).toBe(true);
   });
 });
 
-describe('formatTick', () => {
-  it('shows clock time below daily granularity', () => {
-    expect(formatTick('2026-07-26T14:30:00.000Z', '1h')).toMatch(/^\d{1,2}[:.]\d{2}$/);
-    expect(formatTick('2026-07-26T14:30:00.000Z', '1m')).toMatch(/^\d{1,2}[:.]\d{2}$/);
+describe('GRANULARITY_MS', () => {
+  it('is ordered from finest to coarsest', () => {
+    expect(GRANULARITY_MS['1m']).toBeLessThan(GRANULARITY_MS['1h']);
+    expect(GRANULARITY_MS['4h']).toBeLessThan(GRANULARITY_MS['1d']);
+  });
+});
+
+describe('series bucket cap', () => {
+  it('never chooses a granularity over the series bucket cap', () => {
+    const spanMs = 24 * 60 * 60_000;
+    const granularity = granularityForSpan(spanMs, 2400);
+    expect(bucketCountFor(spanMs, granularity)).toBeLessThanOrEqual(MAX_SERIES_BUCKETS);
   });
 
-  it('shows a calendar day at daily granularity', () => {
-    const tick = formatTick('2026-07-26T14:30:00.000Z', '1d');
-    expect(tick).not.toMatch(/^\d{1,2}[:.]\d{2}$/);
-    expect(tick).toContain('26');
-  });
-
-  it('renders an unparseable instant as a dash', () => {
-    expect(formatTick('not-a-date', '1h')).toBe('—');
+  it('never offers a choice over the series bucket cap', () => {
+    const spanMs = 24 * 60 * 60_000;
+    for (const granularity of granularityChoicesFor(spanMs, 2400)) {
+      expect(bucketCountFor(spanMs, granularity)).toBeLessThanOrEqual(MAX_SERIES_BUCKETS);
+    }
   });
 });

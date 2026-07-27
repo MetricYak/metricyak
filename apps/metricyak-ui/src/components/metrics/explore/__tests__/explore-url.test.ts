@@ -1,75 +1,107 @@
 import { describe, expect, it } from 'vitest';
-import { readExploreState, writeExploreState } from '@/components/metrics/explore/explore-url';
+import {
+  DEFAULT_EXPLORE_WINDOW,
+  type ExploreState,
+  readExploreState,
+  resolveWindow,
+  writeExploreState,
+} from '@/components/metrics/explore/explore-url';
 
-describe('explore url state', () => {
-  it('round-trips a full state', () => {
-    const state = {
-      metricId: 'm1',
-      range: '7d' as const,
-      granularity: '1h' as const,
-      splitBy: 'plan',
-      filters: [{ name: 'plan', value: 'pro' }],
-      compare: false,
-      selection: { from: '2026-07-26T00:00:00.000Z', to: '2026-07-26T01:00:00.000Z' },
+const NOW_MS = Date.UTC(2026, 6, 27, 11, 0);
+const HOUR_MS = 3_600_000;
+
+function read(query: string): ExploreState {
+  return readExploreState(new URLSearchParams(query));
+}
+
+describe('readExploreState', () => {
+  it('falls back to the default window when the range is missing or unknown', () => {
+    expect(read('').window).toEqual(DEFAULT_EXPLORE_WINDOW);
+    expect(read('range=fortnight').window).toEqual(DEFAULT_EXPLORE_WINDOW);
+  });
+
+  it('reads a custom window from epoch milliseconds', () => {
+    expect(read(`range=custom&from=${NOW_MS - HOUR_MS}&to=${NOW_MS}`).window).toEqual({
+      kind: 'custom',
+      fromMs: NOW_MS - HOUR_MS,
+      toMs: NOW_MS,
+    });
+  });
+
+  it('rejects a custom window that ends before it starts', () => {
+    expect(read(`range=custom&from=${NOW_MS}&to=${NOW_MS - HOUR_MS}`).window).toEqual(
+      DEFAULT_EXPLORE_WINDOW,
+    );
+  });
+
+  it('drops a selection that is not a forward range', () => {
+    expect(read(`sel=${NOW_MS}..${NOW_MS}`).selection).toBeNull();
+    expect(read('sel=nonsense').selection).toBeNull();
+    expect(read(`sel=${NOW_MS - HOUR_MS}..${NOW_MS}`).selection).toEqual({
+      fromMs: NOW_MS - HOUR_MS,
+      toMs: NOW_MS,
+    });
+  });
+
+  it('keeps only well-formed filters', () => {
+    expect(read('f=country:DE&f=broken&f=:DE&f=country:').filters).toEqual([
+      { name: 'country', value: 'DE' },
+    ]);
+  });
+
+  it('defaults to the breakdown tab for an unknown tab', () => {
+    expect(read('tab=wat').tab).toBe('breakdown');
+    expect(read('tab=events').tab).toBe('events');
+  });
+
+  it('ignores a granularity the chart cannot render', () => {
+    expect(read('g=3y').granularity).toBeNull();
+    expect(read('g=4h').granularity).toBe('4h');
+  });
+});
+
+describe('writeExploreState', () => {
+  it('round-trips every field', () => {
+    const state: ExploreState = {
+      metricId: 'checkout-conversion-rate',
+      window: { kind: 'custom', fromMs: NOW_MS - HOUR_MS, toMs: NOW_MS },
+      granularity: '5m',
+      filters: [
+        { name: 'country', value: 'DE' },
+        { name: 'payment_method', value: 'card_3ds' },
+      ],
+      selection: { fromMs: NOW_MS - HOUR_MS / 2, toMs: NOW_MS },
+      tab: 'events',
+      property: 'country',
     };
+
     expect(readExploreState(writeExploreState(state))).toEqual(state);
   });
 
-  it('reads defaults from an empty query', () => {
-    const state = readExploreState(new URLSearchParams());
-    expect(state.metricId).toBeNull();
-    expect(state.range).toBe('24h');
-    expect(state.granularity).toBeNull();
-    expect(state.splitBy).toBeNull();
-    expect(state.filters).toEqual([]);
-    expect(state.compare).toBe(false);
-    expect(state.selection).toBeNull();
-  });
-
-  it('keeps values containing colons intact', () => {
+  it('leaves the default tab out of the query string', () => {
     const params = writeExploreState({
-      metricId: 'm1',
-      range: '24h',
+      metricId: null,
+      window: DEFAULT_EXPLORE_WINDOW,
       granularity: null,
-      splitBy: null,
-      filters: [{ name: 'url', value: 'https://x.test/a' }],
-      compare: false,
-      selection: null,
-    });
-    expect(readExploreState(params).filters).toEqual([{ name: 'url', value: 'https://x.test/a' }]);
-  });
-
-  it('drops splitBy when compare is on', () => {
-    const params = writeExploreState({
-      metricId: 'm1',
-      range: '24h',
-      granularity: null,
-      splitBy: 'plan',
       filters: [],
-      compare: true,
       selection: null,
+      tab: 'breakdown',
+      property: null,
     });
-    const state = readExploreState(params);
-    expect(state.compare).toBe(true);
-    expect(state.splitBy).toBeNull();
+    expect(params.has('tab')).toBe(false);
+  });
+});
+
+describe('resolveWindow', () => {
+  it('turns a preset into an absolute span ending now', () => {
+    expect(resolveWindow({ kind: 'preset', range: '24h' }, NOW_MS)).toEqual({
+      fromMs: NOW_MS - 24 * HOUR_MS,
+      toMs: NOW_MS,
+    });
   });
 
-  it('falls back to the default range for an unknown or all-time range', () => {
-    expect(readExploreState(new URLSearchParams('range=nonsense')).range).toBe('24h');
-    expect(readExploreState(new URLSearchParams('range=all')).range).toBe('24h');
-  });
-
-  it('ignores an unknown granularity', () => {
-    expect(readExploreState(new URLSearchParams('g=2h')).granularity).toBeNull();
-  });
-
-  it('ignores a malformed filter', () => {
-    expect(readExploreState(new URLSearchParams('f=plan&f=:pro&f=plan:')).filters).toEqual([]);
-  });
-
-  it('ignores a malformed selection', () => {
-    expect(
-      readExploreState(new URLSearchParams('sel=2026-07-26T00:00:00.000Z')).selection,
-    ).toBeNull();
+  it('passes a custom window through untouched', () => {
+    const window = { kind: 'custom', fromMs: 1, toMs: 2 } as const;
+    expect(resolveWindow(window, NOW_MS)).toEqual({ fromMs: 1, toMs: 2 });
   });
 });
