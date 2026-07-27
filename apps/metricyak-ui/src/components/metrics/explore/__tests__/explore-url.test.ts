@@ -9,6 +9,9 @@ import {
 } from '@/components/metrics/explore/explore-url';
 import {
   bucketCountFor,
+  EXPLORE_TIME_RANGES,
+  GRANULARITY_MS,
+  type Granularity,
   granularityForSpan,
   MAX_SERIES_BUCKETS,
   MAX_SERVABLE_SPAN_MS,
@@ -17,6 +20,11 @@ import {
 const NOW_MS = Date.UTC(2026, 6, 27, 11, 0);
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
+
+function bucketsTheServerWillCount(fromMs: number, toMs: number, granularity: Granularity): number {
+  const step = GRANULARITY_MS[granularity];
+  return Math.ceil((toMs - Math.floor(fromMs / step) * step) / step);
+}
 
 function read(query: string): ExploreState {
   return readExploreState(new URLSearchParams(query));
@@ -53,12 +61,46 @@ describe('readExploreState', () => {
     });
   });
 
+  it('keeps a clamped window inside the cap the server counts against', () => {
+    expect(NOW_MS % DAY_MS).not.toBe(0);
+    const window = read(`range=custom&from=${NOW_MS - 400 * DAY_MS}&to=${NOW_MS}`).window;
+    const { fromMs, toMs } = resolveWindow(window, NOW_MS);
+    const granularity = granularityForSpan(toMs - fromMs, 2400);
+    expect(bucketsTheServerWillCount(fromMs, toMs, granularity)).toBeLessThanOrEqual(
+      MAX_SERIES_BUCKETS,
+    );
+  });
+
+  it('keeps a clamped window inside the server cap wherever the window ends', () => {
+    for (const endOffsetMs of [1, 61_000, 11 * HOUR_MS, DAY_MS - 1]) {
+      const toMs = NOW_MS - (NOW_MS % DAY_MS) + endOffsetMs;
+      for (const daysBack of [1, 30, 198, 199, 200, 201, 400]) {
+        const window = read(`range=custom&from=${toMs - daysBack * DAY_MS}&to=${toMs}`).window;
+        const resolved = resolveWindow(window, toMs);
+        const granularity = granularityForSpan(resolved.toMs - resolved.fromMs, 2400);
+        expect(
+          bucketsTheServerWillCount(resolved.fromMs, resolved.toMs, granularity),
+        ).toBeLessThanOrEqual(MAX_SERIES_BUCKETS);
+      }
+    }
+  });
+
   it('keeps every custom window inside the series bucket cap', () => {
     for (const daysBack of [1, 199, 200, 201, 400, 4000]) {
       const window = read(`range=custom&from=${NOW_MS - daysBack * DAY_MS}&to=${NOW_MS}`).window;
       const spanMs = windowSpanMs(window, NOW_MS);
       expect(spanMs).toBeLessThanOrEqual(MAX_SERVABLE_SPAN_MS);
       expect(bucketCountFor(spanMs, granularityForSpan(spanMs, 2400))).toBeLessThanOrEqual(
+        MAX_SERIES_BUCKETS,
+      );
+    }
+  });
+
+  it('keeps every preset window inside the server cap', () => {
+    for (const option of EXPLORE_TIME_RANGES) {
+      const { fromMs, toMs } = resolveWindow({ kind: 'preset', range: option.id }, NOW_MS);
+      const granularity = granularityForSpan(toMs - fromMs, 2400);
+      expect(bucketsTheServerWillCount(fromMs, toMs, granularity)).toBeLessThanOrEqual(
         MAX_SERIES_BUCKETS,
       );
     }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bucketCountFor,
   EXPLORE_TIME_RANGES,
+  GRANULARITIES,
   GRANULARITY_MS,
   granularityChoicesFor,
   granularityForSpan,
@@ -62,6 +63,10 @@ describe('granularityChoicesFor', () => {
     }
   });
 
+  it('leaves out bucket sizes that would draw a single bar', () => {
+    expect(granularityChoicesFor(15 * MINUTE_MS)).toEqual(['1m', '5m']);
+  });
+
   it('always includes whatever the automatic pick would be', () => {
     const span = 30 * DAY_MS;
     expect(granularityChoicesFor(span)).toContain(granularityForSpan(span, WIDE_CHART_PX));
@@ -83,9 +88,26 @@ describe('granularityChoicesFor', () => {
 });
 
 describe('bucketCountFor', () => {
-  it('counts whole buckets across the span', () => {
-    expect(bucketCountFor(DAY_MS, '1h')).toBe(24);
-    expect(bucketCountFor(DAY_MS, '1d')).toBe(1);
+  it('counts the whole buckets across the span plus the partial one an unaligned start adds', () => {
+    expect(bucketCountFor(DAY_MS, '1h')).toBe(25);
+    expect(bucketCountFor(DAY_MS, '1d')).toBe(2);
+    expect(bucketCountFor(0, '1h')).toBe(0);
+  });
+
+  it('never counts fewer buckets than the server will', () => {
+    const alignedStart = Date.UTC(2026, 6, 27, 0, 0);
+    for (const granularity of GRANULARITIES) {
+      const step = GRANULARITY_MS[granularity];
+      for (const misalignmentMs of [0, 1, step / 2, step - 1]) {
+        for (const spanMs of [step, 3 * step + 1, 7 * step, 60 * step, 199 * step]) {
+          const fromMs = alignedStart + misalignmentMs;
+          const serverCount = Math.ceil(
+            (fromMs + spanMs - Math.floor(fromMs / step) * step) / step,
+          );
+          expect(bucketCountFor(spanMs, granularity)).toBeGreaterThanOrEqual(serverCount);
+        }
+      }
+    }
   });
 });
 
@@ -122,7 +144,8 @@ describe('series bucket cap', () => {
   });
 
   it('holds at the widest span the API can serve', () => {
-    expect(MAX_SERVABLE_SPAN_MS).toBe(MAX_SERIES_BUCKETS * GRANULARITY_MS['1d']);
+    expect(bucketCountFor(MAX_SERVABLE_SPAN_MS, '1d')).toBe(MAX_SERIES_BUCKETS);
+    expect(bucketCountFor(MAX_SERVABLE_SPAN_MS + 1, '1d')).toBeGreaterThan(MAX_SERIES_BUCKETS);
     expect(
       bucketCountFor(MAX_SERVABLE_SPAN_MS, granularityForSpan(MAX_SERVABLE_SPAN_MS, 2400)),
     ).toBe(MAX_SERIES_BUCKETS);

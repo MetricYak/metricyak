@@ -47,18 +47,25 @@ const FINEST_GRANULARITY_BY_SPAN: readonly {
 
 const MIN_BUCKET_PX = 5;
 const FALLBACK_CHART_WIDTH_PX = 900;
-const MIN_READABLE_BUCKETS = 2;
+const MIN_READABLE_BARS = 2;
 const COARSEST_GRANULARITY: Granularity = '1d';
+const UNALIGNED_WINDOW_EXTRA_BUCKET = 1;
 
 export const MAX_SERIES_BUCKETS = 200;
-export const MAX_SERVABLE_SPAN_MS = MAX_SERIES_BUCKETS * GRANULARITY_MS[COARSEST_GRANULARITY];
+export const MAX_SERVABLE_SPAN_MS =
+  (MAX_SERIES_BUCKETS - UNALIGNED_WINDOW_EXTRA_BUCKET) * GRANULARITY_MS[COARSEST_GRANULARITY];
 
 export const EXPLORE_TIME_RANGES: readonly TimeRangeOption[] = TIME_RANGES.filter(
   (option) => option.id !== 'all',
 );
 
-export function bucketCountFor(spanMs: number, granularity: Granularity): number {
+function barCountFor(spanMs: number, granularity: Granularity): number {
   return Math.ceil(spanMs / GRANULARITY_MS[granularity]);
+}
+
+export function bucketCountFor(spanMs: number, granularity: Granularity): number {
+  if (spanMs <= 0) return 0;
+  return barCountFor(spanMs, granularity) + UNALIGNED_WINDOW_EXTRA_BUCKET;
 }
 
 function finestGranularityFor(spanMs: number): Granularity {
@@ -76,7 +83,7 @@ export function granularityChoicesFor(spanMs: number): Granularity[] {
     (granularity) => bucketCountFor(spanMs, granularity) <= MAX_SERIES_BUCKETS,
   );
   const readable = servable.filter(
-    (granularity) => bucketCountFor(spanMs, granularity) >= MIN_READABLE_BUCKETS,
+    (granularity) => barCountFor(spanMs, granularity) >= MIN_READABLE_BARS,
   );
   if (readable.length > 0) return readable;
   if (servable.length > 0) return servable;
@@ -91,7 +98,7 @@ export function granularityForSpan(spanMs: number, chartWidthPx: number): Granul
   const fitsChart = choices.filter(
     (granularity) =>
       GRANULARITIES.indexOf(granularity) >= finestIndexForSpan &&
-      bucketCountFor(spanMs, granularity) <= displayBudget,
+      barCountFor(spanMs, granularity) <= displayBudget,
   );
 
   return fitsChart[0] ?? choices[choices.length - 1] ?? COARSEST_GRANULARITY;
