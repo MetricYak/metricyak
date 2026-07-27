@@ -36,10 +36,12 @@ describe('createMetricReads.value', () => {
     };
     const reads = createMetricReads({ aggregates });
 
-    const result = await reads.value(countMetric, 'project-1', {
-      from: new Date('2026-01-01T00:00:00.000Z'),
-      to: new Date('2026-01-01T01:00:00.000Z'),
-    });
+    const result = await reads.value(
+      countMetric,
+      'project-1',
+      { from: new Date('2026-01-01T00:00:00.000Z'), to: new Date('2026-01-01T01:00:00.000Z') },
+      { filters: [] },
+    );
 
     expect(result.value).toBe(5);
     expect(result.breakdown).toBeUndefined();
@@ -60,7 +62,7 @@ describe('createMetricReads.value', () => {
       countMetric,
       'project-1',
       { from: new Date('2026-01-01T00:00:00.000Z'), to: new Date('2026-01-01T01:00:00.000Z') },
-      'country',
+      { splitBy: 'country', filters: [] },
     );
 
     expect(result.value).toBe(5);
@@ -70,7 +72,7 @@ describe('createMetricReads.value', () => {
     ]);
   });
 
-  it('passes the metric, projectId, and window through to windowPartials', async () => {
+  it('passes the metric, projectId, window, and filters through to windowPartials', async () => {
     let params: Parameters<ReadsAggregates['windowPartials']>[0] | null = null;
     const aggregates: ReadsAggregates = {
       windowPartials: async (p) => {
@@ -83,12 +85,18 @@ describe('createMetricReads.value', () => {
 
     const from = new Date('2026-01-01T00:00:00.000Z');
     const to = new Date('2026-01-01T01:00:00.000Z');
-    await reads.value(countMetric, 'project-1', { from, to });
+    await reads.value(
+      countMetric,
+      'project-1',
+      { from, to },
+      { filters: [{ name: 'country', value: 'us' }] },
+    );
 
     if (params === null) throw new Error('windowPartials was not called');
     expect(params.metric).toBe(countMetric);
     expect(params.projectId).toBe('project-1');
     expect(params.window).toEqual({ from, to });
+    expect(params.filters).toEqual([{ name: 'country', value: 'us' }]);
   });
 });
 

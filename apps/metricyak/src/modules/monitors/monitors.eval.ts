@@ -32,7 +32,9 @@ export async function evaluateMonitorRecord(
   }
 
   const window = { from: new Date(now.getTime() - parseDuration(monitor.window)), to: now };
-  const { value } = await deps.metricReads.value(metric, monitor.projectId, window);
+  const { value } = await deps.metricReads.value(metric, monitor.projectId, window, {
+    filters: [],
+  });
 
   const existing = await deps.monitorRuntime.getState(monitor.id, TOTAL_SENTINEL, tx);
   const state: MonitorEvalState = existing

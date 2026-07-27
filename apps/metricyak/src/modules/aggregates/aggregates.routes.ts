@@ -128,7 +128,7 @@ const router = createRouter();
 
 router.openapi(valueRoute, async (c) => {
   const { projectId, metricId } = c.req.valid('param');
-  const { from, to, splitBy } = c.req.valid('query');
+  const { from, to, splitBy, filter } = c.req.valid('query');
   const { reads, repos } = c.var.container;
 
   const metric = orNotFound(
@@ -136,11 +136,17 @@ router.openapi(valueRoute, async (c) => {
     'The metric could not be found.',
   );
 
+  const filters = parseFilters(filter);
+  assertDeclaredDimensions(metric.definition, [
+    ...filters.map((entry) => ({ name: entry.name, attribute: 'filter' })),
+    ...(splitBy ? [{ name: splitBy, attribute: 'splitBy' }] : []),
+  ]);
+
   const result = await reads.value(
     metric,
     projectId,
     { from: new Date(from), to: new Date(to) },
-    splitBy,
+    { splitBy, filters },
   );
 
   return respond(c, ValueResponse, result, 200);

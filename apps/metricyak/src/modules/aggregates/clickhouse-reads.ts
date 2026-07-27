@@ -85,17 +85,24 @@ async function eventPartials(
   window: Window,
   event: { key: string; type: string; field?: string | null },
   dimensions: readonly string[],
+  filters: readonly DimensionFilter[],
 ): Promise<PartialRow[]> {
   const val = numericExpr(event.field ? fieldPath(event.field) : null);
+  const predicates = filterPredicates(filters);
   const baseParams = {
     projectId,
     name: event.type,
     from: chDateTime(window.from),
     to: chDateTime(window.to),
+    ...predicates.params,
   };
-  const where = `
-    project_id = {projectId:UUID} AND name = {name:String}
-    AND timestamp >= {from:DateTime64(3, 'UTC')} AND timestamp < {to:DateTime64(3, 'UTC')}`;
+  const where = [
+    'project_id = {projectId:UUID}',
+    'name = {name:String}',
+    `timestamp >= {from:DateTime64(3, 'UTC')}`,
+    `timestamp < {to:DateTime64(3, 'UTC')}`,
+    ...predicates.conditions,
+  ].join(' AND ');
 
   const totalRs = await client.query({
     query: `SELECT toInt64(count()) AS count, toFloat64(sum(${val})) AS sum, min(${val}) AS min, max(${val}) AS max FROM events FINAL WHERE ${where}`,
@@ -155,12 +162,17 @@ async function eventPartials(
 
 export async function chWindowPartials(
   client: ClickHouseClient,
-  params: { metric: MetricSummary; projectId: string; window: Window },
+  params: {
+    metric: MetricSummary;
+    projectId: string;
+    window: Window;
+    filters: readonly DimensionFilter[];
+  },
 ): Promise<PartialRow[]> {
-  const { metric, projectId, window } = params;
+  const { metric, projectId, window, filters } = params;
   const dims = metric.definition.dimensions ?? [];
   const all = await Promise.all(
-    metric.definition.events.map((e) => eventPartials(client, projectId, window, e, dims)),
+    metric.definition.events.map((e) => eventPartials(client, projectId, window, e, dims, filters)),
   );
   return all.flat();
 }

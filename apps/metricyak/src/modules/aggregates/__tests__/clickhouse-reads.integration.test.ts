@@ -146,7 +146,12 @@ describe('clickhouse-reads (integration)', () => {
     it('emits a $total row and per-declared-dimension rows per event key', async () => {
       await seedPurchases();
 
-      const partials = await chWindowPartials(client, { metric, projectId: PROJECT_ID, window });
+      const partials = await chWindowPartials(client, {
+        metric,
+        projectId: PROJECT_ID,
+        window,
+        filters: [],
+      });
 
       const totals = partials.filter((p) => p.dimName === TOTAL_SENTINEL);
       expect(totals).toHaveLength(1);
@@ -162,10 +167,32 @@ describe('clickhouse-reads (integration)', () => {
       expect(byVal.CA).toMatchObject({ seriesKey: 'purchases', count: 1, sum: 7 });
     });
 
+    it('restricts every partial to the requested dimension filter', async () => {
+      await seedPurchases();
+
+      const partials = await chWindowPartials(client, {
+        metric,
+        projectId: PROJECT_ID,
+        window,
+        filters: [{ name: 'country', value: 'CA' }],
+      });
+
+      const totals = partials.filter((p) => p.dimName === TOTAL_SENTINEL);
+      expect(totals).toHaveLength(1);
+      expect(totals[0]).toMatchObject({ count: 1, sum: 7 });
+      const country = partials.filter((p) => p.dimName === 'country');
+      expect(country.map((p) => p.dimValue)).toEqual(['CA']);
+    });
+
     it('feeds windowValues to produce the correct sum scalar', async () => {
       await seedPurchases();
 
-      const partials = await chWindowPartials(client, { metric, projectId: PROJECT_ID, window });
+      const partials = await chWindowPartials(client, {
+        metric,
+        projectId: PROJECT_ID,
+        window,
+        filters: [],
+      });
       const total = windowValues(metric.definition, partials).find(
         (v) => v.dimName === TOTAL_SENTINEL,
       );
@@ -205,6 +232,7 @@ describe('clickhouse-reads (integration)', () => {
         metric: nestedMetric,
         projectId: PROJECT_ID,
         window,
+        filters: [],
       });
 
       const byDim = partials.filter((p) => p.dimName === 'geo.country');
@@ -239,7 +267,12 @@ describe('clickhouse-reads (integration)', () => {
         clickhouse_settings: { insert_deduplicate: 0 },
       });
 
-      const partials = await chWindowPartials(client, { metric, projectId: PROJECT_ID, window });
+      const partials = await chWindowPartials(client, {
+        metric,
+        projectId: PROJECT_ID,
+        window,
+        filters: [],
+      });
 
       const totals = partials.filter((p) => p.dimName === TOTAL_SENTINEL);
       expect(totals[0]).toMatchObject({ count: 1, sum: 10 });
@@ -336,7 +369,10 @@ describe('clickhouse-reads (integration)', () => {
       await seedPurchases();
       const reads = createMetricReads({ aggregates: createClickHouseReadsAggregates(client) });
 
-      const res = await reads.value(metric, PROJECT_ID, window, 'country');
+      const res = await reads.value(metric, PROJECT_ID, window, {
+        splitBy: 'country',
+        filters: [],
+      });
 
       expect(res.value).toBe(22);
       const byDim = Object.fromEntries((res.breakdown ?? []).map((b) => [b.dimValue, b.value]));

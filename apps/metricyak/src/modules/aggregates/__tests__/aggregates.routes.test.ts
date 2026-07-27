@@ -98,19 +98,51 @@ function recordingEventsReads(): {
 function recordingAggregates(): {
   aggregates: ReadsAggregates;
   lastBucketCall: () => Parameters<ReadsAggregates['bucketPartials']>[0] | null;
+  lastWindowCall: () => Parameters<ReadsAggregates['windowPartials']>[0] | null;
 } {
   let lastBucketCall: Parameters<ReadsAggregates['bucketPartials']>[0] | null = null;
+  let lastWindowCall: Parameters<ReadsAggregates['windowPartials']>[0] | null = null;
   return {
     aggregates: {
-      windowPartials: async () => [],
+      windowPartials: async (params) => {
+        lastWindowCall = params;
+        return [partial(new Date('2026-07-26T00:00:00.000Z'), 3)];
+      },
       bucketPartials: async (params) => {
         lastBucketCall = params;
         return [partial(new Date('2026-07-26T00:00:00.000Z'), 3)];
       },
     },
     lastBucketCall: () => lastBucketCall,
+    lastWindowCall: () => lastWindowCall,
   };
 }
+
+const valueUrl = `/v1/projects/${projectId}/metrics/${metricId}/value?from=2026-07-26T00:00:00.000Z&to=2026-07-26T02:00:00.000Z`;
+
+describe('GET /v1/projects/:projectId/metrics/:metricId/value', () => {
+  it('passes parsed filters through to the aggregates port', async () => {
+    const recorder = recordingAggregates();
+
+    const response = await buildApp(recorder.aggregates).request(
+      `${valueUrl}&filter=plan:pro&filter=country:US`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(recorder.lastWindowCall()?.filters).toEqual([
+      { name: 'plan', value: 'pro' },
+      { name: 'country', value: 'US' },
+    ]);
+  });
+
+  it('rejects a filter naming an undeclared dimension', async () => {
+    const response = await buildApp(recordingAggregates().aggregates).request(
+      `${valueUrl}&filter=nope:1`,
+    );
+
+    expect(response.status).toBe(400);
+  });
+});
 
 const seriesUrl = `/v1/projects/${projectId}/metrics/${metricId}/series?from=2026-07-26T00:00:00.000Z&to=2026-07-26T02:00:00.000Z&granularity=1h`;
 

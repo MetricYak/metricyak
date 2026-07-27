@@ -26,11 +26,17 @@ export type SeriesOptions = {
   maxSeries: number;
 };
 
+export type ValueOptions = {
+  splitBy?: string;
+  filters: readonly DimensionFilter[];
+};
+
 export type ReadsAggregates = {
   windowPartials(params: {
     metric: MetricSummary;
     projectId: string;
     window: Window;
+    filters: readonly DimensionFilter[];
   }): Promise<PartialRow[]>;
   bucketPartials(params: {
     metric: MetricSummary;
@@ -46,7 +52,7 @@ export type MetricReads = {
     metric: MetricSummary,
     projectId: string,
     window: Window,
-    splitBy?: string,
+    options: ValueOptions,
   ): Promise<ValueResult>;
   series(
     metric: MetricSummary,
@@ -63,14 +69,19 @@ export function createMetricReads(deps: { aggregates: ReadsAggregates }): Metric
     metric: MetricSummary,
     projectId: string,
     window: Window,
-    splitBy?: string,
+    options: ValueOptions,
   ): Promise<ValueResult> {
-    const partials = await aggregates.windowPartials({ metric, projectId, window });
+    const partials = await aggregates.windowPartials({
+      metric,
+      projectId,
+      window,
+      filters: options.filters,
+    });
     const values = windowValues(metric.definition, partials);
     const total = values.find((v) => v.dimName === TOTAL_SENTINEL)?.value ?? null;
-    const breakdown = splitBy
+    const breakdown = options.splitBy
       ? values
-          .filter((v) => v.dimName === splitBy)
+          .filter((v) => v.dimName === options.splitBy)
           .map((v) => ({ dimValue: v.dimValue, value: v.value }))
       : undefined;
     return { value: total, breakdown };

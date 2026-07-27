@@ -7,21 +7,6 @@ export const MetricParams = z.object({
   metricId: z.uuid().openapi({ param: { name: 'metricId', in: 'path' } }),
 });
 
-export const ValueQuery = z.object({
-  from: z.iso.datetime().openapi({ param: { name: 'from', in: 'query' } }),
-  to: z.iso.datetime().openapi({ param: { name: 'to', in: 'query' } }),
-  splitBy: z
-    .string()
-    .min(1)
-    .optional()
-    .openapi({ param: { name: 'splitBy', in: 'query' } }),
-});
-
-export const ValueResponse = z.object({
-  value: z.number().nullable(),
-  breakdown: z.array(z.object({ dimValue: z.string(), value: z.number().nullable() })).optional(),
-});
-
 export const FilterParam = z
   .union([z.string(), z.array(z.string())])
   .optional()
@@ -30,6 +15,22 @@ export const FilterParam = z
     description:
       'Repeatable dimension filter formatted `name:value`, split on the first colon. Each name must be a declared dimension of the metric.',
   });
+
+export const ValueQuery = z.object({
+  from: z.iso.datetime().openapi({ param: { name: 'from', in: 'query' } }),
+  to: z.iso.datetime().openapi({ param: { name: 'to', in: 'query' } }),
+  splitBy: z
+    .string()
+    .min(1)
+    .optional()
+    .openapi({ param: { name: 'splitBy', in: 'query' } }),
+  filter: FilterParam,
+});
+
+export const ValueResponse = z.object({
+  value: z.number().nullable(),
+  breakdown: z.array(z.object({ dimValue: z.string(), value: z.number().nullable() })).optional(),
+});
 
 export const SeriesQuery = z.object({
   from: z.iso.datetime().openapi({ param: { name: 'from', in: 'query' } }),
