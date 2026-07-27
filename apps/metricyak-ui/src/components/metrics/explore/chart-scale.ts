@@ -17,7 +17,12 @@ export function axisTicks(top: number, divisions: number): number[] {
   return Array.from({ length: divisions + 1 }, (_, index) => (top * index) / divisions);
 }
 
-export function barHeightPercent(value: number | null, top: number): number {
+export function valueHeightPercent(value: number | null, top: number): number {
   if (value === null || top <= 0) return 0;
   return Math.min(100, Math.max(0, (value / top) * 100));
+}
+
+export function bucketCenterPercent(index: number, bucketCount: number): number {
+  if (bucketCount <= 0) return 50;
+  return ((index + 0.5) / bucketCount) * 100;
 }

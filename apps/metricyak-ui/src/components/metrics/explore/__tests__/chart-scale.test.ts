@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   axisTicks,
   axisTop,
-  barHeightPercent,
+  bucketCenterPercent,
   niceCeiling,
+  valueHeightPercent,
 } from '@/components/metrics/explore/chart-scale';
 
 describe('niceCeiling', () => {
@@ -28,7 +29,7 @@ describe('niceCeiling', () => {
 });
 
 describe('axisTop', () => {
-  it('leaves headroom above the tallest bar', () => {
+  it('leaves headroom above the highest point', () => {
     expect(axisTop(3.4)).toBeGreaterThan(3.4);
   });
 
@@ -43,18 +44,29 @@ describe('axisTicks', () => {
   });
 });
 
-describe('barHeightPercent', () => {
+describe('valueHeightPercent', () => {
   it('scales a value against the axis top', () => {
-    expect(barHeightPercent(2, 4)).toBe(50);
+    expect(valueHeightPercent(2, 4)).toBe(50);
   });
 
   it('never overflows the plot or goes negative', () => {
-    expect(barHeightPercent(9, 4)).toBe(100);
-    expect(barHeightPercent(-2, 4)).toBe(0);
+    expect(valueHeightPercent(9, 4)).toBe(100);
+    expect(valueHeightPercent(-2, 4)).toBe(0);
   });
 
   it('is flat when there is no value', () => {
-    expect(barHeightPercent(null, 4)).toBe(0);
-    expect(barHeightPercent(2, 0)).toBe(0);
+    expect(valueHeightPercent(null, 4)).toBe(0);
+    expect(valueHeightPercent(2, 0)).toBe(0);
+  });
+});
+
+describe('bucketCenterPercent', () => {
+  it('places each bucket at the middle of its slot', () => {
+    expect(bucketCenterPercent(0, 4)).toBe(12.5);
+    expect(bucketCenterPercent(3, 4)).toBe(87.5);
+  });
+
+  it('centres a chart with no buckets', () => {
+    expect(bucketCenterPercent(0, 0)).toBe(50);
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bucketCountFor,
   EXPLORE_TIME_RANGES,
+  formatTick,
   GRANULARITIES,
   GRANULARITY_MS,
   granularityChoicesFor,
@@ -155,5 +156,30 @@ describe('series bucket cap', () => {
     const spanMs = 300 * DAY_MS;
     expect(granularityForSpan(spanMs, 2400)).toBe('1d');
     expect(granularityChoicesFor(spanMs)).toEqual(['1d']);
+  });
+});
+
+describe('formatTick', () => {
+  const NOON_JUL_24 = Date.UTC(2026, 6, 24, 12, 0);
+  const TEN_PM_JUL_24 = Date.UTC(2026, 6, 24, 22, 0);
+  const WEEK_MS = 7 * DAY_MS;
+
+  it('keeps hourly ticks distinct across a week-wide window', () => {
+    expect(formatTick(NOON_JUL_24, '1h', WEEK_MS)).not.toBe(
+      formatTick(TEN_PM_JUL_24, '1h', WEEK_MS),
+    );
+  });
+
+  it('carries the clock on any sub-day bucket, however wide the window', () => {
+    expect(formatTick(NOON_JUL_24, '1h', WEEK_MS)).toMatch(/12:00/);
+    expect(formatTick(NOON_JUL_24, '5m', 30 * DAY_MS)).toMatch(/12:00/);
+  });
+
+  it('drops the clock only for daily buckets', () => {
+    expect(formatTick(NOON_JUL_24, '1d', WEEK_MS)).not.toMatch(/:/);
+  });
+
+  it('has nothing to print for an unreadable moment', () => {
+    expect(formatTick(Number.NaN, '1h', WEEK_MS)).toBe('—');
   });
 });

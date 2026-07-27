@@ -124,11 +124,20 @@ const DAY_CLOCK_FORMAT = new Intl.DateTimeFormat(undefined, {
 });
 
 const MULTI_DAY_SPAN_MS = 2 * 24 * 60 * 60_000;
-const DAY_ONLY_SPAN_MS = 6 * 24 * 60 * 60_000;
+
+const DAY_TICK_WIDTH_PX = 68;
+const CLOCK_TICK_WIDTH_PX = 60;
+const DAY_CLOCK_TICK_WIDTH_PX = 116;
+
+export function tickWidthPx(granularity: Granularity, spanMs: number): number {
+  if (granularity === '1d') return DAY_TICK_WIDTH_PX;
+  if (spanMs > MULTI_DAY_SPAN_MS) return DAY_CLOCK_TICK_WIDTH_PX;
+  return CLOCK_TICK_WIDTH_PX;
+}
 
 export function formatTick(atMs: number, granularity: Granularity, spanMs: number): string {
   if (!Number.isFinite(atMs)) return '—';
-  if (granularity === '1d' || spanMs > DAY_ONLY_SPAN_MS) return DAY_TICK_FORMAT.format(atMs);
+  if (granularity === '1d') return DAY_TICK_FORMAT.format(atMs);
   if (spanMs > MULTI_DAY_SPAN_MS) return DAY_CLOCK_FORMAT.format(atMs);
   return CLOCK_TICK_FORMAT.format(atMs);
 }

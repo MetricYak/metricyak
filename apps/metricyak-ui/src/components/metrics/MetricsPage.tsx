@@ -79,7 +79,7 @@ export function MetricsPage(): React.JSX.Element {
             Turn the events you're tracking into the numbers your team watches.
           </p>
         </PageContainer>
-        <div className="min-h-0 flex-1 overflow-y-auto md:overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </div>
       </div>

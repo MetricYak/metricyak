@@ -10,7 +10,7 @@ export function MetricSummaryTiles({
       {tiles.map((tile) => (
         <div
           key={tile.label}
-          className="flex flex-col gap-1 rounded-lg border border-border bg-card px-4 py-3"
+          className="flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-card px-4 py-3"
         >
           <dt className="text-muted-foreground text-xs">{tile.label}</dt>
           <dd className="-tracking-[0.01em] font-semibold text-2xl text-foreground tabular-nums">

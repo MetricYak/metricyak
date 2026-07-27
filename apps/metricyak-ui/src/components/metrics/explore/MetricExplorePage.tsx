@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/surface';
 import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { baselineGuideCaption, baselineGuideValue } from './baseline-guide';
+import { coverageNote, hasIdleMargin, seriesCoverage } from './coverage';
 import { ExploreTabs } from './ExploreTabs';
 import { ExploreToolbar } from './ExploreToolbar';
 import {
@@ -35,21 +36,30 @@ import { CHANGE_DIRECTION_CLASS, changeDirection, formatChangeRatio } from './va
 
 const DEFAULT_PLOT_WIDTH_PX = 900;
 const NO_DIMENSIONS: readonly string[] = [];
-const UNUSUAL_BARS_NOTE = 'Highlighted bars sit outside the usual spread of this window.';
+const SKELETON_TREND =
+  'M 0 64 L 8 56 L 16 68 L 24 47 L 32 58 L 40 39 L 48 51 L 56 35 L 64 45 L 72 29 L 80 43 L 88 25 L 96 37 L 100 31';
 
 type MetricsLoad = 'loading' | 'ready' | 'error';
 
 function ChartSkeleton(): React.JSX.Element {
   return (
-    <div className="flex h-56 items-end gap-0.5 sm:h-64 xl:h-72" aria-hidden="true">
-      {Array.from({ length: 48 }).map((_, index) => (
-        <div
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed skeleton list
-          key={index}
-          className="flex-1 animate-pulse rounded-t-[2px] bg-chart-grid"
-          style={{ height: `${34 + ((index * 37) % 58)}%` }}
+    <div className="h-56 animate-pulse sm:h-64 xl:h-72" aria-hidden="true">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="h-full w-full overflow-visible"
+      >
+        <path
+          d={SKELETON_TREND}
+          fill="none"
+          stroke="var(--chart-grid)"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
         />
-      ))}
+      </svg>
     </div>
   );
 }
@@ -171,7 +181,6 @@ export function MetricExplorePage(): React.JSX.Element {
 
   const {
     series,
-    band,
     stats,
     breakdown,
     loadingSeries,
@@ -275,12 +284,27 @@ export function MetricExplorePage(): React.JSX.Element {
     bucketMs,
   });
 
-  const chartNotes = [
+  const chartNote =
     chartBaseline === null
       ? null
-      : baselineGuideCaption(metric.kind, metric.name, loadedGranularity),
-    band === null ? null : UNUSUAL_BARS_NOTE,
-  ].flatMap((note) => (note === null ? [] : [note]));
+      : baselineGuideCaption(metric.kind, metric.name, loadedGranularity);
+
+  const coverage = series === null ? null : seriesCoverage(series.points);
+  const bucketCount = series?.points.length ?? 0;
+  const idleMargin = coverage !== null && hasIdleMargin(coverage, bucketCount);
+
+  const fitToRecordedData = (): void => {
+    if (coverage === null) return;
+    patch({
+      window: {
+        kind: 'custom',
+        fromMs: coverage.firstRecordedMs,
+        toMs: coverage.lastRecordedMs + bucketMs,
+      },
+      granularity: null,
+      selection: null,
+    });
+  };
 
   const emptyWindowNote =
     state.filters.length > 0
@@ -350,7 +374,7 @@ export function MetricExplorePage(): React.JSX.Element {
             <span className="text-muted-foreground text-xs">vs the window before it</span>
           </div>
           <div className="flex items-center gap-2">
-            <p className="hidden text-muted-foreground text-xs lg:block">
+            <p className="hidden text-muted-foreground text-xs sm:block">
               Drag across the chart to select a window
             </p>
             <Button
@@ -411,11 +435,11 @@ export function MetricExplorePage(): React.JSX.Element {
                 bucketMs={bucketMs}
                 plotWidthPx={plotWidthPx}
                 baseline={chartBaseline}
-                band={band}
+                coverage={coverage}
                 selection={state.selection}
                 onSelect={(selection) => patch({ selection }, false)}
               />
-              {series.points.every((point) => point.value === null) ? (
+              {coverage === null ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <p className="rounded-md bg-background/85 px-3 py-1.5 text-muted-foreground text-sm">
                     {emptyWindowNote}
@@ -432,9 +456,20 @@ export function MetricExplorePage(): React.JSX.Element {
           )}
         </div>
 
-        {chartNotes.length > 0 ? (
-          <p className="text-muted-foreground text-xs">{chartNotes.join(' ')}</p>
+        {idleMargin && coverage ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+            <span className="text-foreground">{coverageNote(coverage, bucketCount)}</span>
+            <button
+              type="button"
+              onClick={fitToRecordedData}
+              className="font-medium text-brand-orange-text underline-offset-4 hover:underline"
+            >
+              Fit to data
+            </button>
+          </div>
         ) : null}
+
+        {chartNote === null ? null : <p className="text-muted-foreground text-xs">{chartNote}</p>}
       </Surface>
 
       <ExploreTabs tab={state.tab} onChange={(tab) => patch({ tab })}>

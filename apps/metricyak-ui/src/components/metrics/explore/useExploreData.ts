@@ -20,7 +20,6 @@ import {
   parseFilter,
 } from './explore-url';
 import type { Granularity } from './granularity';
-import { type SwingBand, swingBandOf } from './unusual-swing';
 import { windowStatsFor } from './window-stats';
 
 export interface ExploreDataInput {
@@ -40,7 +39,6 @@ export interface LoadedSeries {
 
 export interface ExploreData {
   readonly series: LoadedSeries | null;
-  readonly band: SwingBand | null;
   readonly stats: WindowStats | null;
   readonly breakdown: readonly BreakdownRow[];
   readonly loadingSeries: boolean;
@@ -216,11 +214,8 @@ export function useExploreData({
     [metric, dimension, values],
   );
 
-  const band = useMemo(() => (series === null ? null : swingBandOf(series.points)), [series]);
-
   return {
     series,
-    band,
     stats,
     breakdown,
     loadingSeries,

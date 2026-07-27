@@ -82,7 +82,7 @@ export function RangePicker({ window, resolved, onChange }: RangePickerProps): R
       </PopoverTrigger>
 
       <PopoverContent align="start" className="w-72 p-0">
-        <ul className="max-h-64 overflow-y-auto p-1">
+        <ul className="max-h-[60vh] overflow-y-auto p-1">
           {EXPLORE_TIME_RANGES.map((option) => {
             const active = window.kind === 'preset' && window.range === option.id;
             return (
