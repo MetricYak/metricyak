@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { getMetricDimensionValues } from '@/api/metric-series';
 import {
   Command,
   CommandEmpty,
@@ -19,11 +18,8 @@ type ValuesState =
   | { kind: 'failed' };
 
 interface AddFilterPopoverProps {
-  projectId: string;
-  metricId: string;
   dimensions: readonly string[];
-  from: string;
-  to: string;
+  loadValues: (dimension: string) => Promise<readonly string[]>;
   onAdd: (filter: ExploreFilter) => void;
 }
 
@@ -83,30 +79,27 @@ function ValueList({
 }
 
 export function AddFilterPopover({
-  projectId,
-  metricId,
   dimensions,
-  from,
-  to,
+  loadValues,
   onAdd,
 }: AddFilterPopoverProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [dimension, setDimension] = useState<string | null>(null);
   const [state, setState] = useState<ValuesState>({ kind: 'loading' });
 
-  const loadValues = useCallback(
+  const requestValues = useCallback(
     (name: string): void => {
       setState({ kind: 'loading' });
-      getMetricDimensionValues(projectId, metricId, name, from, to)
+      loadValues(name)
         .then((values) => setState({ kind: 'ready', values }))
         .catch(() => setState({ kind: 'failed' }));
     },
-    [projectId, metricId, from, to],
+    [loadValues],
   );
 
   useEffect(() => {
-    if (dimension) loadValues(dimension);
-  }, [dimension, loadValues]);
+    if (dimension) requestValues(dimension);
+  }, [dimension, requestValues]);
 
   const close = (): void => {
     setOpen(false);
@@ -155,7 +148,7 @@ export function AddFilterPopover({
             </button>
             <ValueList
               state={state}
-              onRetry={() => loadValues(dimension)}
+              onRetry={() => requestValues(dimension)}
               onPick={(value) => {
                 onAdd({ name: dimension, value });
                 close();
