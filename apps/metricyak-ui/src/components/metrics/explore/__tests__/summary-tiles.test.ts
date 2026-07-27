@@ -30,12 +30,24 @@ describe('summaryTilesFor', () => {
     expect(summaryTilesFor(metricOf({}), stats, '1h')).toHaveLength(4);
   });
 
-  it('leads a count metric with its total and names the busiest bucket', () => {
+  it('leads a count metric with its total and names the highest bucket', () => {
     const tiles = summaryTilesFor(metricOf({}), stats, '1h');
     expect(tiles[0]?.label).toBe('Total over selection');
     expect(tiles[0]?.value).toBe('240');
+    expect(tiles[2]?.label).toBe('Highest bucket');
     expect(tiles[2]?.value).toBe('42');
-    expect(tiles[2]?.footnote).toBe('busiest single hour');
+    expect(tiles[2]?.footnote).toBe('highest single hour');
+  });
+
+  it('describes the peak bucket by height for kinds where volume would be a lie', () => {
+    const tiles = summaryTilesFor(
+      metricOf({ kind: 'ratio', valueFormat: 'percent' }),
+      { ...stats, peak: 1 },
+      '1d',
+    );
+    expect(tiles[2]?.label).toBe('Highest bucket');
+    expect(tiles[2]?.value).toBe('100.00%');
+    expect(tiles[2]?.footnote).toBe('highest single day');
   });
 
   it('shows the change against the prior window', () => {
@@ -43,6 +55,16 @@ describe('summaryTilesFor', () => {
     expect(change?.label).toBe('Change vs prior window');
     expect(change?.value).toBe('−20%');
     expect(change?.footnote).toBe('prior 300');
+  });
+
+  it('does not claim a missing prior window when the prior window was zero', () => {
+    const [, change] = summaryTilesFor(
+      metricOf({}),
+      { ...stats, baseline: 0, changeRatio: null },
+      '1h',
+    );
+    expect(change?.value).toBe('—');
+    expect(change?.footnote).toBe('prior 0');
   });
 
   it('says so when there is no prior window to compare', () => {

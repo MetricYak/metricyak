@@ -35,9 +35,9 @@ export function summaryTilesFor(
     },
     changeTile(metric, stats),
     {
-      label: 'Busiest bucket',
+      label: 'Highest bucket',
       value: formatMetricAmount(stats.peak, metric.valueFormat),
-      footnote: `busiest single ${GRANULARITY_NOUN[granularity]}`,
+      footnote: `highest single ${GRANULARITY_NOUN[granularity]}`,
     },
     {
       label: 'Buckets with data',
