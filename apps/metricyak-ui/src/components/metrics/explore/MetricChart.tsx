@@ -1,258 +1,274 @@
-import { type MouseEvent, useMemo, useRef } from 'react';
+import { type KeyboardEvent, type PointerEvent, useMemo, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ReferenceArea,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import type { CategoricalChartFunc } from 'recharts/types/chart/types';
-import type { MouseHandlerDataParam } from 'recharts/types/synchronisation/types';
-import { type MetricSeries, OTHER_DIM_VALUE } from '@/api/metric-series';
-import type { MetricDefinition } from '@/api/metrics';
-import { ChartContainer, ChartTooltipCard, chartStrokeFor } from '@/components/ui/chart';
+  bucketIndexAt,
+  isWithin,
+  selectedIndexRange,
+  selectionFromIndices,
+} from './bucket-selection';
+import { type BucketCursor, cursorBounds, nextBucketCursor } from './chart-keyboard-selection';
+import { axisTicks, axisTop, barHeightPercent } from './chart-scale';
+import type { MetricPoint, ValueFormat } from './explore-model';
 import type { ExploreSelection } from './explore-url';
-import { formatDelta, formatMetricValue, formatSpan } from './format';
-import { formatTick, GRANULARITY_MS, type Granularity } from './granularity';
-import { yDomainFor } from './y-domain';
+import { formatBucketMoment, formatTick, GRANULARITY_NOUN, type Granularity } from './granularity';
+import { isUnusual, type SwingBand } from './unusual-swing';
+import { formatMetricAmount } from './value-format';
 
-const DRAG_THRESHOLD_PX = 4;
-const COMPARE_KEY = 'compare';
-
-function activeLabelOf(state: MouseHandlerDataParam): string | null {
-  return typeof state.activeLabel === 'string' ? state.activeLabel : null;
-}
-
-export type ChartRow = { start: string } & Record<string, number | null | string>;
-
-export function seriesLabel(series: MetricSeries, metricName: string): string {
-  if (series.dimValue === null) return metricName;
-  return series.dimValue === OTHER_DIM_VALUE ? 'Other' : series.dimValue;
-}
-
-export function seriesStroke(series: MetricSeries, index: number): string {
-  return series.dimValue === OTHER_DIM_VALUE ? 'var(--chart-other)' : chartStrokeFor(index);
-}
-
-export function toChartRows(
-  series: readonly MetricSeries[],
-  compareSeries: readonly MetricSeries[] | null,
-): ChartRow[] {
-  const first = series[0];
-  if (!first) return [];
-  const comparePoints = compareSeries?.[0]?.points ?? null;
-
-  return first.points.map((point, index) => {
-    const row: ChartRow = { start: point.start };
-    series.forEach((entry, seriesIndex) => {
-      row[`s${seriesIndex}`] = entry.points[index]?.value ?? null;
-    });
-    if (comparePoints) row[COMPARE_KEY] = comparePoints[index]?.value ?? null;
-    return row;
-  });
-}
-
-interface TooltipEntry {
-  dataKey?: string | number;
-  name?: string | number;
-  value?: number | null;
-  color?: string;
-}
-
-function MetricChartTooltip({
-  active,
-  label,
-  payload,
-  granularity,
-}: {
-  active?: boolean;
-  label?: string;
-  payload?: readonly TooltipEntry[];
-  granularity: Granularity;
-}): React.JSX.Element | null {
-  if (!active || !payload || payload.length === 0 || typeof label !== 'string') return null;
-
-  const bucketEnd = new Date(new Date(label).getTime() + GRANULARITY_MS[granularity]).toISOString();
-  const primary = payload.find((entry) => entry.dataKey === 's0');
-  const compare = payload.find((entry) => entry.dataKey === COMPARE_KEY);
-  const delta = compare ? formatDelta(primary?.value ?? null, compare.value ?? null) : null;
-
-  return (
-    <ChartTooltipCard title={formatSpan(label, bucketEnd)}>
-      {payload.map((entry) => (
-        <div key={String(entry.dataKey)} className="flex items-center gap-2 text-xs">
-          <span
-            aria-hidden="true"
-            className="size-2 shrink-0 rounded-full"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="flex-1 truncate text-muted-foreground">{entry.name}</span>
-          <span className="font-medium text-foreground tabular-nums">
-            {formatMetricValue(entry.value ?? null)}
-          </span>
-        </div>
-      ))}
-      {delta ? (
-        <p className="pt-0.5 text-muted-foreground text-xs">{delta} vs previous period</p>
-      ) : null}
-    </ChartTooltipCard>
-  );
-}
+const AXIS_DIVISIONS = 4;
+const TICK_TARGET_PX = 84;
 
 interface MetricChartProps {
-  series: readonly MetricSeries[];
-  compareSeries: readonly MetricSeries[] | null;
-  definition: MetricDefinition;
   metricName: string;
+  valueFormat: ValueFormat;
   granularity: Granularity;
+  points: readonly MetricPoint[];
+  bucketMs: number;
+  plotWidthPx: number;
+  baseline: number | null;
+  band: SwingBand | null;
   selection: ExploreSelection | null;
-  onSelect: (selection: ExploreSelection) => void;
+  onSelect: (selection: ExploreSelection | null) => void;
+}
+
+function bucketOptionId(startMs: number): string {
+  return `metric-bucket-${startMs}`;
+}
+
+function barFill(inWindow: boolean, unusual: boolean): string {
+  if (inWindow) return unusual ? 'var(--chart-5)' : 'var(--chart-1)';
+  return unusual
+    ? 'color-mix(in oklab, var(--chart-5) 42%, var(--chart-bar-idle))'
+    : 'var(--chart-bar-idle)';
 }
 
 export function MetricChart({
-  series,
-  compareSeries,
-  definition,
   metricName,
+  valueFormat,
   granularity,
+  points,
+  bucketMs,
+  plotWidthPx,
+  baseline,
+  band,
   selection,
   onSelect,
 }: MetricChartProps): React.JSX.Element {
-  const rows = useMemo(() => toChartRows(series, compareSeries), [series, compareSeries]);
-  const dragStart = useRef<{ label: string | null; x: number } | null>(null);
-  const dragEnd = useRef<string | null>(null);
-  const draggedRef = useRef(false);
+  const plotRef = useRef<HTMLDivElement>(null);
+  const dragAnchor = useRef<number | null>(null);
+  const [dragRange, setDragRange] = useState<{ from: number; to: number } | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [keyboardCursor, setKeyboardCursor] = useState<BucketCursor | null>(null);
 
-  const finePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
-  const step = GRANULARITY_MS[granularity];
+  const bucketStarts = useMemo(() => points.map((point) => point.startMs), [points]);
+  const lastIndex = points.length - 1;
+  const rangeFromMs = bucketStarts[0] ?? 0;
+  const rangeToMs = (bucketStarts[lastIndex] ?? 0) + bucketMs;
 
-  const emitSelection = (fromLabel: string, toLabel: string): void => {
-    const fromMs = new Date(fromLabel).getTime();
-    const toMs = new Date(toLabel).getTime();
-    if (Number.isNaN(fromMs) || Number.isNaN(toMs)) return;
-    const [start, end] = fromMs <= toMs ? [fromMs, toMs] : [toMs, fromMs];
-    onSelect({
-      from: new Date(start).toISOString(),
-      to: new Date(end + step).toISOString(),
-    });
+  const top = useMemo(
+    () =>
+      axisTop(
+        points.reduce<number | null>(
+          (largest, point) =>
+            point.value === null ? largest : Math.max(largest ?? 0, point.value),
+          null,
+        ),
+      ),
+    [points],
+  );
+
+  const committedRange = selectedIndexRange(bucketStarts, selection);
+  const activeRange = dragRange
+    ? { start: Math.min(dragRange.from, dragRange.to), end: Math.max(dragRange.from, dragRange.to) }
+    : committedRange;
+
+  const cursorRange = keyboardCursor ? cursorBounds(keyboardCursor) : null;
+
+  const commit = (first: number, second: number): void => {
+    onSelect(selectionFromIndices(bucketStarts, bucketMs, first, second));
   };
 
-  const handleMouseDown: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
-    if (!finePointer) return;
-    dragStart.current = { label: activeLabelOf(state), x: state.activeCoordinate?.x ?? 0 };
-    dragEnd.current = null;
+  const indexFromPointer = (event: PointerEvent<HTMLDivElement>): number => {
+    const plot = plotRef.current;
+    if (!plot) return 0;
+    const bounds = plot.getBoundingClientRect();
+    return bucketIndexAt(event.clientX - bounds.left, bounds.width, points.length);
   };
 
-  const handleMouseMove: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
-    const label = activeLabelOf(state);
-    if (!dragStart.current) return;
-    if (dragStart.current.label === null) dragStart.current.label = label;
-    if (label !== null) dragEnd.current = label;
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>): void => {
+    if (event.button !== 0 || points.length === 0) return;
+    const index = indexFromPointer(event);
+    dragAnchor.current = index;
+    setDragRange({ from: index, to: index });
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handleMouseUp: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
-    const start = dragStart.current;
-    dragStart.current = null;
-    if (!start) return;
-
-    const moved = Math.abs((state.activeCoordinate?.x ?? start.x) - start.x);
-    const end = dragEnd.current ?? activeLabelOf(state);
-    if (moved < DRAG_THRESHOLD_PX || start.label === null || end === null) return;
-
-    draggedRef.current = true;
-    emitSelection(start.label, end);
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>): void => {
+    const index = indexFromPointer(event);
+    setHoverIndex(index);
+    if (dragAnchor.current !== null) setDragRange({ from: dragAnchor.current, to: index });
   };
 
-  const handleClick: CategoricalChartFunc<MouseEvent<SVGGraphicsElement>> = (state) => {
-    if (draggedRef.current) {
-      draggedRef.current = false;
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>): void => {
+    const anchor = dragAnchor.current;
+    dragAnchor.current = null;
+    setDragRange(null);
+    if (anchor === null) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    commit(anchor, indexFromPointer(event));
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (lastIndex < 0) return;
+
+    if (event.key === 'Escape') {
+      setKeyboardCursor(null);
       return;
     }
-    const label = activeLabelOf(state);
-    if (label === null) return;
-    emitSelection(label, label);
+    if (event.key === 'Enter' || event.key === ' ') {
+      if (!cursorRange) return;
+      event.preventDefault();
+      commit(cursorRange.start, cursorRange.end);
+      return;
+    }
+
+    const moved = nextBucketCursor(keyboardCursor ?? { anchor: lastIndex, cursor: lastIndex }, {
+      key: event.key,
+      extend: event.shiftKey,
+      lastIndex,
+    });
+    if (!moved) return;
+    event.preventDefault();
+    setKeyboardCursor(moved);
   };
 
+  const tickSlots = Math.max(1, Math.floor(plotWidthPx / TICK_TARGET_PX));
+  const tickEvery = Math.max(1, Math.ceil(points.length / tickSlots));
+  const slotWidthPx = points.length > 0 ? plotWidthPx / points.length : 0;
+  const barGapPx = slotWidthPx >= 6 ? 2 : 1;
+  const barRadiusPx = Math.min(4, Math.max(1, Math.floor((slotWidthPx - barGapPx) / 2)));
+  const hovered = hoverIndex === null ? null : points[hoverIndex];
+  const cursorPoint = keyboardCursor ? points[keyboardCursor.cursor] : undefined;
+
   return (
-    <ChartContainer height="100%">
-      <LineChart
-        accessibilityLayer
-        data={rows}
-        margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onClick={handleClick}
-      >
-        <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis
-          dataKey="start"
-          tickFormatter={(value: string) => formatTick(value, granularity)}
-          tickLine={false}
-          axisLine={false}
-          minTickGap={48}
-          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-        />
-        <YAxis
-          domain={yDomainFor(definition)}
-          tickFormatter={(value: number) => formatMetricValue(value)}
-          tickLine={false}
-          axisLine={false}
-          width={52}
-          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-        />
-        <Tooltip
-          cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
-          content={<MetricChartTooltip granularity={granularity} />}
-        />
-        {series.length >= 2 || compareSeries ? (
-          <Legend
-            verticalAlign="bottom"
-            height={28}
-            iconType="plainline"
-            wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }}
-          />
-        ) : null}
-        {selection ? (
-          <ReferenceArea
-            x1={selection.from}
-            x2={selection.to}
-            fill="var(--chart-1)"
-            fillOpacity={0.12}
-            stroke="var(--chart-1)"
-            strokeOpacity={0.4}
-          />
-        ) : null}
-        {series.map((entry, index) => (
-          <Line
-            key={seriesLabel(entry, metricName)}
-            type="monotone"
-            dataKey={`s${index}`}
-            name={seriesLabel(entry, metricName)}
-            stroke={seriesStroke(entry, index)}
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4 }}
-            isAnimationActive={false}
-          />
+    <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-0 sm:grid-cols-[4.5rem_minmax(0,1fr)]">
+      <div className="relative h-56 pr-2.5 text-[10px] text-muted-foreground tabular-nums sm:h-64 xl:h-72">
+        {axisTicks(top, AXIS_DIVISIONS).map((tick, index) => (
+          <span
+            key={tick}
+            className="absolute right-2.5 translate-y-1/2 text-right"
+            style={{ bottom: `${(index / AXIS_DIVISIONS) * 100}%` }}
+          >
+            {formatMetricAmount(tick, valueFormat)}
+          </span>
         ))}
-        {compareSeries ? (
-          <Line
-            dataKey={COMPARE_KEY}
-            type="monotone"
-            name="Previous period"
-            stroke="var(--chart-compare)"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-            dot={false}
-            activeDot={{ r: 3 }}
-            isAnimationActive={false}
-          />
+      </div>
+
+      <div
+        role="listbox"
+        tabIndex={0}
+        aria-multiselectable="true"
+        aria-activedescendant={cursorPoint ? bucketOptionId(cursorPoint.startMs) : undefined}
+        aria-label={`${metricName} by ${GRANULARITY_NOUN[granularity]}. Arrow keys move between buckets, Shift with arrows extends the range, Enter selects it.`}
+        onKeyDown={handleKeyDown}
+        onBlur={() => setKeyboardCursor(null)}
+        className="relative h-56 touch-none rounded-sm outline-none ring-ring focus-visible:ring-2 sm:h-64 xl:h-72"
+      >
+        <div
+          ref={plotRef}
+          role="presentation"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={() => setHoverIndex(null)}
+          className="absolute inset-0 cursor-crosshair select-none"
+        >
+          {axisTicks(top, AXIS_DIVISIONS).map((tick, index) => (
+            <div
+              key={tick}
+              aria-hidden="true"
+              className="absolute inset-x-0 h-px bg-chart-grid"
+              style={{ bottom: `${(index / AXIS_DIVISIONS) * 100}%` }}
+            />
+          ))}
+
+          {baseline !== null ? (
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 border-metricyak-500 border-t border-dashed"
+              style={{ bottom: `${barHeightPercent(baseline, top)}%` }}
+            />
+          ) : null}
+
+          <div
+            role="presentation"
+            className="absolute inset-0 flex items-end"
+            style={{ gap: barGapPx }}
+          >
+            {points.map((point, index) => {
+              const inWindow = activeRange === null || isWithin(activeRange, index);
+              const unusual = isUnusual(point.value, band);
+              return (
+                <div
+                  key={point.startMs}
+                  id={bucketOptionId(point.startMs)}
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={isWithin(committedRange, index)}
+                  aria-label={`${formatBucketMoment(point.startMs)}, ${formatMetricAmount(point.value, valueFormat)}`}
+                  className={cn(
+                    'flex h-full flex-1 items-end',
+                    isWithin(activeRange, index) && 'bg-primary/8',
+                    isWithin(cursorRange, index) && 'bg-primary/12',
+                  )}
+                >
+                  <div
+                    className="w-full transition-[background-color] duration-150 motion-reduce:transition-none"
+                    style={{
+                      height: `${barHeightPercent(point.value, top)}%`,
+                      borderRadius: `${barRadiusPx}px ${barRadiusPx}px 0 0`,
+                      background:
+                        hoverIndex === index
+                          ? `color-mix(in oklab, ${barFill(inWindow, unusual)} 78%, var(--foreground))`
+                          : barFill(inWindow, unusual),
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {hovered ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute top-2 z-10 min-w-40 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-2 text-popover-foreground shadow-xl"
+            style={{
+              left: `clamp(5.5rem, ${(((hoverIndex ?? 0) + 0.5) / points.length) * 100}%, calc(100% - 5.5rem))`,
+            }}
+          >
+            <p className="text-[11px] text-muted-foreground">
+              {formatBucketMoment(hovered.startMs)}
+            </p>
+            <p className="font-semibold text-base tabular-nums">
+              {formatMetricAmount(hovered.value, valueFormat)}
+            </p>
+          </div>
         ) : null}
-      </LineChart>
-    </ChartContainer>
+      </div>
+
+      <div className="relative col-start-2 mt-1.5 h-3.5 text-[10px] text-muted-foreground tabular-nums">
+        {points.map((point, index) =>
+          index % tickEvery === 0 ? (
+            <span
+              key={point.startMs}
+              className={cn('absolute top-0 whitespace-nowrap', index > 0 && '-translate-x-1/2')}
+              style={{ left: `${((index + 0.5) / points.length) * 100}%` }}
+            >
+              {formatTick(point.startMs, granularity, rangeToMs - rangeFromMs)}
+            </span>
+          ) : null,
+        )}
+      </div>
+    </div>
   );
 }

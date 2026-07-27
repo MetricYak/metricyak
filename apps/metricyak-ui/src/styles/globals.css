@@ -70,6 +70,8 @@
   --chart-6: #a16207;
   --chart-other: var(--metricyak-500);
   --chart-compare: var(--metricyak-400);
+  --chart-bar-idle: var(--metricyak-300);
+  --chart-grid: var(--metricyak-200);
 
   --sidebar-bg: var(--metricyak-300);
   --sidebar-foreground: var(--metricyak-900);
@@ -119,6 +121,8 @@
   --chart-6: #bd7f1a;
   --chart-other: var(--metricyak-500);
   --chart-compare: var(--metricyak-600);
+  --chart-bar-idle: var(--metricyak-700);
+  --chart-grid: var(--metricyak-800);
 
   --sidebar-bg: var(--metricyak-800);
   --sidebar-foreground: var(--metricyak-50);
@@ -155,6 +159,8 @@
   --color-chart-6: var(--chart-6);
   --color-chart-other: var(--chart-other);
   --color-chart-compare: var(--chart-compare);
+  --color-chart-bar-idle: var(--chart-bar-idle);
+  --color-chart-grid: var(--chart-grid);
 
   --color-background: var(--background);
   --color-canvas: var(--canvas);
