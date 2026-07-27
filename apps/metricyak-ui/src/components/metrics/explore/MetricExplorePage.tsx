@@ -1,45 +1,53 @@
-import { LineChart, Plus, RefreshCw, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LineChart, Plus, RefreshCw, RotateCcw, X, ZoomIn } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { rangeCutoff } from '@/api/events';
-import { getMetricSeries, type MetricSeries } from '@/api/metric-series';
+import { getMetricDimensionValues } from '@/api/metric-series';
 import { listMetrics, type Metric } from '@/api/metrics';
 import { PageContainer } from '@/components/shell/PageContainer';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/ui/surface';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { usePanelHeight } from '@/hooks/usePanelHeight';
 import { useProjectRoute } from '@/hooks/useProjectRoute';
-import { cn } from '@/lib/utils';
-import { BucketEventsPanel } from './BucketEventsPanel';
+import { baselineGuideCaption, baselineGuideValue } from './baseline-guide';
+import { ExploreTabs } from './ExploreTabs';
 import { ExploreToolbar } from './ExploreToolbar';
-import { type ExploreState, readExploreState, writeExploreState } from './explore-url';
-import { granularityFor } from './granularity';
+import {
+  type ExploreFilter,
+  type ExploreState,
+  readExploreState,
+  resolveWindow,
+  writeExploreState,
+} from './explore-url';
+import {
+  formatBucketMoment,
+  GRANULARITY_MS,
+  granularityChoicesFor,
+  granularityForSpan,
+} from './granularity';
 import { MetricChart } from './MetricChart';
+import { MetricEventsPanel } from './MetricEventsPanel';
+import { MetricSummaryTiles } from './MetricSummaryTiles';
+import { isAdditive, toExploreMetric } from './metric-shape';
+import { PropertyBreakdown } from './PropertyBreakdown';
+import { summaryTilesFor } from './summary-tiles';
+import { useExploreData } from './useExploreData';
+import { CHANGE_DIRECTION_CLASS, changeDirection, formatChangeRatio } from './value-format';
 
-const DEFAULT_CHART_WIDTH = 900;
+const DEFAULT_PLOT_WIDTH_PX = 900;
+const NO_DIMENSIONS: readonly string[] = [];
+const UNUSUAL_BARS_NOTE = 'Highlighted bars sit outside the usual spread of this window.';
 
 type MetricsLoad = 'loading' | 'ready' | 'error';
 
-interface LoadedSeries {
-  metricId: string;
-  series: MetricSeries[];
-  compare: MetricSeries[] | null;
-}
-
-function hasNoRecordedValue(series: readonly MetricSeries[]): boolean {
-  return series.every((entry) => entry.points.every((point) => !point.value));
-}
-
 function ChartSkeleton(): React.JSX.Element {
   return (
-    <div className="flex h-65 items-end gap-1.5 px-2 pb-6">
-      {Array.from({ length: 24 }).map((_, index) => (
+    <div className="flex h-56 items-end gap-0.5 sm:h-64 xl:h-72" aria-hidden="true">
+      {Array.from({ length: 48 }).map((_, index) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed skeleton list
           key={index}
-          className="flex-1 animate-pulse rounded-t bg-metricyak-100"
-          style={{ height: `${30 + ((index * 37) % 60)}%` }}
+          className="flex-1 animate-pulse rounded-t-[2px] bg-chart-grid"
+          style={{ height: `${34 + ((index * 37) % 58)}%` }}
         />
       ))}
     </div>
@@ -61,11 +69,17 @@ function CenteredMessage({
   );
 }
 
-function StaleBanner({ onRetry, onDismiss }: { onRetry: () => void; onDismiss: () => void }) {
+function StaleBanner({
+  onRetry,
+  onDismiss,
+}: {
+  onRetry: () => void;
+  onDismiss: () => void;
+}): React.JSX.Element {
   return (
-    <div className="mb-3 flex items-center gap-3 rounded-md border border-border bg-metricyak-50 px-3 py-2 text-sm">
+    <div className="flex items-center gap-3 rounded-md border border-border bg-metricyak-50 px-3 py-2 text-sm">
       <span className="flex-1 text-foreground">
-        Couldn't refresh the chart — showing what you last loaded.
+        Couldn't refresh this metric — showing what you last loaded.
       </span>
       <button
         type="button"
@@ -92,27 +106,18 @@ export function MetricExplorePage(): React.JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
   const state = useMemo(() => readExploreState(searchParams), [searchParams]);
 
-  const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [plotFrame, setPlotFrame] = useState<HTMLDivElement | null>(null);
+  const [plotWidthPx, setPlotWidthPx] = useState(DEFAULT_PLOT_WIDTH_PX);
+  const [metrics, setMetrics] = useState<readonly Metric[]>([]);
   const [metricsLoad, setMetricsLoad] = useState<MetricsLoad>('loading');
-  const [lastGood, setLastGood] = useState<LoadedSeries | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-  const [chartWidth, setChartWidth] = useState(DEFAULT_CHART_WIDTH);
-  const chartFrame = useRef<HTMLDivElement>(null);
-  const requestId = useRef(0);
-  const isDesktop = useMediaQuery('(min-width: 768px)');
-  const panel = usePanelHeight({
-    minHeight: 160,
-    maxHeight: 520,
-    defaultHeight: 280,
-    storageKey: 'metricyak.explore-panel-height',
-  });
+  const [staleDismissed, setStaleDismissed] = useState(false);
 
-  const applyState = useCallback(
-    (next: ExploreState): void => {
-      setSearchParams(writeExploreState(next), { replace: true });
+  const patch = useCallback(
+    (next: Partial<ExploreState>, replace = true): void => {
+      setSearchParams(writeExploreState({ ...state, ...next }), { replace });
     },
-    [setSearchParams],
+    [setSearchParams, state],
   );
 
   useEffect(() => {
@@ -133,82 +138,75 @@ export function MetricExplorePage(): React.JSX.Element {
   }, [projectId]);
 
   useEffect(() => {
-    const frame = chartFrame.current;
-    if (!frame) return;
+    if (!plotFrame) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
-      if (entry) setChartWidth(entry.contentRect.width);
+      if (entry) setPlotWidthPx(entry.contentRect.width);
     });
-    observer.observe(frame);
+    observer.observe(plotFrame);
     return () => observer.disconnect();
-  }, []);
+  }, [plotFrame]);
 
-  const requestedMetric = state.metricId
-    ? (metrics.find((candidate) => candidate.id === state.metricId) ?? null)
-    : (metrics[0] ?? null);
-  const metricMissing = state.metricId !== null && requestedMetric === null;
+  const exploreMetrics = useMemo(() => metrics.map(toExploreMetric), [metrics]);
+  const metric = state.metricId
+    ? (exploreMetrics.find((candidate) => candidate.id === state.metricId) ?? null)
+    : (exploreMetrics[0] ?? null);
+  const metricMissing = metricsLoad === 'ready' && state.metricId !== null && metric === null;
 
-  const window = useMemo(() => {
-    const nowMs = Date.now();
-    const fromMs = rangeCutoff(state.range, nowMs) ?? nowMs;
-    return { from: new Date(fromMs).toISOString(), to: new Date(nowMs).toISOString() };
-  }, [state.range]);
+  const range = useMemo(() => resolveWindow(state.window, nowMs), [state.window, nowMs]);
+  const rangeSpanMs = range.toMs - range.fromMs;
+  const granularityChoices = useMemo(() => granularityChoicesFor(rangeSpanMs), [rangeSpanMs]);
+  const chosenGranularity =
+    state.granularity !== null && granularityChoices.includes(state.granularity)
+      ? state.granularity
+      : null;
+  const granularity = chosenGranularity ?? granularityForSpan(rangeSpanMs, plotWidthPx);
 
-  const granularity = state.granularity ?? granularityFor(state.range, chartWidth);
-  const metricId = requestedMetric?.id ?? null;
-  const drilling = state.selection !== null && !metricMissing;
-  const fullScreenPanel = !isDesktop;
+  const analysis = state.selection ?? range;
+  const dimensions = metric?.dimensions ?? NO_DIMENSIONS;
+  const dimension =
+    state.property !== null && dimensions.includes(state.property)
+      ? state.property
+      : (dimensions[0] ?? null);
 
-  const loadSeries = useCallback((): void => {
-    if (!metricId) return;
-    const id = ++requestId.current;
-    setLoading(true);
-
-    const spanMs = new Date(window.to).getTime() - new Date(window.from).getTime();
-    const filters = state.filters.map((filter) => ({ name: filter.name, value: filter.value }));
-
-    const primary = getMetricSeries(projectId, metricId, {
-      from: window.from,
-      to: window.to,
-      granularity,
-      splitBy: state.splitBy,
-      filters,
-    });
-    const previous = state.compare
-      ? getMetricSeries(projectId, metricId, {
-          from: new Date(new Date(window.from).getTime() - spanMs).toISOString(),
-          to: window.from,
-          granularity,
-          filters,
-        })
-      : Promise.resolve(null);
-
-    Promise.all([primary, previous])
-      .then(([current, compare]) => {
-        if (id !== requestId.current) return;
-        setLastGood({ metricId, series: current.series, compare: compare?.series ?? null });
-        setFailed(false);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (id !== requestId.current) return;
-        setFailed(true);
-        setLoading(false);
-      });
-  }, [
+  const {
+    series,
+    band,
+    stats,
+    breakdown,
+    loadingSeries,
+    loadingValues,
+    seriesFailed,
+    valuesFailed,
+    retry,
+  } = useExploreData({
     projectId,
-    metricId,
-    window.from,
-    window.to,
+    metric,
+    range,
+    analysis,
     granularity,
-    state.splitBy,
-    state.compare,
-    state.filters,
-  ]);
+    filters: state.filters,
+    dimension,
+  });
 
+  const refreshFailed = seriesFailed || valuesFailed;
   useEffect(() => {
-    loadSeries();
-  }, [loadSeries]);
+    if (!refreshFailed) setStaleDismissed(false);
+  }, [refreshFailed]);
+
+  const loadDimensionValues = useCallback(
+    (name: string): Promise<readonly string[]> =>
+      metric
+        ? getMetricDimensionValues(
+            projectId,
+            metric.id,
+            name,
+            new Date(range.fromMs).toISOString(),
+            new Date(range.toMs).toISOString(),
+          )
+        : Promise.resolve([]),
+    [projectId, metric, range.fromMs, range.toMs],
+  );
 
   if (metricsLoad === 'error') {
     return (
@@ -220,7 +218,7 @@ export function MetricExplorePage(): React.JSX.Element {
     );
   }
 
-  if (metricsLoad === 'ready' && metrics.length === 0) {
+  if (metricsLoad === 'ready' && exploreMetrics.length === 0) {
     return (
       <PageContainer width="content" className="py-16">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -240,116 +238,230 @@ export function MetricExplorePage(): React.JSX.Element {
     );
   }
 
-  const showing = lastGood && lastGood.metricId === metricId ? lastGood : null;
+  if (metricMissing) {
+    return (
+      <PageContainer width="wide" className="py-16">
+        <CenteredMessage title="That metric isn't in this project">
+          <p>It may have been deleted or moved to another project.</p>
+          <Button
+            variant="outline"
+            className="mt-3"
+            onClick={() => patch({ metricId: null, filters: [], selection: null, property: null })}
+          >
+            Explore another metric
+          </Button>
+        </CenteredMessage>
+      </PageContainer>
+    );
+  }
+
+  if (!metric) {
+    return (
+      <PageContainer width="wide" className="py-16">
+        <CenteredMessage title="Loading your metrics…" />
+      </PageContainer>
+    );
+  }
+
+  const catalogueHref = to(`/metrics/catalogue/${metric.id}`);
+  const loadedGranularity = series?.granularity ?? granularity;
+  const bucketMs = GRANULARITY_MS[loadedGranularity];
+  const direction = changeDirection(stats?.changeRatio ?? null);
+
+  const chartBaseline = baselineGuideValue({
+    kind: metric.kind,
+    baseline: stats?.baseline ?? null,
+    windowSpanMs: analysis.toMs - analysis.fromMs,
+    bucketMs,
+  });
+
+  const chartNotes = [
+    chartBaseline === null
+      ? null
+      : baselineGuideCaption(metric.kind, metric.name, loadedGranularity),
+    band === null ? null : UNUSUAL_BARS_NOTE,
+  ].flatMap((note) => (note === null ? [] : [note]));
+
+  const emptyWindowNote =
+    state.filters.length > 0
+      ? 'Nothing recorded here. Clear a filter or widen the range.'
+      : 'Nothing recorded in this window. Try a wider range.';
+
+  const setFilters = (filters: readonly ExploreFilter[]): void => {
+    patch({ filters, selection: null });
+  };
 
   return (
-    <PageContainer
-      width="wide"
-      className="flex flex-col gap-4 py-6 md:h-full md:min-h-0 md:overflow-hidden"
-    >
+    <PageContainer width="wide" className="flex flex-col gap-4 py-5">
       <ExploreToolbar
-        projectId={projectId}
-        metrics={metrics}
-        metric={requestedMetric}
-        state={state}
-        window={window}
-        catalogueHref={to(`/metrics/catalogue/${metricId ?? ''}`)}
-        onChange={applyState}
+        metrics={exploreMetrics}
+        metric={metric}
+        window={state.window}
+        resolvedWindow={range}
+        granularity={chosenGranularity}
+        resolvedGranularity={granularity}
+        granularityChoices={granularityChoices}
+        filters={state.filters}
+        freshness={`through ${formatBucketMoment(range.toMs)}`}
+        catalogueHref={catalogueHref}
+        loadDimensionValues={loadDimensionValues}
+        onSelectMetric={(nextId) =>
+          patch({ metricId: nextId, filters: [], selection: null, property: null })
+        }
+        onChangeWindow={(window) => {
+          setNowMs(Date.now());
+          patch({ window, granularity: null, selection: null });
+        }}
+        onChangeGranularity={(next) => patch({ granularity: next, selection: null })}
+        onChangeFilters={setFilters}
       />
 
-      <Surface
-        padding="none"
-        className="flex min-h-80 flex-col p-4 md:min-h-0 md:flex-1 md:overflow-hidden"
-      >
-        {failed && showing ? (
-          <StaleBanner onRetry={loadSeries} onDismiss={() => setFailed(false)} />
+      {metric.dimensions.length === 0 ? (
+        <p className="-mt-1 text-muted-foreground text-xs">
+          This metric has no dimensions, so there's nothing to filter or break down by — add them in
+          the{' '}
+          <Link
+            to={catalogueHref}
+            className="text-brand-orange-text underline-offset-4 hover:underline"
+          >
+            metric definition
+          </Link>
+          .
+        </p>
+      ) : null}
+
+      {series && stats ? (
+        <MetricSummaryTiles tiles={summaryTilesFor(metric, stats, loadedGranularity)} />
+      ) : null}
+
+      <Surface padding="none" className="flex flex-col gap-3 px-4 py-4 sm:px-5">
+        {series && refreshFailed && !staleDismissed ? (
+          <StaleBanner onRetry={retry} onDismiss={() => setStaleDismissed(true)} />
         ) : null}
 
-        {showing?.compare && hasNoRecordedValue(showing.compare) ? (
-          <p className="mb-3 text-muted-foreground text-xs">
-            Nothing recorded in the previous period, so there's no comparison to draw.
-          </p>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold text-sm">
+              {formatBucketMoment(analysis.fromMs)} → {formatBucketMoment(analysis.toMs)}
+            </h2>
+            <Badge variant="secondary" className={CHANGE_DIRECTION_CLASS[direction]}>
+              {formatChangeRatio(stats?.changeRatio ?? null)}
+            </Badge>
+            <span className="text-muted-foreground text-xs">vs the window before it</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="hidden text-muted-foreground text-xs lg:block">
+              Drag across the chart to select a window
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!state.selection}
+              onClick={() =>
+                state.selection
+                  ? patch({
+                      window: {
+                        kind: 'custom',
+                        fromMs: state.selection.fromMs,
+                        toMs: state.selection.toMs,
+                      },
+                      granularity: null,
+                      selection: null,
+                    })
+                  : undefined
+              }
+            >
+              <ZoomIn className="size-3.5" />
+              Zoom to selection
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!state.selection}
+              onClick={() => patch({ selection: null })}
+            >
+              <RotateCcw className="size-3.5" />
+              Reset
+            </Button>
+          </div>
+        </div>
 
-        <div
-          ref={chartFrame}
-          className={cn('relative min-h-64 flex-1', drilling && fullScreenPanel && 'hidden')}
-        >
-          {metricMissing ? (
-            <CenteredMessage title="That metric isn't in this project">
-              Pick another from the menu above.
-            </CenteredMessage>
-          ) : showing ? (
+        <div ref={setPlotFrame} className="relative">
+          {series === null ? (
+            seriesFailed ? (
+              <CenteredMessage title="Couldn't load this metric">
+                <button
+                  type="button"
+                  onClick={retry}
+                  className="font-medium text-brand-orange-text underline-offset-4 hover:underline"
+                >
+                  Try again
+                </button>
+              </CenteredMessage>
+            ) : (
+              <ChartSkeleton />
+            )
+          ) : (
             <>
               <MetricChart
-                series={showing.series}
-                compareSeries={showing.compare}
-                definition={requestedMetric?.definition ?? { events: [] }}
-                metricName={requestedMetric?.name ?? 'Metric'}
-                granularity={granularity}
+                metricName={metric.name}
+                valueFormat={metric.valueFormat}
+                granularity={loadedGranularity}
+                points={series.points}
+                bucketMs={bucketMs}
+                plotWidthPx={plotWidthPx}
+                baseline={chartBaseline}
+                band={band}
                 selection={state.selection}
-                onSelect={(selection) => applyState({ ...state, selection })}
+                onSelect={(selection) => patch({ selection }, false)}
               />
-              {hasNoRecordedValue(showing.series) ? (
+              {series.points.every((point) => point.value === null) ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <p className="rounded-md bg-background/85 px-3 py-1.5 text-muted-foreground text-sm">
-                    Nothing recorded in this window.
+                    {emptyWindowNote}
                   </p>
                 </div>
               ) : null}
               <div
                 aria-live="polite"
-                className={cn(
-                  'absolute top-0 right-0 text-muted-foreground text-xs transition-opacity',
-                  loading ? 'opacity-100' : 'opacity-0',
-                )}
+                className="absolute top-0 right-0 text-muted-foreground text-xs"
               >
-                Updating…
+                {loadingSeries ? 'Updating…' : ''}
               </div>
             </>
-          ) : failed ? (
-            <CenteredMessage title="Couldn't load this metric">
-              <button
-                type="button"
-                onClick={loadSeries}
-                className="font-medium text-brand-orange-text underline-offset-4 hover:underline"
-              >
-                Try again
-              </button>
-            </CenteredMessage>
-          ) : (
-            <ChartSkeleton />
           )}
         </div>
 
-        {drilling && metricId && state.selection ? (
-          <>
-            {fullScreenPanel ? null : (
-              <div
-                {...panel.handleProps}
-                data-resizing={panel.resizing}
-                className="group/handle -mx-4 mt-2 h-3 shrink-0 cursor-row-resize touch-none select-none"
-              >
-                <div className="pointer-events-none mt-1.5 h-px w-full bg-border transition-[transform,background-color] group-hover/handle:scale-y-[3] group-hover/handle:bg-ring group-data-[resizing=true]/handle:scale-y-[3] group-data-[resizing=true]/handle:bg-ring" />
-              </div>
-            )}
-            <div
-              className={cn('flex min-h-0 flex-col', fullScreenPanel ? 'flex-1' : 'shrink-0')}
-              style={fullScreenPanel ? undefined : { height: panel.height }}
-            >
-              <BucketEventsPanel
-                key={`${state.selection.from}..${state.selection.to}`}
-                projectId={projectId}
-                metricId={metricId}
-                selection={state.selection}
-                filters={state.filters}
-                fullScreen={fullScreenPanel}
-                onClose={() => applyState({ ...state, selection: null })}
-              />
-            </div>
-          </>
+        {chartNotes.length > 0 ? (
+          <p className="text-muted-foreground text-xs">{chartNotes.join(' ')}</p>
         ) : null}
       </Surface>
+
+      <ExploreTabs tab={state.tab} onChange={(tab) => patch({ tab })}>
+        {state.tab === 'breakdown' ? (
+          <PropertyBreakdown
+            dimensions={metric.dimensions}
+            dimension={dimension}
+            valueFormat={metric.valueFormat}
+            rows={breakdown}
+            showShareOfChange={isAdditive(metric.kind)}
+            filters={state.filters}
+            loading={loadingValues}
+            onSelectDimension={(name) => patch({ property: name })}
+            onFilterTo={(filter) => setFilters([...state.filters, filter])}
+          />
+        ) : null}
+
+        {state.tab === 'events' ? (
+          <MetricEventsPanel
+            projectId={projectId}
+            metricId={metric.id}
+            fromMs={analysis.fromMs}
+            toMs={analysis.toMs}
+            filters={state.filters}
+          />
+        ) : null}
+      </ExploreTabs>
     </PageContainer>
   );
 }
