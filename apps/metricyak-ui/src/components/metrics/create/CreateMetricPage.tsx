@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Surface } from '@/components/ui/surface';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { ApiError } from '@/lib/api';
 import { DimensionsField } from './DimensionsField';
 import { useRecentlySeenEvents } from './EventCombobox';
@@ -34,6 +35,7 @@ function toFieldPath(attribute: string): string {
 export function CreateMetricPage(): React.JSX.Element {
   const { activeProject } = useProjectContext();
   const navigate = useNavigate();
+  const { to } = useProjectRoute();
   const [view, setView] = useState<PreviewView>('visual');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export function CreateMetricPage(): React.JSX.Element {
 
   const requestLeave = (): void => {
     if (isDirty) setShowDiscard(true);
-    else navigate('/metrics/definitions');
+    else navigate(to('/metrics/catalogue'));
   };
 
   const onSubmit = async (values: MetricFormValues): Promise<void> => {
@@ -81,7 +83,7 @@ export function CreateMetricPage(): React.JSX.Element {
       });
 
       toast.success('Metric created', { description: metric.name });
-      navigate(`/metrics/definitions?m=${encodeURIComponent(metric.id)}`, {
+      navigate(to(`/metrics/catalogue?m=${encodeURIComponent(metric.id)}`), {
         state: { justCreatedId: metric.id },
       });
     } catch (error) {
@@ -112,7 +114,7 @@ export function CreateMetricPage(): React.JSX.Element {
         title="New metric"
         description="Choose the events this number counts and how to add them up."
         width="wide"
-        backTo="/metrics/definitions"
+        backTo={to('/metrics/catalogue')}
         backLabel="Back to definitions"
         onBackClick={(event) => {
           event.preventDefault();
@@ -200,7 +202,7 @@ export function CreateMetricPage(): React.JSX.Element {
         confirmLabel="Discard"
         cancelLabel="Keep editing"
         destructive
-        onConfirm={() => navigate('/metrics/definitions')}
+        onConfirm={() => navigate(to('/metrics/catalogue'))}
         onCancel={() => setShowDiscard(false)}
       />
     </div>

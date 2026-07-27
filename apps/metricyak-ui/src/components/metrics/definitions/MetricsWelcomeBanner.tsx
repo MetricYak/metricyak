@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 
 const STORAGE_KEY = 'metricyak.metrics-welcome-dismissed';
 
@@ -21,6 +22,8 @@ function dismissWelcomeBanner(): void {
 }
 
 export function MetricsWelcomeBanner({ onDismiss }: { onDismiss: () => void }): React.JSX.Element {
+  const { to } = useProjectRoute();
+
   const handleDismiss = (): void => {
     dismissWelcomeBanner();
     onDismiss();
@@ -43,7 +46,7 @@ export function MetricsWelcomeBanner({ onDismiss }: { onDismiss: () => void }): 
         metrics you define here.
       </p>
       <Button asChild className="raised mt-6">
-        <Link to="/metrics/definitions/new">Create your first metric</Link>
+        <Link to={to('/metrics/catalogue/new')}>Create your first metric</Link>
       </Button>
     </div>
   );

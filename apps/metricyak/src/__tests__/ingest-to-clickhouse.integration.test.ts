@@ -100,7 +100,7 @@ describe('ingest -> Kafka -> ClickHouse -> MetricReads (integration)', () => {
     // observes the event or the test's own timeout fails it.
     let value: number | null = null;
     for (let attempt = 0; attempt < 20; attempt++) {
-      value = (await reads.value(metric, projectId, window)).value;
+      value = (await reads.value(metric, projectId, window, { filters: [] })).value;
       if (value === 1) break;
       await new Promise((resolve) => setTimeout(resolve, 500));
     }

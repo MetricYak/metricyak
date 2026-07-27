@@ -130,6 +130,30 @@ One saturated voice against a near-achromatic warm neutral ramp. The orange mark
 
 **The Ink Rule.** Ink (`#0f0e0d`) is reserved for the raised interaction shadow. It should not appear as a UI color elsewhere, which keeps the pressed-control effect feeling distinct and physical.
 
+### Data visualization
+
+The one-voice palette has no categorical ramp, so charts get their own — six slots with Yak Orange holding slot 1. Derived by running the dataviz validator, not chosen by eye. Dark is a **selected** set of steps, not an automatic flip: the light steps fall outside the dark lightness band, and light slot 4 lands at 2.74:1 on the dark surface.
+
+| Slot | Light (surface `#ffffff`) | Dark (surface `#1a1917`) |
+|---|---|---|
+| 1 | `#d9591a` Yak Orange | `#e06a2e` |
+| 2 | `#2a6fd6` | `#4a8de8` |
+| 3 | `#1a8f5c` | `#2aa876` |
+| 4 | `#6b46c1` | `#8b5cf6` |
+| 5 | `#d63384` | `#e0508f` |
+| 6 | `#a16207` | `#bd7f1a` |
+
+Shipped as `--chart-1` … `--chart-6` in both blocks of `globals.css`, plus `--chart-other` (neutral, `--metricyak-500`) and `--chart-compare`.
+
+Both sets report ALL CHECKS PASS. Worst adjacent CVD pair: ΔE 11.8 light / 12.2 dark against a target of ≥ 8. Worst normal-vision pair: 20.8 / 20.1 against a floor of 15. Re-run both commands whenever the palette is touched — they are the regression test:
+
+```
+node scripts/validate_palette.js "#d9591a,#2a6fd6,#1a8f5c,#6b46c1,#d63384,#a16207" --mode light --surface "#ffffff"
+node scripts/validate_palette.js "#e06a2e,#4a8de8,#2aa876,#8b5cf6,#e0508f,#bd7f1a" --mode dark  --surface "#1a1917"
+```
+
+**The Six-Slot Rule.** Chart series take slots 1–6 in fixed order, assigned by dimension value and never cycled. A seventh value folds into `Other` in `--chart-other`. Colour follows the entity, never its rank — removing a filter must not repaint the surviving series. The previous-period comparison line uses `--chart-compare` and never a categorical slot.
+
 ## 3. Typography
 
 **UI Font:** `ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif` — the system stack throughout.

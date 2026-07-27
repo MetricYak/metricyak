@@ -31,6 +31,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useProjectContext } from '@/contexts/ProjectContext';
 import { usePolling } from '@/hooks/usePolling';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { MonitorStatusBadge } from './MonitorStatusBadge';
 
 type StatusOption = MonitorStatusFilter | 'all';
@@ -56,6 +57,7 @@ const DEFAULT_QUERY: MonitorsQuery = { page: 0, pageSize: 25, q: '', status: 'al
 const MONITORS_POLL_MS = 5000;
 
 function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
+  const { to } = useProjectRoute();
   const [query, setQuery] = useState<MonitorsQuery>(DEFAULT_QUERY);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [metricNames, setMetricNames] = useState<Map<string, string>>(new Map());
@@ -158,7 +160,7 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
         cell: ({ row }) => (
           <div className="min-w-0">
             <Link
-              to={`/monitors/${row.original.monitorId}`}
+              to={to(`/monitors/${row.original.monitorId}`)}
               className="font-medium text-foreground text-sm hover:text-brand-orange-text hover:underline"
             >
               {row.original.name}
@@ -207,7 +209,7 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
         ),
       },
     ],
-    [metricNames, toggleEnabled],
+    [metricNames, toggleEnabled, to],
   );
 
   const filtersActive = query.q.trim().length > 0 || query.status !== 'all';
@@ -220,7 +222,7 @@ function MonitorsView({ projectId }: { projectId: string }): React.JSX.Element {
         description="Get told the moment a number crosses the line."
         actions={
           <Button asChild className="raised">
-            <Link to="/monitors/new">
+            <Link to={to('/monitors/new')}>
               <Plus className="size-4" />
               New monitor
             </Link>

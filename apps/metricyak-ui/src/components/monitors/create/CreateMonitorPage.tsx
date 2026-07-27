@@ -31,6 +31,7 @@ import { Surface } from '@/components/ui/surface';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { ApiError } from '@/lib/api';
 import { MonitorPreviewPanel } from './MonitorPreviewPanel';
 import {
@@ -53,6 +54,7 @@ function toFieldPath(attribute: string): string {
 export function CreateMonitorPage(): React.JSX.Element {
   const { activeProject } = useProjectContext();
   const navigate = useNavigate();
+  const { to } = useProjectRoute();
   const [searchParams] = useSearchParams();
   const metricParam = searchParams.get('metric');
 
@@ -104,7 +106,7 @@ export function CreateMonitorPage(): React.JSX.Element {
 
   const requestLeave = (): void => {
     if (isDirty) setShowDiscard(true);
-    else navigate('/monitors');
+    else navigate(to('/monitors'));
   };
 
   const onSubmit = async (formValues: MonitorFormValues): Promise<void> => {
@@ -117,7 +119,7 @@ export function CreateMonitorPage(): React.JSX.Element {
         toCreateMonitorInput(formValues, selectedMetric),
       );
       toast.success('Monitor created', { description: monitor.name });
-      navigate('/monitors');
+      navigate(to('/monitors'));
     } catch (error) {
       if (error instanceof ApiError) {
         let appliedToField = false;
@@ -154,7 +156,7 @@ export function CreateMonitorPage(): React.JSX.Element {
         icon={BellRing}
         title="New monitor"
         description="Watch a metric and get told the moment it crosses the line."
-        backTo="/monitors"
+        backTo={to('/monitors')}
         backLabel="Back to monitors"
         onBackClick={(event) => {
           event.preventDefault();
@@ -433,7 +435,7 @@ export function CreateMonitorPage(): React.JSX.Element {
         confirmLabel="Discard"
         cancelLabel="Keep editing"
         destructive
-        onConfirm={() => navigate('/monitors')}
+        onConfirm={() => navigate(to('/monitors'))}
         onCancel={() => setShowDiscard(false)}
       />
     </div>

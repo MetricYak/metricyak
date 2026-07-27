@@ -2,13 +2,14 @@ import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/shell/PageContainer';
 import { PageTabs } from '@/components/shell/PageTabs';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
 
-type View = 'definitions' | 'explorer';
+type View = 'explore' | 'catalogue';
 
 const TABS: { id: View; label: string }[] = [
-  { id: 'definitions', label: 'Definitions' },
-  { id: 'explorer', label: 'Explorer' },
+  { id: 'explore', label: 'Explore' },
+  { id: 'catalogue', label: 'Catalogue' },
 ];
 
 function TabBar({
@@ -63,12 +64,13 @@ function TabBar({
 export function MetricsPage(): React.JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
-  const view: View = location.pathname.startsWith('/metrics/explorer') ? 'explorer' : 'definitions';
+  const { to } = useProjectRoute();
+  const view: View = location.pathname.includes('/metrics/catalogue') ? 'catalogue' : 'explore';
 
   return (
     <div className="flex h-full flex-col">
       <PageTabs>
-        <TabBar view={view} onChange={(v) => navigate(`/metrics/${v}`)} />
+        <TabBar view={view} onChange={(v) => navigate(to(`/metrics/${v}`))} />
       </PageTabs>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -77,7 +79,7 @@ export function MetricsPage(): React.JSX.Element {
             Turn the events you're tracking into the numbers your team watches.
           </p>
         </PageContainer>
-        <div className="min-h-0 flex-1 overflow-y-auto md:overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </div>
       </div>

@@ -5,6 +5,7 @@ import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router
 import { PageContainer } from '@/components/shell/PageContainer';
 import { PageTabs } from '@/components/shell/PageTabs';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
 import { EventsExplorer } from './EventsExplorer';
 import {
@@ -247,6 +248,7 @@ export function ActivityPage(): React.JSX.Element {
   const feed = useActivityFeed(projectId);
   const location = useLocation();
   const navigate = useNavigate();
+  const { to } = useProjectRoute();
   const view: View = location.pathname.endsWith('/explore') ? 'explore' : 'live';
 
   return (
@@ -263,7 +265,7 @@ export function ActivityPage(): React.JSX.Element {
           ) : undefined
         }
       >
-        <TabBar view={view} onChange={(v) => navigate(`/activity/${v}`)} />
+        <TabBar view={view} onChange={(v) => navigate(to(`/activity/${v}`))} />
       </PageTabs>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

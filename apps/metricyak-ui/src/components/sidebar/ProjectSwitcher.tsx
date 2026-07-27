@@ -13,10 +13,11 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { listOrganizations, type Organization } from '@/api/organizations';
 import { createProject, listProjects, type Project } from '@/api/projects';
 import { useProjectContext } from '@/contexts/ProjectContext';
+import { projectPath, sectionRootOf } from '@/lib/project-path';
 import { cn } from '@/lib/utils';
 
 function getInitials(name: string): string {
@@ -531,6 +532,7 @@ interface ProjectSwitcherProps {
 export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.Element {
   const { activeOrg, activeProject, setActiveProject } = useProjectContext();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const shouldReduceMotion = useReducedMotion();
 
   // Views slide horizontally in the direction of travel: forward when
@@ -683,6 +685,7 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
   const handleSelectProject = (project: Project): void => {
     if (popupOrg) setActiveProject(project, popupOrg);
     close();
+    navigate(projectPath(project.id, sectionRootOf(pathname)));
   };
 
   const handleSelectOrg = (org: Organization): void => {
@@ -720,7 +723,7 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
   const handleOpenProjectSettings = (project: Project): void => {
     if (popupOrg) setActiveProject(project, popupOrg);
     close();
-    navigate('/settings');
+    navigate(projectPath(project.id, '/settings'));
   };
 
   const handleCreate = async (): Promise<void> => {
@@ -732,6 +735,7 @@ export function ProjectSwitcher({ collapsed }: ProjectSwitcherProps): React.JSX.
       setPopupProjects((prev) => [...prev, project]);
       setActiveProject(project, popupOrg);
       close();
+      navigate(projectPath(project.id, sectionRootOf(pathname)));
     } catch {
       setCreateError('Failed to create project. Try again.');
     } finally {

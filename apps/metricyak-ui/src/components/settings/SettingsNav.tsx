@@ -2,12 +2,13 @@ import { ChevronDown, Search, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useMemo, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
 
 interface SettingsItem {
   id: string;
   label: string;
-  path: string;
+  pathSuffix: string;
 }
 
 interface SettingsSection {
@@ -21,16 +22,18 @@ const sections: readonly SettingsSection[] = [
     id: 'project',
     label: 'Project',
     items: [
-      { id: 'project-general', label: 'General', path: '/settings/project/general' },
-      { id: 'project-key', label: 'Project key', path: '/settings/project/key' },
+      { id: 'project-general', label: 'General', pathSuffix: '/settings/project/general' },
+      { id: 'project-key', label: 'Project key', pathSuffix: '/settings/project/key' },
     ],
   },
 ] satisfies readonly SettingsSection[];
 
 function SettingsNavItem({ item }: { item: SettingsItem }): React.JSX.Element {
+  const { to } = useProjectRoute();
+
   return (
     <NavLink
-      to={item.path}
+      to={to(item.pathSuffix)}
       end
       className={({ isActive }) =>
         cn(

@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { Resizable } from '@/components/resizable/Resizable';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
 import type { NavItemData } from './nav.config';
 
@@ -10,6 +11,8 @@ interface SubMenuPanelProps {
 }
 
 export function SubMenuPanel({ item, onClose }: SubMenuPanelProps): React.JSX.Element {
+  const { to } = useProjectRoute();
+
   return (
     <Resizable
       side="right"
@@ -36,7 +39,7 @@ export function SubMenuPanel({ item, onClose }: SubMenuPanelProps): React.JSX.El
           {item.items?.map((subItem) => (
             <NavLink
               key={subItem.id}
-              to={subItem.path}
+              to={to(subItem.pathSuffix)}
               end
               className={({ isActive }) =>
                 cn(

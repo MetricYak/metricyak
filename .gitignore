@@ -40,3 +40,6 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 apps/metricyak-ui/.impeccable/hook.cache.json
+
+# Superpowers brainstorming companion (local mockups)
+.superpowers/

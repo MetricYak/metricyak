@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
 import type { NavItemData } from './nav.config';
 
@@ -29,17 +30,20 @@ export function NavItem({
 }: NavItemProps): React.JSX.Element {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { to } = useProjectRoute();
   const Icon = item.icon;
   const hasSubItems = Boolean(item.items?.length);
+  const resolvedPath = item.pathSuffix ? to(item.pathSuffix) : undefined;
   const isActive =
     active ||
-    (Boolean(item.path) && (pathname === item.path || pathname.startsWith(`${item.path}/`)));
+    (Boolean(resolvedPath) &&
+      (pathname === resolvedPath || pathname.startsWith(`${resolvedPath}/`)));
 
   const handleClick = (): void => {
     if (hasSubItems) {
       onOpenSubMenu?.(item.id);
-    } else if (item.path) {
-      navigate(item.path);
+    } else if (resolvedPath) {
+      navigate(resolvedPath);
     }
   };
 

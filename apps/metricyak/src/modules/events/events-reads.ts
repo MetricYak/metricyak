@@ -7,6 +7,11 @@ export type EventRecord = {
   readonly properties: Record<string, unknown>;
 };
 
+export type PropertyEquals = {
+  readonly path: string;
+  readonly value: string;
+};
+
 export type ListEventsPageParams = {
   readonly projectId: string;
   readonly from: Date | null;
@@ -14,6 +19,8 @@ export type ListEventsPageParams = {
   readonly sort: 'asc' | 'desc';
   readonly page: number;
   readonly pageSize: number;
+  readonly names?: readonly string[];
+  readonly propertyEquals?: readonly PropertyEquals[];
 };
 
 export type ListEventsPageResult = {
@@ -42,6 +49,13 @@ function chDateTime(date: Date): string {
   return date.toISOString().replace('T', ' ').replace('Z', '');
 }
 
+function jsonPathArgs(path: string): string {
+  return path
+    .split('.')
+    .map((segment) => `'${segment.replace(/'/g, "\\'")}'`)
+    .join(', ');
+}
+
 export function sliceHasMore<T>(
   rows: readonly T[],
   pageSize: number,
@@ -53,11 +67,11 @@ export async function listEventsPage(
   client: ClickHouseClient,
   params: ListEventsPageParams,
 ): Promise<ListEventsPageResult> {
-  const { projectId, from, to, sort, page, pageSize } = params;
+  const { projectId, from, to, sort, page, pageSize, names, propertyEquals } = params;
   const direction = sort === 'asc' ? 'ASC' : 'DESC';
 
   const conditions = ['project_id = {projectId:UUID}'];
-  const queryParams: Record<string, string | number> = {
+  const queryParams: Record<string, string | number | readonly string[]> = {
     projectId,
     pageSizePlusOne: pageSize + 1,
     offset: page * pageSize,
@@ -70,6 +84,17 @@ export async function listEventsPage(
     conditions.push(`timestamp < {to:DateTime64(3, 'UTC')}`);
     queryParams.to = chDateTime(to);
   }
+  if (names && names.length > 0) {
+    conditions.push('name IN {names:Array(String)}');
+    queryParams.names = names;
+  }
+  propertyEquals?.forEach((predicate, index) => {
+    const key = `propertyValue${index}`;
+    conditions.push(
+      `JSONExtractString(properties, ${jsonPathArgs(predicate.path)}) = {${key}:String}`,
+    );
+    queryParams[key] = predicate.value;
+  });
 
   const resultSet = await client.query({
     query: `

@@ -3,7 +3,7 @@ import { Activity, BarChart3, BellRing, type LucideIcon, Settings } from 'lucide
 export interface SubNavItem {
   id: string;
   label: string;
-  path: string;
+  pathSuffix: string;
 }
 
 export interface NavItemData {
@@ -11,7 +11,7 @@ export interface NavItemData {
   label: string;
   icon: LucideIcon;
   iconColor?: string;
-  path?: string;
+  pathSuffix?: string;
   items?: readonly SubNavItem[];
 }
 
@@ -21,21 +21,21 @@ export const navItems: readonly NavItemData[] = [
     label: 'Activity',
     icon: Activity,
     iconColor: 'text-emerald-600',
-    path: '/activity',
+    pathSuffix: '/activity',
   },
   {
     id: 'metrics',
     label: 'Metrics',
     icon: BarChart3,
     iconColor: 'text-blue-600',
-    path: '/metrics',
+    pathSuffix: '/metrics',
   },
   {
     id: 'monitors',
     label: 'Monitors',
     icon: BellRing,
     iconColor: 'text-amber-600',
-    path: '/monitors',
+    pathSuffix: '/monitors',
   },
 ] satisfies readonly NavItemData[];
 
@@ -45,6 +45,6 @@ export const bottomNavItems: readonly NavItemData[] = [
     label: 'Settings',
     icon: Settings,
     iconColor: 'text-slate-500',
-    path: '/settings',
+    pathSuffix: '/settings',
   },
 ] satisfies readonly NavItemData[];

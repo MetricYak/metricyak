@@ -13,33 +13,9 @@ import {
   type DataTablePageSize,
   DataTablePagination,
 } from '@/components/data-table/DataTablePagination';
+import { eventColumns } from '@/components/events/event-columns';
 import { cn } from '@/lib/utils';
-import { formatCompact, formatPropertyValue } from './format';
 import { TimeRangeSelect } from './TimeRangeSelect';
-
-const PROPERTIES_PREVIEW_LIMIT = 6;
-
-function PropertiesPreviewCell({
-  properties,
-}: {
-  properties: Record<string, unknown>;
-}): React.JSX.Element {
-  const entries = Object.entries(properties);
-  const preview = entries.slice(0, PROPERTIES_PREVIEW_LIMIT);
-  const overflow = entries.length - preview.length;
-  return (
-    <span className="flex items-center gap-4 font-mono text-[12px] text-muted-foreground">
-      {preview.map(([key, value]) => (
-        <span key={key} className="truncate">
-          <span className="text-metricyak-500">{key}</span>
-          <span className="text-metricyak-400">=</span>
-          <span className="text-metricyak-700">{formatPropertyValue(value)}</span>
-        </span>
-      ))}
-      {overflow > 0 && <span className="text-metricyak-400">+{overflow}</span>}
-    </span>
-  );
-}
 
 interface ExplorerQuery {
   page: number;
@@ -94,45 +70,24 @@ export function EventsExplorer({ projectId }: { projectId: string }): React.JSX.
   }, [load]);
 
   const columns = useMemo<ColumnDef<RealEvent, unknown>[]>(
-    () => [
-      {
-        id: 'time',
-        header: () => (
-          <button
-            type="button"
-            onClick={() =>
-              void load({ ...query, sort: query.sort === 'time-desc' ? 'time-asc' : 'time-desc' })
-            }
-            className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-          >
-            Time
-            <ChevronDown
-              className={cn(
-                'size-3.5 transition-transform',
-                query.sort === 'time-asc' && 'rotate-180',
-              )}
-            />
-          </button>
-        ),
-        cell: ({ row }) => (
-          <span className="text-[12px] text-muted-foreground tabular-nums">
-            {formatCompact(row.original.timestamp)}
-          </span>
-        ),
-      },
-      {
-        id: 'name',
-        header: 'Event',
-        cell: ({ row }) => (
-          <span className="font-medium text-foreground text-sm">{row.original.name}</span>
-        ),
-      },
-      {
-        id: 'properties',
-        header: 'Properties',
-        cell: ({ row }) => <PropertiesPreviewCell properties={row.original.properties} />,
-      },
-    ],
+    () =>
+      eventColumns(
+        <button
+          type="button"
+          onClick={() =>
+            void load({ ...query, sort: query.sort === 'time-desc' ? 'time-asc' : 'time-desc' })
+          }
+          className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+        >
+          Time
+          <ChevronDown
+            className={cn(
+              'size-3.5 transition-transform',
+              query.sort === 'time-asc' && 'rotate-180',
+            )}
+          />
+        </button>,
+      ),
     [query, load],
   );
 
