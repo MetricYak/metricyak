@@ -18,6 +18,7 @@
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "ci": "biome ci .",
+    "secrets:genkey": "pnpm --filter @metricyak/secrets genkey",
     "clean": "turbo run clean"
   },
   "devDependencies": {

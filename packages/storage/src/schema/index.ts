@@ -6,4 +6,5 @@ export * from '@/schema/monitors.js';
 export * from '@/schema/organizations.js';
 export * from '@/schema/project-keys.js';
 export * from '@/schema/projects.js';
+export * from '@/schema/secrets.js';
 export * from '@/schema/sentinels.js';

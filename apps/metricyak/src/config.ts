@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { MASTER_KEY_BYTES, type MasterKey, parseMasterKey } from '@metricyak/secrets';
 import { z } from 'zod';
 
 const ROOT_ENV = '../../.env';
@@ -25,6 +26,36 @@ function brokerList(envVarName: string) {
     )
     .refine((brokers) => brokers.length > 0, {
       message: `${envVarName} must list at least one broker.`,
+    });
+}
+
+function masterKey(envVarName: string) {
+  const generateHint = `Generate one with \`pnpm secrets:genkey\`.`;
+  return z
+    .string({ error: `${envVarName} is required. ${generateHint}` })
+    .min(1, `${envVarName} is required. ${generateHint}`)
+    .transform((value, ctx) => {
+      const parsed = parseMasterKey(value);
+      switch (parsed.kind) {
+        case 'ok':
+          return parsed.key;
+        case 'not_base64':
+          ctx.addIssue({
+            code: 'custom',
+            message: `${envVarName} must be base64-encoded. ${generateHint}`,
+          });
+          return z.NEVER;
+        case 'wrong_length':
+          ctx.addIssue({
+            code: 'custom',
+            message: `${envVarName} must decode to ${MASTER_KEY_BYTES} bytes, got ${parsed.byteLength}. ${generateHint}`,
+          });
+          return z.NEVER;
+        default: {
+          const _exhaustive: never = parsed;
+          throw new Error(`Unhandled master key result: ${JSON.stringify(_exhaustive)}`);
+        }
+      }
     });
 }
 
@@ -55,6 +86,10 @@ const ConfigSchema = z
       .string()
       .url('CLICKHOUSE_URL must be a valid URL.')
       .min(1, 'CLICKHOUSE_URL is required.'),
+    // No fallback and no dev default: this codebase is public, so any key committed here would
+    // be a published key. A deployment that forgets to set it must fail to boot rather than
+    // encrypt real customer credentials under a value anyone can read.
+    SECRETS_MASTER_KEY: masterKey('SECRETS_MASTER_KEY'),
   })
   .superRefine((data, ctx) => {
     if (!data.RUN_WORKER_INLINE && !data.REDIS_URL) {
@@ -76,6 +111,7 @@ export type Config = {
   readonly kafkaBrokers: string[];
   readonly clickhouseKafkaBrokers: string[];
   readonly clickhouseUrl: string;
+  readonly secretsMasterKey: MasterKey;
 };
 
 export function parseConfig(env: NodeJS.ProcessEnv): Config {
@@ -90,6 +126,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): Config {
     kafkaBrokers: parsed.KAFKA_BROKERS,
     clickhouseKafkaBrokers: parsed.CLICKHOUSE_KAFKA_BROKERS,
     clickhouseUrl: parsed.CLICKHOUSE_URL,
+    secretsMasterKey: parsed.SECRETS_MASTER_KEY,
   };
 }
 

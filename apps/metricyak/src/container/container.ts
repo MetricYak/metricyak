@@ -5,6 +5,7 @@ import type {
   MonitorEvalProducer,
   MonitorSignalsProducer,
 } from '@metricyak/queue';
+import type { SecretCipher } from '@metricyak/secrets';
 import {
   type Database,
   MetricsRepository,
@@ -14,6 +15,9 @@ import {
   OrganizationsRepository,
   ProjectKeysRepository,
   ProjectsRepository,
+  SecretsRepository,
+  type SecretsWriter,
+  secretsWriter,
 } from '@metricyak/storage';
 import { createMetricReads, type MetricReads } from '@/modules/aggregates/aggregates.reads.js';
 import { createClickHouseReadsAggregates } from '@/modules/aggregates/clickhouse-reads.js';
@@ -28,6 +32,7 @@ export type Repositories = {
   readonly monitorRuntime: MonitorRuntimeRepository;
   readonly organizations: OrganizationsRepository;
   readonly projects: ProjectsRepository;
+  readonly secrets: SecretsWriter;
 };
 
 export type Container = {
@@ -62,6 +67,7 @@ export function createContainer(
   evalProducer: MonitorEvalProducer,
   clickhouse: ClickHouseClient,
   dirty: MonitorDirtyBuffer,
+  secretCipher: SecretCipher,
 ): Container {
   const metrics = new MetricsRepository(db);
 
@@ -73,6 +79,7 @@ export function createContainer(
     monitorRuntime: new MonitorRuntimeRepository(db),
     organizations: new OrganizationsRepository(db),
     projects: new ProjectsRepository(db),
+    secrets: secretsWriter(new SecretsRepository(db, secretCipher)),
   };
 
   const lastUsed = new LastUsedTracker();

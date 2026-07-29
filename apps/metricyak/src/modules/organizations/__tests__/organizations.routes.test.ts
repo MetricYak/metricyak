@@ -5,6 +5,7 @@ import {
   InMemoryMonitorEvalProducer,
   InMemoryMonitorSignalsProducer,
 } from '@metricyak/queue';
+import { createSecretCipher, MasterKey } from '@metricyak/secrets';
 import {
   type CreateOrganizationInput,
   type Database,
@@ -53,6 +54,7 @@ function buildApp(store: OrganizationRecord[]) {
     new InMemoryMonitorEvalProducer(),
     {} as ClickHouseClient,
     new InMemoryMonitorDirtyBuffer(),
+    createSecretCipher(MasterKey.of(Buffer.alloc(32, 7))),
   );
   const container: Container = {
     ...base,

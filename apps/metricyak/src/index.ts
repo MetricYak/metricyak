@@ -14,6 +14,7 @@ import {
   type MonitorSignalsProducer,
   RedisMonitorDirtyBuffer,
 } from '@metricyak/queue';
+import { createSecretCipher } from '@metricyak/secrets';
 import { createDatabase } from '@metricyak/storage';
 import { createApp } from '@/app.js';
 import { startHttpServer } from '@/bootstrap/http.js';
@@ -49,7 +50,17 @@ const dirty: MonitorDirtyBuffer = config.redisUrl
   ? new RedisMonitorDirtyBuffer(config.redisUrl)
   : new InMemoryMonitorDirtyBuffer();
 
-const container = createContainer(db, producer, signals, evalProducer, clickhouse, dirty);
+const secretCipher = createSecretCipher(config.secretsMasterKey);
+
+const container = createContainer(
+  db,
+  producer,
+  signals,
+  evalProducer,
+  clickhouse,
+  dirty,
+  secretCipher,
+);
 const app = createApp(container);
 
 const server = startHttpServer(app, config);

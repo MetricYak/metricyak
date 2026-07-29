@@ -1,3 +1,6 @@
+import { randomBytes } from 'node:crypto';
+import { inspect } from 'node:util';
+import { generateMasterKey, MASTER_KEY_BYTES } from '@metricyak/secrets';
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '@/config.js';
 
@@ -6,6 +9,7 @@ const base = {
   CLICKHOUSE_URL: 'http://x:y@h:8123/d',
   KAFKA_BROKERS: 'a:9092',
   CLICKHOUSE_KAFKA_BROKERS: 'a:29092',
+  SECRETS_MASTER_KEY: generateMasterKey(),
 };
 
 describe('parseConfig DATABASE_URL', () => {
@@ -37,6 +41,7 @@ describe('kafka/clickhouse config', () => {
     CLICKHOUSE_URL: 'http://x:y@h:8123/d',
     KAFKA_BROKERS: 'a:9092',
     CLICKHOUSE_KAFKA_BROKERS: 'a:29092',
+    SECRETS_MASTER_KEY: generateMasterKey(),
   };
 
   it('parses comma-separated brokers', () => {
@@ -71,5 +76,55 @@ describe('kafka/clickhouse config', () => {
     });
     expect(cfg.kafkaBrokers).toEqual(['localhost:9092']);
     expect(cfg.clickhouseKafkaBrokers).toEqual(['kafka:29092']);
+  });
+});
+
+describe('parseConfig SECRETS_MASTER_KEY', () => {
+  const withDatabase = { ...base, DATABASE_URL: 'postgres://u:p@localhost:5432/db' };
+
+  it('decodes a generated key to raw bytes', () => {
+    const cfg = parseConfig({ ...withDatabase, SECRETS_MASTER_KEY: generateMasterKey() });
+
+    expect(cfg.secretsMasterKey.expose().byteLength).toBe(MASTER_KEY_BYTES);
+  });
+
+  it('refuses to boot when the key is missing', () => {
+    const { SECRETS_MASTER_KEY: _omit, ...withoutKey } = withDatabase;
+
+    expect(() => parseConfig(withoutKey)).toThrow(/SECRETS_MASTER_KEY/);
+  });
+
+  it('refuses to boot when the key is empty', () => {
+    expect(() => parseConfig({ ...withDatabase, SECRETS_MASTER_KEY: '' })).toThrow(
+      /SECRETS_MASTER_KEY/,
+    );
+  });
+
+  it('refuses to boot when the key is not base64', () => {
+    expect(() => parseConfig({ ...withDatabase, SECRETS_MASTER_KEY: 'not base64!!' })).toThrow(
+      /base64/i,
+    );
+  });
+
+  it('refuses to boot when the key decodes to the wrong length', () => {
+    expect(() =>
+      parseConfig({ ...withDatabase, SECRETS_MASTER_KEY: randomBytes(16).toString('base64') }),
+    ).toThrow(/32 bytes, got 16/);
+  });
+
+  it('points at the generator in its failure message', () => {
+    const { SECRETS_MASTER_KEY: _omit, ...withoutKey } = withDatabase;
+
+    expect(() => parseConfig(withoutKey)).toThrow(/secrets:genkey/);
+  });
+
+  it('does not leak the master key when the whole config is logged', () => {
+    const key = generateMasterKey();
+    const cfg = parseConfig({ ...withDatabase, SECRETS_MASTER_KEY: key });
+    const rawBytes = Buffer.from(key, 'base64').join(',');
+
+    expect(JSON.stringify(cfg)).not.toContain(key);
+    expect(JSON.stringify(cfg)).not.toContain(rawBytes);
+    expect(inspect(cfg, { depth: 10 })).not.toContain(rawBytes);
   });
 });
