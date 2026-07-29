@@ -1,16 +1,12 @@
-## Summary
+## 💡 Context
 
-<!-- What does this PR change and why? -->
+- Related to #
+- Closes #
 
-## Changes
+## 🎉 Changes
 
-<!-- Bullet the notable changes. -->
+- [x]
 
--
+## ✔️ Checklist
 
-## Checklist
-
-- [ ] `pnpm check` passes (Biome format + lint)
-- [ ] `pnpm check-types` passes
-- [ ] `pnpm build` passes
-- [ ] Tests added/updated where relevant
+- [ ] Tests added for all changes
