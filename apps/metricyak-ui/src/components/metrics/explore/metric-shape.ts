@@ -8,7 +8,7 @@ export function isAdditive(kind: MetricKind): boolean {
 }
 
 function divides(expression: string | undefined): boolean {
-  return expression !== undefined && expression.includes('/');
+  return expression?.includes('/') ?? false;
 }
 
 function metricKindOf(definition: MetricDefinition): MetricKind {

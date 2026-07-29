@@ -12,6 +12,7 @@ import {
   type MonitorSignalsProducer,
   RedisMonitorDirtyBuffer,
 } from '@metricyak/queue';
+import { createSecretCipher } from '@metricyak/secrets';
 import { createDatabase } from '@metricyak/storage';
 import { assertSchemaReady } from '@/bootstrap/schema.js';
 import { registerShutdown } from '@/bootstrap/shutdown.js';
@@ -33,7 +34,16 @@ const evalProducer: MonitorEvalProducer = config.redisUrl
 const dirty: MonitorDirtyBuffer = config.redisUrl
   ? new RedisMonitorDirtyBuffer(config.redisUrl)
   : new InMemoryMonitorDirtyBuffer();
-const container = createContainer(db, producer, signals, evalProducer, clickhouse, dirty);
+const secretCipher = createSecretCipher(config.secretsMasterKey);
+const container = createContainer(
+  db,
+  producer,
+  signals,
+  evalProducer,
+  clickhouse,
+  dirty,
+  secretCipher,
+);
 
 const closeWorkers = await startWorkers(container, config);
 

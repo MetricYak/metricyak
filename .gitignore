@@ -43,3 +43,4 @@ apps/metricyak-ui/.impeccable/hook.cache.json
 
 # Superpowers brainstorming companion (local mockups)
 .superpowers/
+docs/*

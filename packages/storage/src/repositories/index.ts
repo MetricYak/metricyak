@@ -5,3 +5,4 @@ export * from '@/repositories/monitors.repository.js';
 export * from '@/repositories/organizations.repository.js';
 export * from '@/repositories/project-keys.repository.js';
 export * from '@/repositories/projects.repository.js';
+export * from '@/repositories/secrets.repository.js';
