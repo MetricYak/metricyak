@@ -1,5 +1,5 @@
 {
-  "id": "0e9104ff-58a5-47f4-8a32-344ffbd1ca1f",
+  "id": "993fec5a-21c5-4b5a-8ed8-ad1e1fecbb38",
   "prevId": "37ee968b-53b2-455a-8362-86ed816c14b6",
   "version": "7",
   "dialect": "postgresql",
@@ -1220,6 +1220,12 @@
         },
         "occurred_at": {
           "name": "occurred_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observed_at": {
+          "name": "observed_at",
           "type": "timestamp (3) with time zone",
           "primaryKey": false,
           "notNull": true

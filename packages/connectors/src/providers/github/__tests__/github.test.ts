@@ -47,6 +47,7 @@ describe('githubProvider.parseDelivery', () => {
       kind: 'deployment',
       externalId: 'deployment:456',
       occurredAt: new Date('2026-07-30T14:02:00Z'),
+      observedAt: new Date('2026-07-30T14:02:00Z'),
       endedAt: null,
       title: 'v2.4.1 → production',
       status: 'pending',
@@ -77,6 +78,17 @@ describe('githubProvider.parseDelivery', () => {
     const [b] = githubProvider.parseDelivery(second.body, second.headers, CONFIG);
 
     expect(a?.externalId).toBe(b?.externalId);
+  });
+
+  it('advances observedAt across a lifecycle so a stale delivery can be told apart', () => {
+    const first = delivery(pending, 'deployment_status');
+    const second = delivery(success, 'deployment_status');
+
+    const [a] = githubProvider.parseDelivery(first.body, first.headers, CONFIG);
+    const [b] = githubProvider.parseDelivery(second.body, second.headers, CONFIG);
+
+    expect(a?.occurredAt).toEqual(b?.occurredAt);
+    expect(a?.observedAt.getTime()).toBeLessThan(b?.observedAt.getTime() ?? 0);
   });
 
   it('maps a failed deployment status to a failed signal', () => {

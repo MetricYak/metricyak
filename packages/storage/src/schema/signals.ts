@@ -22,6 +22,11 @@ export const signals = pgTable(
       precision: 3,
       withTimezone: true,
     }).notNull(),
+    observedAt: timestamp('observed_at', {
+      mode: 'date',
+      precision: 3,
+      withTimezone: true,
+    }).notNull(),
     endedAt: timestamp('ended_at', { mode: 'date', precision: 3, withTimezone: true }),
     title: text('title').notNull(),
     status: varchar('status', { length: 24 }),

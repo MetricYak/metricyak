@@ -1,5 +1,5 @@
 import type { SignalKind } from '@metricyak/connectors';
-import { and, asc, between, eq, inArray } from 'drizzle-orm';
+import { and, asc, between, eq, inArray, lte, sql } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
 import { type SignalAttributes, signals } from '@/schema/signals.js';
 
@@ -22,6 +22,7 @@ export type UpsertSignalInput = {
   readonly kind: SignalKind;
   readonly externalId: string;
   readonly occurredAt: Date;
+  readonly observedAt: Date;
   readonly endedAt: Date | null;
   readonly title: string;
   readonly status: string | null;
@@ -56,13 +57,15 @@ export class SignalsRepository {
   constructor(private readonly db: Database) {}
 
   async upsert(input: UpsertSignalInput, executor: Executor = this.db): Promise<SignalRecord> {
-    const [row] = await executor
+    const [applied] = await executor
       .insert(signals)
       .values(input)
       .onConflictDoUpdate({
         target: [signals.sourceId, signals.externalId],
+        setWhere: lte(signals.observedAt, sql`excluded.observed_at`),
         set: {
           occurredAt: input.occurredAt,
+          observedAt: input.observedAt,
           endedAt: input.endedAt,
           title: input.title,
           status: input.status,
@@ -72,8 +75,25 @@ export class SignalsRepository {
       })
       .returning();
 
-    if (!row) throw new Error('Upserting a signal returned no row.');
-    return toRecord(row);
+    if (applied) return toRecord(applied);
+
+    const stored = await this.findByExternalId(input.sourceId, input.externalId, executor);
+    if (!stored) throw new Error('Upserting a signal returned no row.');
+    return stored;
+  }
+
+  private async findByExternalId(
+    sourceId: string,
+    externalId: string,
+    executor: Executor,
+  ): Promise<SignalRecord | null> {
+    const [row] = await executor
+      .select()
+      .from(signals)
+      .where(and(eq(signals.sourceId, sourceId), eq(signals.externalId, externalId)))
+      .limit(1);
+
+    return row ? toRecord(row) : null;
   }
 
   async listByRange(input: ListSignalsInput): Promise<SignalRecord[]> {

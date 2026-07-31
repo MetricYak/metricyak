@@ -73,6 +73,7 @@ export function parseGithubDelivery(
       kind: 'deployment',
       externalId: `deployment:${deployment.id}`,
       occurredAt: new Date(deployment.created_at),
+      observedAt: new Date(deploymentStatus.created_at),
       endedAt: isTerminal ? new Date(deploymentStatus.created_at) : null,
       title: `${deployment.ref} → ${deployment.environment}`,
       status,

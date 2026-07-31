@@ -11,6 +11,7 @@ export type ParsedSignal = {
   readonly kind: SignalKind;
   readonly externalId: string;
   readonly occurredAt: Date;
+  readonly observedAt: Date;
   readonly endedAt: Date | null;
   readonly title: string;
   readonly status: string | null;

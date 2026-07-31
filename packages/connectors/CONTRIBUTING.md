@@ -61,6 +61,18 @@ goes pending, then in progress, then succeeded. Every one of those must produce 
 same `externalId`, because storage upserts on `(source_id, external_id)`. Key it on
 the underlying object's id, never on the delivery's own id.
 
+## `observedAt` orders those deliveries
+
+`occurredAt` is when the thing happened, so it is the *same* on every delivery in a
+lifecycle — that is what makes them collapse. `observedAt` is when the vendor emitted
+*this* delivery, so it advances. Storage applies an update only when `observedAt` is
+at least as new as what it already holds, which is what stops a retried or
+out-of-order "started" from overwriting a "finished".
+
+Set it from the per-delivery timestamp in the payload (GitHub: `deployment_status.created_at`),
+never from the parent object's timestamp and never from `new Date()` — a wall-clock
+read makes a stale delivery look like the newest one.
+
 ## Configuration is a generated form
 
 You do not write UI. The connect form is generated from your `configSchema`, so use

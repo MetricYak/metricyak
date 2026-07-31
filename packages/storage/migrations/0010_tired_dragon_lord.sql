@@ -22,6 +22,7 @@ CREATE TABLE "signals" (
 	"kind" varchar(16) NOT NULL,
 	"external_id" text NOT NULL,
 	"occurred_at" timestamp (3) with time zone NOT NULL,
+	"observed_at" timestamp (3) with time zone NOT NULL,
 	"ended_at" timestamp (3) with time zone,
 	"title" text NOT NULL,
 	"status" varchar(24),

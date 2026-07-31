@@ -63,6 +63,7 @@ describe('SignalsRepository (integration)', () => {
       kind: 'deployment' as const,
       externalId: 'deployment:456',
       occurredAt: new Date('2026-07-30T14:02:00Z'),
+      observedAt: new Date('2026-07-30T14:02:00Z'),
       endedAt: null,
       title: 'v2.4.1 → production',
       status: 'pending',
@@ -73,9 +74,15 @@ describe('SignalsRepository (integration)', () => {
 
   it('collapses a lifecycle into one row and keeps the latest state', async () => {
     await repo.upsert(deployment());
-    await repo.upsert(deployment({ status: 'pending' }));
     await repo.upsert(
-      deployment({ status: 'succeeded', endedAt: new Date('2026-07-30T14:06:00Z') }),
+      deployment({ status: 'pending', observedAt: new Date('2026-07-30T14:04:00Z') }),
+    );
+    await repo.upsert(
+      deployment({
+        status: 'succeeded',
+        observedAt: new Date('2026-07-30T14:06:00Z'),
+        endedAt: new Date('2026-07-30T14:06:00Z'),
+      }),
     );
 
     const stored = await repo.listByRange({
@@ -88,6 +95,40 @@ describe('SignalsRepository (integration)', () => {
     expect(stored).toHaveLength(1);
     expect(stored[0]?.status).toBe('succeeded');
     expect(stored[0]?.endedAt).toEqual(new Date('2026-07-30T14:06:00Z'));
+  });
+
+  it('ignores a stale delivery that arrives after a newer one', async () => {
+    await repo.upsert(
+      deployment({
+        status: 'succeeded',
+        observedAt: new Date('2026-07-30T14:06:00Z'),
+        endedAt: new Date('2026-07-30T14:06:00Z'),
+      }),
+    );
+
+    const returned = await repo.upsert(
+      deployment({ status: 'pending', observedAt: new Date('2026-07-30T14:02:00Z') }),
+    );
+
+    expect(returned.status).toBe('succeeded');
+
+    const [stored] = await repo.listByRange({
+      projectId,
+      from: new Date('2026-07-30T00:00:00Z'),
+      to: new Date('2026-07-31T00:00:00Z'),
+      limit: 10,
+    });
+
+    expect(stored?.status).toBe('succeeded');
+    expect(stored?.endedAt).toEqual(new Date('2026-07-30T14:06:00Z'));
+  });
+
+  it('applies a redelivery of the state it already holds', async () => {
+    await repo.upsert(deployment({ title: 'v2.4.1 → production' }));
+
+    const returned = await repo.upsert(deployment({ title: 'v2.4.1 → prod' }));
+
+    expect(returned.title).toBe('v2.4.1 → prod');
   });
 
   it('keeps signals with different external ids apart', async () => {
