@@ -98,6 +98,21 @@ describe('githubProvider.parseDelivery', () => {
     expect(githubProvider.parseDelivery(body, headers, scoped)).toEqual([]);
   });
 
+  it('ignores a delivery from a repository the source is not configured for', () => {
+    const fromAnotherRepo = {
+      ...pending,
+      repository: { full_name: 'acme/billing', html_url: 'https://github.com/acme/billing' },
+    };
+    const { body, headers } = delivery(fromAnotherRepo, 'deployment_status');
+    expect(githubProvider.parseDelivery(body, headers, CONFIG)).toEqual([]);
+  });
+
+  it('matches the configured repository regardless of case', () => {
+    const { body, headers } = delivery(pending, 'deployment_status');
+    const shouted = { repo: 'ACME/Web', environments: [] };
+    expect(githubProvider.parseDelivery(body, headers, shouted)).toHaveLength(1);
+  });
+
   it('ignores a payload it does not recognise instead of throwing', () => {
     const { headers } = delivery(pending, 'deployment_status');
     expect(githubProvider.parseDelivery('{"unexpected":true}', headers, CONFIG)).toEqual([]);

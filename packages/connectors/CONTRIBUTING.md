@@ -49,6 +49,11 @@ Beyond that, write tests for your vendor's semantics: which payloads you ignore,
 you map their status vocabulary onto ours, and that `externalId` stays stable across
 every delivery in one lifecycle.
 
+Every scoping field in your `configSchema` must actually be enforced in `parse.ts`. A
+source configured for one project, repository or workspace has to ignore deliveries
+from another — a signed delivery only proves the sender holds the secret, not that it
+came from the thing the user configured.
+
 ## `externalId` is the important one
 
 Most vendors send several deliveries for one real-world occurrence — a deployment

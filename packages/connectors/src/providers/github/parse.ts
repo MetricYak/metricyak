@@ -31,6 +31,10 @@ function toStatus(state: string): string | null {
   return TERMINAL_STATUSES.get(state) ?? (PENDING_STATES.has(state) ? 'pending' : null);
 }
 
+function isConfiguredRepository(delivered: string, configured: string): boolean {
+  return delivered.toLowerCase() === configured.toLowerCase();
+}
+
 function safeJsonParse(body: string): unknown {
   try {
     return JSON.parse(body);
@@ -52,7 +56,9 @@ export function parseGithubDelivery(
   const parsedBody = deploymentStatusPayload.safeParse(safeJsonParse(body));
   if (!parsedBody.success) return [];
 
-  const { deployment, deployment_status: deploymentStatus } = parsedBody.data;
+  const { deployment, deployment_status: deploymentStatus, repository } = parsedBody.data;
+
+  if (!isConfiguredRepository(repository.full_name, parsedConfig.data.repo)) return [];
 
   const tracked = parsedConfig.data.environments;
   if (tracked.length > 0 && !tracked.includes(deployment.environment)) return [];
@@ -75,7 +81,7 @@ export function parseGithubDelivery(
         ref: deployment.ref,
         actor: deployment.creator?.login ?? null,
         environment: deployment.environment,
-        repo: parsedBody.data.repository.full_name,
+        repo: repository.full_name,
         url: deploymentStatus.target_url ?? null,
       },
     },
