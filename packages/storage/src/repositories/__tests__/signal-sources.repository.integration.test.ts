@@ -88,6 +88,39 @@ describe('SignalSourcesRepository (integration)', () => {
     expect(reloaded?.lastError).toBeNull();
   });
 
+  it('records a delivery that produced nothing without claiming the source is healthy', async () => {
+    const source = await repo.create({ projectId, name: 'acme/web', ...input });
+    const at = new Date('2026-07-30T14:02:00Z');
+
+    await repo.recordIgnoredDelivery(source.id, at);
+
+    const reloaded = await repo.get(source.id, projectId);
+    expect(reloaded?.status).toBe('awaiting_first_delivery');
+    expect(reloaded?.lastDeliveryAt).toEqual(at);
+  });
+
+  it('keeps a working source healthy when a later delivery produces nothing', async () => {
+    const source = await repo.create({ projectId, name: 'acme/web', ...input });
+    await repo.recordDelivery(source.id, new Date('2026-07-30T14:02:00Z'));
+
+    await repo.recordIgnoredDelivery(source.id, new Date('2026-07-30T15:00:00Z'));
+
+    const reloaded = await repo.get(source.id, projectId);
+    expect(reloaded?.status).toBe('healthy');
+    expect(reloaded?.lastDeliveryAt).toEqual(new Date('2026-07-30T15:00:00Z'));
+  });
+
+  it('clears a failure when a verified delivery produces nothing', async () => {
+    const source = await repo.create({ projectId, name: 'acme/web', ...input });
+    await repo.recordFailure(source.id, 'Signature did not match.', new Date());
+
+    await repo.recordIgnoredDelivery(source.id, new Date('2026-07-30T15:00:00Z'));
+
+    const reloaded = await repo.get(source.id, projectId);
+    expect(reloaded?.status).toBe('awaiting_first_delivery');
+    expect(reloaded?.lastError).toBeNull();
+  });
+
   it('marks a source failing and keeps the reason', async () => {
     const source = await repo.create({ projectId, name: 'acme/web', ...input });
 

@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { isAllowedSignalStatus } from '@/contract/signal-provider.js';
 import { githubProvider } from '@/providers/github/index.js';
 import failure from './fixtures/deployment-status-failure.json' with { type: 'json' };
 import pending from './fixtures/deployment-status-pending.json' with { type: 'json' };
@@ -97,6 +98,15 @@ describe('githubProvider.parseDelivery', () => {
 
     expect(signal?.status).toBe('failed');
     expect(signal?.externalId).toBe('deployment:457');
+  });
+
+  it('only produces statuses the deployment kind declares', () => {
+    for (const payload of [pending, success, failure]) {
+      const { body, headers } = delivery(payload, 'deployment_status');
+      for (const signal of githubProvider.parseDelivery(body, headers, CONFIG)) {
+        expect(isAllowedSignalStatus(signal.kind, signal.status)).toBe(true);
+      }
+    }
   });
 
   it('ignores a ping delivery', () => {
