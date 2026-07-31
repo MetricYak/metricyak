@@ -6,6 +6,7 @@ import type { AppModule } from '@/modules/module.js';
 import { monitorsModule } from '@/modules/monitors/monitors.module.js';
 import { organizationsModule } from '@/modules/organizations/organizations.module.js';
 import { projectsModule } from '@/modules/projects/projects.module.js';
+import { signalsModule } from '@/modules/signals/signals.module.js';
 
 export const modules: readonly AppModule[] = [
   aggregatesModule,
@@ -15,4 +16,5 @@ export const modules: readonly AppModule[] = [
   monitorsModule,
   organizationsModule,
   projectsModule,
+  signalsModule,
 ];

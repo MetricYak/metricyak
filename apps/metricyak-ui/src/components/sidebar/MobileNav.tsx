@@ -3,12 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MobileMenuDrawer } from './MobileMenuDrawer';
 
-interface MobileNavProps {
-  activeSubMenuId?: string;
-  onOpenSubMenu: (id: string) => void;
-}
-
-export function MobileNav({ activeSubMenuId, onOpenSubMenu }: MobileNavProps): React.JSX.Element {
+export function MobileNav(): React.JSX.Element {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const lastPathname = useRef(pathname);
@@ -34,12 +29,7 @@ export function MobileNav({ activeSubMenuId, onOpenSubMenu }: MobileNavProps): R
         </button>
       </div>
 
-      <MobileMenuDrawer
-        open={open}
-        onClose={() => setOpen(false)}
-        activeSubMenuId={activeSubMenuId}
-        onOpenSubMenu={onOpenSubMenu}
-      />
+      <MobileMenuDrawer open={open} onClose={() => setOpen(false)} />
     </>
   );
 }

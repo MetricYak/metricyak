@@ -7,9 +7,11 @@ import type { NavItemData } from './nav.config';
 
 interface NavItemProps {
   item: NavItemData;
-  active?: boolean;
   collapsed?: boolean;
   onOpenSubMenu?: (id: string) => void;
+  onHoverMenu?: (id: string) => void;
+  onLeaveMenu?: () => void;
+  menuOpen?: boolean;
 }
 
 function Highlight(): React.JSX.Element {
@@ -24,23 +26,24 @@ function Highlight(): React.JSX.Element {
 
 export function NavItem({
   item,
-  active = false,
   collapsed = false,
   onOpenSubMenu,
+  onHoverMenu,
+  onLeaveMenu,
+  menuOpen = false,
 }: NavItemProps): React.JSX.Element {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { to } = useProjectRoute();
   const Icon = item.icon;
-  const hasSubItems = Boolean(item.items?.length);
+  const hasMenu = Boolean(item.menu);
+  const hasSubItems = hasMenu;
   const resolvedPath = item.pathSuffix ? to(item.pathSuffix) : undefined;
   const isActive =
-    active ||
-    (Boolean(resolvedPath) &&
-      (pathname === resolvedPath || pathname.startsWith(`${resolvedPath}/`)));
+    Boolean(resolvedPath) && (pathname === resolvedPath || pathname.startsWith(`${resolvedPath}/`));
 
   const handleClick = (): void => {
-    if (hasSubItems) {
+    if (hasMenu) {
       onOpenSubMenu?.(item.id);
     } else if (resolvedPath) {
       navigate(resolvedPath);
@@ -51,12 +54,18 @@ export function NavItem({
     <button
       type="button"
       onClick={handleClick}
+      onPointerEnter={hasMenu ? () => onHoverMenu?.(item.id) : undefined}
+      onPointerLeave={hasMenu ? onLeaveMenu : undefined}
+      onFocus={hasMenu ? () => onHoverMenu?.(item.id) : undefined}
+      aria-expanded={hasMenu ? menuOpen : undefined}
       data-active={isActive}
+      data-menu-open={menuOpen}
       className={cn(
         'group/navitem relative flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors',
         'data-[active=true]:font-medium',
         !isActive &&
           'hover:bg-sidebar-accent group-data-[collapsed=true]/panel:hover:bg-transparent',
+        !isActive && menuOpen && 'bg-sidebar-accent',
         'group-data-[collapsed=true]/panel:flex-col group-data-[collapsed=true]/panel:gap-1 group-data-[collapsed=true]/panel:p-0',
       )}
     >

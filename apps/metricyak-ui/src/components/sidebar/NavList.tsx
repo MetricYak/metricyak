@@ -3,15 +3,19 @@ import { NavItem } from './NavItem';
 import { navItems } from './nav.config';
 
 interface NavListProps {
-  activeId?: string;
+  openMenuId?: string;
   collapsed?: boolean;
   onOpenSubMenu?: (id: string) => void;
+  onHoverMenu?: (id: string) => void;
+  onLeaveMenu?: () => void;
 }
 
 export function NavList({
-  activeId,
+  openMenuId,
   collapsed = false,
   onOpenSubMenu,
+  onHoverMenu,
+  onLeaveMenu,
 }: NavListProps): React.JSX.Element {
   return (
     <LayoutGroup id="nav-highlight">
@@ -20,9 +24,11 @@ export function NavList({
           <NavItem
             key={item.id}
             item={item}
-            active={item.id === activeId}
+            menuOpen={item.id === openMenuId}
             collapsed={collapsed}
             onOpenSubMenu={onOpenSubMenu}
+            onHoverMenu={onHoverMenu}
+            onLeaveMenu={onLeaveMenu}
           />
         ))}
       </nav>

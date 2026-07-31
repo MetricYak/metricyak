@@ -25,6 +25,7 @@
 :root {
   --radius: 0.625rem;
 
+  --z-flyout: 30;
   --z-drawer-backdrop: 40;
   --z-drawer: 45;
   --z-dropdown: 50;
