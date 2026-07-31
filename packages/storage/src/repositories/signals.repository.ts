@@ -1,5 +1,5 @@
 import type { SignalKind } from '@metricyak/connectors';
-import { and, asc, between, eq, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, between, eq, inArray, sql } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
 import { type SignalAttributes, signals } from '@/schema/signals.js';
 
@@ -53,6 +53,14 @@ function toRecord(row: typeof signals.$inferSelect): SignalRecord {
   };
 }
 
+const deliveryIsNotStale = sql`${signals.observedAt} <= excluded.observed_at`;
+
+const deliveryDoesNotUnfinishAtTheSameInstant = sql`not (
+  ${signals.observedAt} = excluded.observed_at
+  and ${signals.endedAt} is not null
+  and excluded.ended_at is null
+)`;
+
 export class SignalsRepository {
   constructor(private readonly db: Database) {}
 
@@ -62,7 +70,7 @@ export class SignalsRepository {
       .values(input)
       .onConflictDoUpdate({
         target: [signals.sourceId, signals.externalId],
-        setWhere: lte(signals.observedAt, sql`excluded.observed_at`),
+        setWhere: and(deliveryIsNotStale, deliveryDoesNotUnfinishAtTheSameInstant),
         set: {
           occurredAt: input.occurredAt,
           observedAt: input.observedAt,

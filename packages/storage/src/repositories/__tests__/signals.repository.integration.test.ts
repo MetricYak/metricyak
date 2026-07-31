@@ -123,6 +123,76 @@ describe('SignalsRepository (integration)', () => {
     expect(stored?.endedAt).toEqual(new Date('2026-07-30T14:06:00Z'));
   });
 
+  it('keeps the finished state when a stale delivery shares its timestamp', async () => {
+    const sameInstant = new Date('2026-07-30T14:02:00Z');
+    await repo.upsert(
+      deployment({ status: 'succeeded', observedAt: sameInstant, endedAt: sameInstant }),
+    );
+
+    await repo.upsert(deployment({ status: 'pending', observedAt: sameInstant, endedAt: null }));
+
+    const [stored] = await repo.listByRange({
+      projectId,
+      from: new Date('2026-07-30T00:00:00Z'),
+      to: new Date('2026-07-31T00:00:00Z'),
+      limit: 10,
+    });
+
+    expect(stored?.status).toBe('succeeded');
+    expect(stored?.endedAt).toEqual(sameInstant);
+  });
+
+  it('still finishes a deployment that completes within the same timestamp', async () => {
+    const sameInstant = new Date('2026-07-30T14:02:00Z');
+    await repo.upsert(deployment({ status: 'pending', observedAt: sameInstant, endedAt: null }));
+
+    await repo.upsert(
+      deployment({ status: 'succeeded', observedAt: sameInstant, endedAt: sameInstant }),
+    );
+
+    const [stored] = await repo.listByRange({
+      projectId,
+      from: new Date('2026-07-30T00:00:00Z'),
+      to: new Date('2026-07-31T00:00:00Z'),
+      limit: 10,
+    });
+
+    expect(stored?.status).toBe('succeeded');
+    expect(stored?.endedAt).toEqual(sameInstant);
+  });
+
+  it('lets a later delivery reopen something that had ended', async () => {
+    await repo.upsert(
+      deployment({
+        kind: 'incident',
+        externalId: 'incident:99',
+        status: 'resolved',
+        observedAt: new Date('2026-07-30T14:06:00Z'),
+        endedAt: new Date('2026-07-30T14:06:00Z'),
+      }),
+    );
+
+    await repo.upsert(
+      deployment({
+        kind: 'incident',
+        externalId: 'incident:99',
+        status: 'triggered',
+        observedAt: new Date('2026-07-30T14:20:00Z'),
+        endedAt: null,
+      }),
+    );
+
+    const [stored] = await repo.listByRange({
+      projectId,
+      from: new Date('2026-07-30T00:00:00Z'),
+      to: new Date('2026-07-31T00:00:00Z'),
+      limit: 10,
+    });
+
+    expect(stored?.status).toBe('triggered');
+    expect(stored?.endedAt).toBeNull();
+  });
+
   it('applies a redelivery of the state it already holds', async () => {
     await repo.upsert(deployment({ title: 'v2.4.1 → production' }));
 
