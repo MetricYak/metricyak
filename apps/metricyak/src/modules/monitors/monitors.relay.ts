@@ -1,10 +1,10 @@
-import type { MonitorSignalsProducer } from '@metricyak/queue';
+import type { MonitorFiringsProducer } from '@metricyak/queue';
 import type { Database, MonitorRuntimeRepository } from '@metricyak/storage';
 
 export type MonitorRelayDeps = {
   db: Database;
   monitorRuntime: MonitorRuntimeRepository;
-  signals: MonitorSignalsProducer;
+  firings: MonitorFiringsProducer;
 };
 
 const RELAY_BATCH_LIMIT = 500;
@@ -14,7 +14,7 @@ async function relayOne(deps: MonitorRelayDeps, now: Date): Promise<boolean> {
     const [event] = await deps.monitorRuntime.findUnrelayedEvents(1, tx);
     if (!event) return false;
 
-    await deps.signals.enqueue({
+    await deps.firings.enqueue({
       eventId: event.id,
       monitorId: event.monitorId,
       series: event.series,
@@ -28,7 +28,7 @@ async function relayOne(deps: MonitorRelayDeps, now: Date): Promise<boolean> {
   });
 }
 
-export async function relayMonitorSignals(
+export async function relayMonitorFirings(
   deps: MonitorRelayDeps,
   now: Date,
 ): Promise<{ relayed: number }> {

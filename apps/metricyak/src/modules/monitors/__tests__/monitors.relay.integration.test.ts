@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  InMemoryMonitorSignalsProducer,
-  type MonitorSignalJob,
-  type MonitorSignalsProducer,
+  InMemoryMonitorFiringsProducer,
+  type MonitorFiringJob,
+  type MonitorFiringsProducer,
 } from '@metricyak/queue';
 import {
   type Database,
@@ -20,14 +20,14 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { relayMonitorSignals } from '@/modules/monitors/monitors.relay.js';
+import { relayMonitorFirings } from '@/modules/monitors/monitors.relay.js';
 
 const migrationsFolder = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../../../../../packages/storage/migrations',
 );
 
-describe('relayMonitorSignals (integration)', () => {
+describe('relayMonitorFirings (integration)', () => {
   let container: StartedPostgreSqlContainer;
   let pool: Pool;
   let db: Database;
@@ -99,14 +99,14 @@ describe('relayMonitorSignals (integration)', () => {
       occurredAt: new Date('2026-07-13T00:02:00.000Z'),
     });
 
-    const signals = new InMemoryMonitorSignalsProducer();
-    const result = await relayMonitorSignals({ db, monitorRuntime, signals }, new Date());
+    const firings = new InMemoryMonitorFiringsProducer();
+    const result = await relayMonitorFirings({ db, monitorRuntime, firings }, new Date());
     expect(result.relayed).toBe(2);
-    expect(signals.jobs.map((j) => j.eventId).sort()).toEqual([id1, id2].sort());
+    expect(firings.jobs.map((j) => j.eventId).sort()).toEqual([id1, id2].sort());
 
-    const again = await relayMonitorSignals({ db, monitorRuntime, signals }, new Date());
+    const again = await relayMonitorFirings({ db, monitorRuntime, firings }, new Date());
     expect(again.relayed).toBe(0);
-    expect(signals.jobs.length).toBe(2);
+    expect(firings.jobs.length).toBe(2);
   });
 
   it('durably relays earlier events when a later enqueue in the same pass fails', async () => {
@@ -135,12 +135,12 @@ describe('relayMonitorSignals (integration)', () => {
       occurredAt: new Date('2026-07-13T00:03:00.000Z'),
     });
 
-    class FlakyMonitorSignalsProducer implements MonitorSignalsProducer {
-      readonly jobs: MonitorSignalJob[] = [];
+    class FlakyMonitorFiringsProducer implements MonitorFiringsProducer {
+      readonly jobs: MonitorFiringJob[] = [];
 
       constructor(private readonly failOnEventId: string) {}
 
-      async enqueue(job: MonitorSignalJob): Promise<void> {
+      async enqueue(job: MonitorFiringJob): Promise<void> {
         if (job.eventId === this.failOnEventId) {
           throw new Error('simulated enqueue failure');
         }
@@ -148,9 +148,9 @@ describe('relayMonitorSignals (integration)', () => {
       }
     }
 
-    const flaky = new FlakyMonitorSignalsProducer(id2);
+    const flaky = new FlakyMonitorFiringsProducer(id2);
     await expect(
-      relayMonitorSignals({ db, monitorRuntime, signals: flaky }, new Date()),
+      relayMonitorFirings({ db, monitorRuntime, firings: flaky }, new Date()),
     ).rejects.toThrow('simulated enqueue failure');
 
     expect(flaky.jobs.map((job) => job.eventId)).toEqual([id1]);
@@ -158,8 +158,8 @@ describe('relayMonitorSignals (integration)', () => {
     const stillUnrelayed = await monitorRuntime.findUnrelayedEvents(10);
     expect(stillUnrelayed.map((event) => event.id).sort()).toEqual([id2, id3].sort());
 
-    const recovered = new InMemoryMonitorSignalsProducer();
-    const retry = await relayMonitorSignals({ db, monitorRuntime, signals: recovered }, new Date());
+    const recovered = new InMemoryMonitorFiringsProducer();
+    const retry = await relayMonitorFirings({ db, monitorRuntime, firings: recovered }, new Date());
     expect(retry.relayed).toBe(2);
     expect(recovered.jobs.map((job) => job.eventId).sort()).toEqual([id2, id3].sort());
   });

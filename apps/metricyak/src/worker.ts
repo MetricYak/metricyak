@@ -1,15 +1,15 @@
 import { createClickHouseClient } from '@metricyak/clickhouse';
 import {
   BullMonitorEvalProducer,
-  BullMonitorSignalsProducer,
+  BullMonitorFiringsProducer,
   createProducerConnectionOptions,
   InMemoryEventsProducer,
   InMemoryMonitorDirtyBuffer,
   InMemoryMonitorEvalProducer,
-  InMemoryMonitorSignalsProducer,
+  InMemoryMonitorFiringsProducer,
   type MonitorDirtyBuffer,
   type MonitorEvalProducer,
-  type MonitorSignalsProducer,
+  type MonitorFiringsProducer,
   RedisMonitorDirtyBuffer,
 } from '@metricyak/queue';
 import { createSecretCipher } from '@metricyak/secrets';
@@ -25,9 +25,9 @@ const db = createDatabase(config.databaseUrl);
 const clickhouse = createClickHouseClient(config.clickhouseUrl);
 await assertSchemaReady(db);
 const producer = new InMemoryEventsProducer();
-const signals: MonitorSignalsProducer = config.redisUrl
-  ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
-  : new InMemoryMonitorSignalsProducer();
+const firings: MonitorFiringsProducer = config.redisUrl
+  ? new BullMonitorFiringsProducer(createProducerConnectionOptions(config.redisUrl))
+  : new InMemoryMonitorFiringsProducer();
 const evalProducer: MonitorEvalProducer = config.redisUrl
   ? new BullMonitorEvalProducer(createProducerConnectionOptions(config.redisUrl))
   : new InMemoryMonitorEvalProducer();
@@ -38,7 +38,7 @@ const secretCipher = createSecretCipher(config.secretsMasterKey);
 const container = createContainer(
   db,
   producer,
-  signals,
+  firings,
   evalProducer,
   clickhouse,
   dirty,

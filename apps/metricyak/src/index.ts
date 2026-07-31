@@ -1,17 +1,17 @@
 import { createClickHouseClient, migrate, setupKafkaIngestion } from '@metricyak/clickhouse';
 import {
   BullMonitorEvalProducer,
-  BullMonitorSignalsProducer,
+  BullMonitorFiringsProducer,
   createKafka,
   createProducerConnectionOptions,
   ensureTopics,
   InMemoryMonitorDirtyBuffer,
   InMemoryMonitorEvalProducer,
-  InMemoryMonitorSignalsProducer,
+  InMemoryMonitorFiringsProducer,
   KafkaEventsProducer,
   type MonitorDirtyBuffer,
   type MonitorEvalProducer,
-  type MonitorSignalsProducer,
+  type MonitorFiringsProducer,
   RedisMonitorDirtyBuffer,
 } from '@metricyak/queue';
 import { createSecretCipher } from '@metricyak/secrets';
@@ -38,9 +38,9 @@ const producer = new KafkaEventsProducer(kafka);
 await producer.connect();
 console.log(JSON.stringify({ level: 'info', msg: 'kafka events producer connected' }));
 
-const signals: MonitorSignalsProducer = config.redisUrl
-  ? new BullMonitorSignalsProducer(createProducerConnectionOptions(config.redisUrl))
-  : new InMemoryMonitorSignalsProducer();
+const firings: MonitorFiringsProducer = config.redisUrl
+  ? new BullMonitorFiringsProducer(createProducerConnectionOptions(config.redisUrl))
+  : new InMemoryMonitorFiringsProducer();
 
 const evalProducer: MonitorEvalProducer = config.redisUrl
   ? new BullMonitorEvalProducer(createProducerConnectionOptions(config.redisUrl))
@@ -55,7 +55,7 @@ const secretCipher = createSecretCipher(config.secretsMasterKey);
 const container = createContainer(
   db,
   producer,
-  signals,
+  firings,
   evalProducer,
   clickhouse,
   dirty,

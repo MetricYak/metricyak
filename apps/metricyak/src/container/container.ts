@@ -3,7 +3,7 @@ import type {
   EventsProducer,
   MonitorDirtyBuffer,
   MonitorEvalProducer,
-  MonitorSignalsProducer,
+  MonitorFiringsProducer,
 } from '@metricyak/queue';
 import type { SecretCipher } from '@metricyak/secrets';
 import {
@@ -38,7 +38,7 @@ export type Repositories = {
 export type Container = {
   readonly db: Database;
   readonly producer: EventsProducer;
-  readonly signals: MonitorSignalsProducer;
+  readonly firings: MonitorFiringsProducer;
   readonly evalProducer: MonitorEvalProducer;
   readonly repos: Repositories;
   readonly lastUsed: LastUsedTracker;
@@ -63,7 +63,7 @@ export type AppEnv = {
 export function createContainer(
   db: Database,
   producer: EventsProducer,
-  signals: MonitorSignalsProducer,
+  firings: MonitorFiringsProducer,
   evalProducer: MonitorEvalProducer,
   clickhouse: ClickHouseClient,
   dirty: MonitorDirtyBuffer,
@@ -89,7 +89,7 @@ export function createContainer(
   return {
     db,
     producer,
-    signals,
+    firings,
     evalProducer,
     repos,
     lastUsed,

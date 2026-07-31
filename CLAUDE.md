@@ -4,7 +4,7 @@ This file provides guidance on how to work with the metricyak repository.
 
 ## Project
 
-MetricYak is an open-source platform for **metric-powered autonomous workflows**: declare metrics over an event stream, define monitors that watch those metrics, and fire automated steps when a metric crosses a threshold.
+MetricYak is a platform that let's users explore and explain where, when and why business metrics have changed.
 
 ## UI rules
 @UI.md
@@ -25,9 +25,6 @@ MetricYak is an open-source platform for **metric-powered autonomous workflows**
 The goal: a reader understands exactly what the code does from names and flow
 alone — no comments, no decoding.
 
-- **No comments.** Names carry the meaning. A comment explaining *what* code
-  does is a signal to rename or split it instead. (OpenAPI `description` fields
-  and similar API-contract metadata are data, not code comments — those stay.)
 - **Intention-revealing names.** A name says what the thing is or does:
   `insertedEvents`, `dropDuplicateInsertIds`, `duplicateCount` — never `res`,
   `tmp`, `data`, `xs`. No jargon in internal names; a newcomer should read them
