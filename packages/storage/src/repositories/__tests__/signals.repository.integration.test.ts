@@ -209,6 +209,19 @@ describe('SignalsRepository (integration)', () => {
     expect(stored).toHaveLength(3);
   });
 
+  it('refuses to store a signal against a source owned by another project', async () => {
+    const [otherOrg] = await db
+      .insert(organizations)
+      .values({ slug: 'other', name: 'Other' })
+      .returning();
+    const [otherProject] = await db
+      .insert(projects)
+      .values({ organizationId: otherOrg?.id ?? '', name: 'Other' })
+      .returning();
+
+    await expect(repo.upsert(deployment({ projectId: otherProject?.id ?? '' }))).rejects.toThrow();
+  });
+
   it('removes a source’s signals when the source is deleted', async () => {
     await repo.upsert(deployment());
 

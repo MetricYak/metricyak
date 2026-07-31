@@ -1,5 +1,15 @@
 import type { SignalKind } from '@metricyak/connectors';
-import { index, jsonb, pgTable, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  foreignKey,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { projects } from '@/schema/projects.js';
 import { signalSources } from '@/schema/signal-sources.js';
 
@@ -12,9 +22,7 @@ export const signals = pgTable(
     projectId: uuid('project_id')
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
-    sourceId: uuid('source_id')
-      .notNull()
-      .references(() => signalSources.id, { onDelete: 'cascade' }),
+    sourceId: uuid('source_id').notNull(),
     kind: varchar('kind', { length: 16 }).$type<SignalKind>().notNull(),
     externalId: text('external_id').notNull(),
     occurredAt: timestamp('occurred_at', {
@@ -42,5 +50,10 @@ export const signals = pgTable(
   (table) => [
     index('signals_project_id_occurred_at_idx').on(table.projectId, table.occurredAt),
     unique('signals_source_id_external_id_key').on(table.sourceId, table.externalId),
+    foreignKey({
+      columns: [table.sourceId, table.projectId],
+      foreignColumns: [signalSources.id, signalSources.projectId],
+      name: 'signals_source_id_project_id_fk',
+    }).onDelete('cascade'),
   ],
 );

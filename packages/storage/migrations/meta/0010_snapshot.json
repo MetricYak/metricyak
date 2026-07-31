@@ -1,5 +1,5 @@
 {
-  "id": "993fec5a-21c5-4b5a-8ed8-ad1e1fecbb38",
+  "id": "7d1a2176-7786-489a-a313-1957b8d31f92",
   "prevId": "37ee968b-53b2-455a-8362-86ed816c14b6",
   "version": "7",
   "dialect": "postgresql",
@@ -1177,6 +1177,14 @@
             "project_id",
             "name"
           ]
+        },
+        "signal_sources_id_project_id_key": {
+          "name": "signal_sources_id_project_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "project_id"
+          ]
         }
       },
       "policies": {},
@@ -1307,15 +1315,17 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "signals_source_id_signal_sources_id_fk": {
-          "name": "signals_source_id_signal_sources_id_fk",
+        "signals_source_id_project_id_fk": {
+          "name": "signals_source_id_project_id_fk",
           "tableFrom": "signals",
           "tableTo": "signal_sources",
           "columnsFrom": [
-            "source_id"
+            "source_id",
+            "project_id"
           ],
           "columnsTo": [
-            "id"
+            "id",
+            "project_id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"

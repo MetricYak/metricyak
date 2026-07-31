@@ -49,5 +49,6 @@ export const signalSources = pgTable(
     index('signal_sources_project_id_idx').on(table.projectId),
     index('signal_sources_installation_id_idx').on(table.installationId),
     unique('signal_sources_project_id_name_key').on(table.projectId, table.name),
+    unique('signal_sources_id_project_id_key').on(table.id, table.projectId),
   ],
 );
