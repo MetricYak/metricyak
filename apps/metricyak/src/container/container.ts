@@ -17,6 +17,8 @@ import {
   ProjectsRepository,
   SecretsRepository,
   type SecretsWriter,
+  SignalSourcesRepository,
+  SignalsRepository,
   secretsWriter,
 } from '@metricyak/storage';
 import { createMetricReads, type MetricReads } from '@/modules/aggregates/aggregates.reads.js';
@@ -33,6 +35,8 @@ export type Repositories = {
   readonly organizations: OrganizationsRepository;
   readonly projects: ProjectsRepository;
   readonly secrets: SecretsWriter;
+  readonly signals: SignalsRepository;
+  readonly signalSources: SignalSourcesRepository;
 };
 
 export type Container = {
@@ -80,6 +84,8 @@ export function createContainer(
     organizations: new OrganizationsRepository(db),
     projects: new ProjectsRepository(db),
     secrets: secretsWriter(new SecretsRepository(db, secretCipher)),
+    signals: new SignalsRepository(db),
+    signalSources: new SignalSourcesRepository(db),
   };
 
   const lastUsed = new LastUsedTracker();

@@ -28,6 +28,7 @@
     "db:seed": "tsx src/seed.ts"
   },
   "dependencies": {
+    "@metricyak/connectors": "workspace:*",
     "@metricyak/secrets": "workspace:*",
     "drizzle-orm": "catalog:",
     "pg": "catalog:"

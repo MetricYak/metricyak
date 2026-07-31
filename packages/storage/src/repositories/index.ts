@@ -6,3 +6,5 @@ export * from '@/repositories/organizations.repository.js';
 export * from '@/repositories/project-keys.repository.js';
 export * from '@/repositories/projects.repository.js';
 export * from '@/repositories/secrets.repository.js';
+export * from '@/repositories/signal-sources.repository.js';
+export * from '@/repositories/signals.repository.js';

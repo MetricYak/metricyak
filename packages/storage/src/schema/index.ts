@@ -8,3 +8,5 @@ export * from '@/schema/project-keys.js';
 export * from '@/schema/projects.js';
 export * from '@/schema/secrets.js';
 export * from '@/schema/sentinels.js';
+export * from '@/schema/signal-sources.js';
+export * from '@/schema/signals.js';
