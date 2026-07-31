@@ -8,15 +8,15 @@ import {
   MONITOR_DRAIN_INTERVAL_MS,
   MONITOR_DRAIN_QUEUE,
   MONITOR_EVAL_QUEUE,
+  MONITOR_FIRINGS_QUEUE,
   MONITOR_RELAY_INTERVAL_MS,
   MONITOR_RELAY_QUEUE,
-  MONITOR_SIGNALS_QUEUE,
   type MonitorBackstopJob,
   type MonitorDispatchJob,
   type MonitorDrainJob,
   type MonitorEvalJob,
+  type MonitorFiringJob,
   type MonitorRelayJob,
-  type MonitorSignalJob,
 } from '@/queues.js';
 
 export type MonitorDispatchWorkerOptions = {
@@ -53,16 +53,16 @@ export async function registerMonitorDispatchScheduler(
   }
 }
 
-export type MonitorSignalsWorkerOptions = {
+export type MonitorFiringsWorkerOptions = {
   concurrency: number;
-  process: (job: Job<MonitorSignalJob>) => Promise<void>;
+  process: (job: Job<MonitorFiringJob>) => Promise<void>;
 };
 
-export function createMonitorSignalsWorker(
+export function createMonitorFiringsWorker(
   connection: ConnectionOptions,
-  { concurrency, process }: MonitorSignalsWorkerOptions,
-): Worker<MonitorSignalJob> {
-  return new Worker<MonitorSignalJob>(MONITOR_SIGNALS_QUEUE, process, { connection, concurrency });
+  { concurrency, process }: MonitorFiringsWorkerOptions,
+): Worker<MonitorFiringJob> {
+  return new Worker<MonitorFiringJob>(MONITOR_FIRINGS_QUEUE, process, { connection, concurrency });
 }
 
 export type MonitorEvalWorkerOptions = {

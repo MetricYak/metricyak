@@ -50,9 +50,9 @@ export function monitorEvalJobId(monitorId: string, nextEvalAt: Date): string {
   return `${monitorId}-${nextEvalAt.getTime()}`;
 }
 
-export const MONITOR_SIGNALS_QUEUE = 'monitor-signals' as const;
+export const MONITOR_FIRINGS_QUEUE = 'monitor-firings' as const;
 
-export type MonitorSignalJob = {
+export type MonitorFiringJob = {
   eventId: string;
   monitorId: string;
   series: string;

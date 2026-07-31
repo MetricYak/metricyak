@@ -3,7 +3,7 @@ import {
   InMemoryEventsProducer,
   InMemoryMonitorDirtyBuffer,
   InMemoryMonitorEvalProducer,
-  InMemoryMonitorSignalsProducer,
+  InMemoryMonitorFiringsProducer,
 } from '@metricyak/queue';
 import { createSecretCipher, MasterKey } from '@metricyak/secrets';
 import {
@@ -50,7 +50,7 @@ function buildApp(store: OrganizationRecord[]) {
   const base = createContainer(
     fakeDatabase,
     new InMemoryEventsProducer(),
-    new InMemoryMonitorSignalsProducer(),
+    new InMemoryMonitorFiringsProducer(),
     new InMemoryMonitorEvalProducer(),
     {} as ClickHouseClient,
     new InMemoryMonitorDirtyBuffer(),

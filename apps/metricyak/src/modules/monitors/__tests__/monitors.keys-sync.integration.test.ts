@@ -5,7 +5,7 @@ import {
   InMemoryEventsProducer,
   InMemoryMonitorDirtyBuffer,
   InMemoryMonitorEvalProducer,
-  InMemoryMonitorSignalsProducer,
+  InMemoryMonitorFiringsProducer,
 } from '@metricyak/queue';
 import { createSecretCipher, MasterKey } from '@metricyak/secrets';
 import { type Database, MetricsRepository, organizations, projects } from '@metricyak/storage';
@@ -82,7 +82,7 @@ describe('monitor_event_keys sync (integration)', () => {
       createContainer(
         db,
         new InMemoryEventsProducer(),
-        new InMemoryMonitorSignalsProducer(),
+        new InMemoryMonitorFiringsProducer(),
         new InMemoryMonitorEvalProducer(),
         {} as ClickHouseClient,
         new InMemoryMonitorDirtyBuffer(),

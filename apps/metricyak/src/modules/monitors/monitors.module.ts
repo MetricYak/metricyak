@@ -3,8 +3,8 @@ import {
   createMonitorDispatchWorker,
   createMonitorDrainWorker,
   createMonitorEvalWorker,
+  createMonitorFiringsWorker,
   createMonitorRelayWorker,
-  createMonitorSignalsWorker,
   registerMonitorBackstopScheduler,
   registerMonitorDispatchScheduler,
   registerMonitorDrainScheduler,
@@ -15,9 +15,9 @@ import { runMonitorBackstop } from '@/modules/monitors/monitors.backstop.js';
 import { runMonitorDispatch } from '@/modules/monitors/monitors.dispatch.js';
 import { runMonitorDrain } from '@/modules/monitors/monitors.drain.js';
 import { processMonitorEvalJob } from '@/modules/monitors/monitors.eval.js';
-import { relayMonitorSignals } from '@/modules/monitors/monitors.relay.js';
+import { processMonitorFiring } from '@/modules/monitors/monitors.firings.worker.js';
+import { relayMonitorFirings } from '@/modules/monitors/monitors.relay.js';
 import monitorsRouter from '@/modules/monitors/monitors.routes.js';
-import { processMonitorSignal } from '@/modules/monitors/monitors.signals.worker.js';
 
 const monitorDispatchWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
   createMonitorDispatchWorker(connection, {
@@ -49,21 +49,21 @@ const monitorEvalWorkerFactory: WorkerFactory = (connection, container, concurre
     },
   });
 
-const monitorSignalsWorkerFactory: WorkerFactory = (connection, _container, concurrency) =>
-  createMonitorSignalsWorker(connection, {
+const monitorFiringsWorkerFactory: WorkerFactory = (connection, _container, concurrency) =>
+  createMonitorFiringsWorker(connection, {
     concurrency,
-    process: (job) => processMonitorSignal(job.data),
+    process: (job) => processMonitorFiring(job.data),
   });
 
 const monitorRelayWorkerFactory: WorkerFactory = (connection, container, concurrency) =>
   createMonitorRelayWorker(connection, {
     concurrency,
     process: async () => {
-      const relay = await relayMonitorSignals(
+      const relay = await relayMonitorFirings(
         {
           db: container.db,
           monitorRuntime: container.repos.monitorRuntime,
-          signals: container.signals,
+          firings: container.firings,
         },
         new Date(),
       );
@@ -125,7 +125,7 @@ export const monitorsModule: AppModule = {
     monitorDispatchWorkerFactory,
     monitorEvalWorkerFactory,
     monitorRelayWorkerFactory,
-    monitorSignalsWorkerFactory,
+    monitorFiringsWorkerFactory,
     monitorDrainWorkerFactory,
     monitorBackstopWorkerFactory,
   ],

@@ -3,10 +3,10 @@ import { Queue } from 'bullmq';
 import {
   type EventBatchJob,
   MONITOR_EVAL_QUEUE,
-  MONITOR_SIGNALS_QUEUE,
+  MONITOR_FIRINGS_QUEUE,
   type MonitorEvalDispatch,
   type MonitorEvalJob,
-  type MonitorSignalJob,
+  type MonitorFiringJob,
   monitorEvalJobId,
 } from '@/queues.js';
 
@@ -22,19 +22,19 @@ export class InMemoryEventsProducer implements EventsProducer {
   }
 }
 
-export interface MonitorSignalsProducer {
-  enqueue(job: MonitorSignalJob): Promise<void>;
+export interface MonitorFiringsProducer {
+  enqueue(job: MonitorFiringJob): Promise<void>;
 }
 
-export class BullMonitorSignalsProducer implements MonitorSignalsProducer {
-  private readonly queue: Queue<MonitorSignalJob>;
+export class BullMonitorFiringsProducer implements MonitorFiringsProducer {
+  private readonly queue: Queue<MonitorFiringJob>;
 
   constructor(connection: ConnectionOptions) {
-    this.queue = new Queue<MonitorSignalJob>(MONITOR_SIGNALS_QUEUE, { connection });
+    this.queue = new Queue<MonitorFiringJob>(MONITOR_FIRINGS_QUEUE, { connection });
   }
 
-  async enqueue(job: MonitorSignalJob): Promise<void> {
-    await this.queue.add(MONITOR_SIGNALS_QUEUE, job, {
+  async enqueue(job: MonitorFiringJob): Promise<void> {
+    await this.queue.add(MONITOR_FIRINGS_QUEUE, job, {
       jobId: job.eventId,
       attempts: 5,
       backoff: { type: 'exponential', delay: 1000 },
@@ -44,10 +44,10 @@ export class BullMonitorSignalsProducer implements MonitorSignalsProducer {
   }
 }
 
-export class InMemoryMonitorSignalsProducer implements MonitorSignalsProducer {
-  readonly jobs: MonitorSignalJob[] = [];
+export class InMemoryMonitorFiringsProducer implements MonitorFiringsProducer {
+  readonly jobs: MonitorFiringJob[] = [];
 
-  async enqueue(job: MonitorSignalJob): Promise<void> {
+  async enqueue(job: MonitorFiringJob): Promise<void> {
     this.jobs.push(job);
   }
 }
