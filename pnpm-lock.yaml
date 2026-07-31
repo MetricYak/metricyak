@@ -231,6 +231,34 @@ importers:
         specifier: 'catalog:'
         version: 3.2.6(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
 
+  packages/connectors:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
+    devDependencies:
+      '@metricyak/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@metricyak/vitest-config':
+        specifier: workspace:*
+        version: link:../vitest-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.2
+      chokidar-cli:
+        specifier: ^3.0.0
+        version: 3.0.0
+      tsc-alias:
+        specifier: ^1.9.1
+        version: 1.9.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
+
   packages/queue:
     dependencies:
       bullmq:
