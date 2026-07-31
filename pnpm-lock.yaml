@@ -59,6 +59,9 @@ importers:
       '@metricyak/clickhouse':
         specifier: workspace:*
         version: link:../../packages/clickhouse
+      '@metricyak/connectors':
+        specifier: workspace:*
+        version: link:../../packages/connectors
       '@metricyak/queue':
         specifier: workspace:*
         version: link:../../packages/queue
@@ -328,6 +331,9 @@ importers:
 
   packages/storage:
     dependencies:
+      '@metricyak/connectors':
+        specifier: workspace:*
+        version: link:../connectors
       '@metricyak/secrets':
         specifier: workspace:*
         version: link:../secrets
