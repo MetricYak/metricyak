@@ -1,5 +1,5 @@
 import type { SignalProviderId } from '@metricyak/connectors';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Database, Executor } from '@/client.js';
 import {
   type SignalConnectionKind,
@@ -130,6 +130,17 @@ export class SignalSourcesRepository {
     await this.db
       .update(signalSources)
       .set({ status: 'healthy', lastDeliveryAt: at, lastError: null })
+      .where(eq(signalSources.id, id));
+  }
+
+  async recordIgnoredDelivery(id: string, at: Date): Promise<void> {
+    await this.db
+      .update(signalSources)
+      .set({
+        status: sql`case when ${signalSources.status} = 'healthy' then 'healthy' else 'awaiting_first_delivery' end`,
+        lastDeliveryAt: at,
+        lastError: null,
+      })
       .where(eq(signalSources.id, id));
   }
 

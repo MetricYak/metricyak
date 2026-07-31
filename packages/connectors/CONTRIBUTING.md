@@ -61,6 +61,23 @@ goes pending, then in progress, then succeeded. Every one of those must produce 
 same `externalId`, because storage upserts on `(source_id, external_id)`. Key it on
 the underlying object's id, never on the delivery's own id.
 
+## Statuses are a fixed vocabulary per kind
+
+`SIGNAL_STATUSES_BY_KIND` in `src/contract/signal-provider.ts` lists what each kind
+may carry — a deployment is `pending` | `succeeded` | `failed`, an incident is
+`triggered` | `acknowledged` | `resolved`, a flag change has no status at all. Map
+your vendor's vocabulary onto it; do not pass their words through. The UI renders one
+marker treatment per `(kind, status)` pair, so an unlisted value has nothing to draw.
+
+The write boundary rejects anything unlisted, so a wrong status drops the signal
+rather than storing something unrenderable. Assert it in your own tests with
+`isAllowedSignalStatus(signal.kind, signal.status)` over your fixtures — the
+conformance suite cannot reach your fixtures to check this for you.
+
+If your vendor has a state that genuinely does not map, raise it rather than
+inventing a value: the list is shared with storage and the UI, and adding to it is a
+deliberate change.
+
 ## `observedAt` orders those deliveries
 
 `occurredAt` is when the thing happened, so it is the *same* on every delivery in a

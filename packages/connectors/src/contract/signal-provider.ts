@@ -7,6 +7,17 @@ export type SignalKind = (typeof SIGNAL_KINDS)[number];
 export const SIGNAL_PROVIDER_IDS = ['github'] as const;
 export type SignalProviderId = (typeof SIGNAL_PROVIDER_IDS)[number];
 
+export const SIGNAL_STATUSES_BY_KIND: Readonly<Record<SignalKind, readonly string[]>> = {
+  deployment: ['pending', 'succeeded', 'failed'],
+  flag_change: [],
+  incident: ['triggered', 'acknowledged', 'resolved'],
+};
+
+export function isAllowedSignalStatus(kind: SignalKind, status: string | null): boolean {
+  const allowed = SIGNAL_STATUSES_BY_KIND[kind];
+  return status === null ? allowed.length === 0 : allowed.includes(status);
+}
+
 export type ParsedSignal = {
   readonly kind: SignalKind;
   readonly externalId: string;
