@@ -1,0 +1,20 @@
+{
+  "action": "created",
+  "deployment_status": {
+    "id": 900001,
+    "state": "pending",
+    "environment": "production",
+    "created_at": "2026-07-30T14:02:00Z",
+    "target_url": "https://github.com/acme/web/deployments/456",
+    "creator": { "login": "jdoe" }
+  },
+  "deployment": {
+    "id": 456,
+    "sha": "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432",
+    "ref": "v2.4.1",
+    "environment": "production",
+    "created_at": "2026-07-30T14:02:00Z",
+    "creator": { "login": "jdoe" }
+  },
+  "repository": { "full_name": "acme/web", "html_url": "https://github.com/acme/web" }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@metricyak/connectors",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "dev": "chokidar \"src/**/*.ts\" tsconfig.json -c \"tsc && tsc-alias\" --initial",
+    "check-types": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@metricyak/typescript-config": "workspace:*",
+    "@metricyak/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "chokidar-cli": "^3.0.0",
+    "tsc-alias": "^1.9.1",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
