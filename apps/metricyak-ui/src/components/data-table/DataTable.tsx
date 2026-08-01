@@ -36,6 +36,8 @@ interface DataTableProps<TData> {
   errorBanner?: React.ReactNode;
   emptyState: DataTableEmptyState;
   minWidthClassName?: string;
+  /** Grow to fill the parent's remaining height instead of capping at 70vh. */
+  fill?: boolean;
 }
 
 function DataTableSkeletonRows({
@@ -93,6 +95,7 @@ export function DataTable<TData>({
   errorBanner,
   emptyState,
   minWidthClassName = 'min-w-224',
+  fill = false,
 }: DataTableProps<TData>): React.JSX.Element {
   const table = useReactTable({
     data: Array.from(data),
@@ -103,11 +106,14 @@ export function DataTable<TData>({
   const columnCount = columns.length;
 
   return (
-    <div>
+    <div className={cn(fill && 'flex min-h-0 flex-1 flex-col')}>
       {errorBanner}
       <Table
         className={minWidthClassName}
-        containerClassName="max-h-[70vh] overflow-auto border border-border bg-background"
+        containerClassName={cn(
+          'max-h-[70vh] overflow-auto border border-border bg-background',
+          fill && 'max-h-none min-h-0 flex-1',
+        )}
       >
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

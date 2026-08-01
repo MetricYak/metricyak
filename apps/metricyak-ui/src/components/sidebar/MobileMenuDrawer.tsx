@@ -63,7 +63,8 @@ export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps): Reac
   const panelRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const [openMenuId, setOpenMenuId] = useState<string | undefined>(undefined);
-  const openMenu = openMenuId ? navItems.find((item) => item.id === openMenuId)?.menu : undefined;
+  const openSection = openMenuId ? navItems.find((item) => item.id === openMenuId) : undefined;
+  const openMenu = openSection?.menu;
 
   useFocusTrap(panelRef, open, onClose);
 
@@ -127,7 +128,11 @@ export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps): Reac
                   All sections
                 </button>
                 <div className="min-h-0 flex-1">
-                  <FlyoutMenuPanel menu={openMenu} onNavigate={onClose} />
+                  <FlyoutMenuPanel
+                    title={openSection?.label ?? ''}
+                    menu={openMenu}
+                    onNavigate={onClose}
+                  />
                 </div>
               </div>
             ) : (

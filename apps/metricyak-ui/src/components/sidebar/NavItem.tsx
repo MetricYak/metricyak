@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProjectRoute } from '@/hooks/useProjectRoute';
 import { cn } from '@/lib/utils';
-import type { NavItemData } from './nav.config';
+import { type NavItemData, navItemOwnsRoute } from './nav.config';
 
 interface NavItemProps {
   item: NavItemData;
@@ -39,8 +39,7 @@ export function NavItem({
   const hasMenu = Boolean(item.menu);
   const hasSubItems = hasMenu;
   const resolvedPath = item.pathSuffix ? to(item.pathSuffix) : undefined;
-  const isActive =
-    Boolean(resolvedPath) && (pathname === resolvedPath || pathname.startsWith(`${resolvedPath}/`));
+  const isActive = navItemOwnsRoute(item, pathname);
 
   const handleClick = (): void => {
     if (hasMenu) {

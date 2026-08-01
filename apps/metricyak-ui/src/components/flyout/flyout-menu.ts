@@ -1,13 +1,16 @@
 import type { LucideIcon } from 'lucide-react';
 
-export interface FlyoutMenuItem {
-  id: string;
-  label: string;
-  pathSuffix: string;
-  icon?: LucideIcon;
-  meta?: string;
-  needsAttention?: boolean;
-}
+type FlyoutMenuItemBase = {
+  readonly id: string;
+  readonly label: string;
+  readonly icon?: LucideIcon;
+  readonly meta?: string;
+  readonly needsAttention?: boolean;
+};
+
+export type FlyoutMenuItem =
+  | (FlyoutMenuItemBase & { readonly kind: 'link'; readonly pathSuffix: string })
+  | (FlyoutMenuItemBase & { readonly kind: 'coming-soon' });
 
 export interface FlyoutMenuGroup {
   id: string;
@@ -16,7 +19,6 @@ export interface FlyoutMenuGroup {
 }
 
 export interface FlyoutMenuData {
-  title: string;
   searchPlaceholder: string;
   emptyText: string;
   groups: readonly FlyoutMenuGroup[];

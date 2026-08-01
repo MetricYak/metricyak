@@ -1,75 +1,54 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect } from 'react';
-import { Resizable } from '@/components/resizable/Resizable';
 import { FlyoutMenuPanel } from './FlyoutMenuPanel';
 import type { FlyoutMenuData } from './flyout-menu';
 
-interface DockedFlyoutMenuProps {
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+export interface SectionMenu {
+  id: string;
+  title: string;
   menu: FlyoutMenuData;
-  onTogglePin: () => void;
 }
 
-export function DockedFlyoutMenu({ menu, onTogglePin }: DockedFlyoutMenuProps): React.JSX.Element {
-  return (
-    <Resizable
-      side="right"
-      collapsible={false}
-      minWidth={240}
-      maxWidth={420}
-      defaultWidth={300}
-      storageKey="metricyak.flyoutmenu"
-      className="border-border border-r"
-    >
-      <FlyoutMenuPanel menu={menu} pinned onTogglePin={onTogglePin} />
-    </Resizable>
-  );
-}
-
-interface OverlayFlyoutMenuProps {
-  menu: FlyoutMenuData | undefined;
-  onTogglePin: () => void;
+interface FlyoutMenuProps {
+  section: SectionMenu | undefined;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
   onDismiss: () => void;
 }
 
-export function OverlayFlyoutMenu({
-  menu,
-  onTogglePin,
+export function FlyoutMenu({
+  section,
   onPointerEnter,
   onPointerLeave,
   onDismiss,
-}: OverlayFlyoutMenuProps): React.JSX.Element {
+}: FlyoutMenuProps): React.JSX.Element {
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!menu) return;
+    if (!section) return;
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') onDismiss();
     };
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [menu, onDismiss]);
+  }, [section, onDismiss]);
 
   return (
     <AnimatePresence>
-      {menu ? (
+      {section ? (
         <motion.div
-          key="flyout"
+          key="section-menu"
           initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
-          transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.15, ease: EASE_OUT }}
           onPointerEnter={onPointerEnter}
           onPointerLeave={onPointerLeave}
-          className="absolute top-0 bottom-0 left-full z-(--z-flyout) w-[300px] border-border border-r bg-background shadow-[14px_0_40px_rgba(0,0,0,0.12)]"
+          className="absolute top-0 bottom-0 left-full z-(--z-flyout) w-64 border-sidebar-border border-r bg-sidebar-panel"
         >
-          <FlyoutMenuPanel
-            menu={menu}
-            pinned={false}
-            onTogglePin={onTogglePin}
-            onNavigate={onDismiss}
-          />
+          <FlyoutMenuPanel title={section.title} menu={section.menu} onNavigate={onDismiss} />
         </motion.div>
       ) : null}
     </AnimatePresence>

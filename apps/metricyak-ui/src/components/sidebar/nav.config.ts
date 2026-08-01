@@ -1,17 +1,11 @@
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   BellRing,
-  Database,
-  Flag,
   type LucideIcon,
   Plug,
   Rocket,
-  Send,
   Settings,
-  Table2,
-  Webhook,
 } from 'lucide-react';
 import type { FlyoutMenuData } from '@/components/flyout/flyout-menu';
 
@@ -21,72 +15,30 @@ export interface NavItemData {
   icon: LucideIcon;
   iconColor?: string;
   pathSuffix?: string;
+  routePrefix?: string;
   menu?: FlyoutMenuData;
 }
 
+export function navItemOwnsRoute(item: NavItemData, pathname: string): boolean {
+  const owned = item.routePrefix ?? item.pathSuffix;
+  if (owned === undefined) return false;
+  return pathname.includes(`${owned}/`) || pathname.endsWith(owned);
+}
+
 const integrationsMenu: FlyoutMenuData = {
-  title: '',
   searchPlaceholder: 'Search integrations',
-  emptyText: 'Nothing matches that. Try “deploy” or “flags”.',
+  emptyText: 'Nothing matches that. Try “deploy”.',
   groups: [
     {
       id: 'signals',
       label: 'Signals',
       items: [
         {
+          kind: 'link',
           id: 'deployments',
           label: 'Deployments',
           pathSuffix: '/data/deployments',
           icon: Rocket,
-          meta: '1 tool',
-        },
-        {
-          id: 'flags',
-          label: 'Feature flags',
-          pathSuffix: '/data/flags',
-          icon: Flag,
-          meta: 'Soon',
-        },
-        {
-          id: 'incidents',
-          label: 'Incidents',
-          pathSuffix: '/data/incidents',
-          icon: AlertTriangle,
-          meta: 'Soon',
-        },
-      ],
-    },
-    {
-      id: 'data-sources',
-      label: 'Data sources',
-      items: [
-        {
-          id: 'warehouse',
-          label: 'Warehouse',
-          pathSuffix: '/data/warehouse',
-          icon: Table2,
-          meta: 'Soon',
-        },
-        {
-          id: 'product-events',
-          label: 'Product events',
-          pathSuffix: '/data/events',
-          icon: Database,
-          meta: 'Soon',
-        },
-      ],
-    },
-    {
-      id: 'delivery',
-      label: 'Delivery',
-      items: [
-        { id: 'slack', label: 'Slack', pathSuffix: '/data/slack', icon: Send, meta: 'Soon' },
-        {
-          id: 'outbound',
-          label: 'Outbound webhooks',
-          pathSuffix: '/data/outbound',
-          icon: Webhook,
-          meta: 'Soon',
         },
       ],
     },
@@ -120,6 +72,7 @@ export const navItems: readonly NavItemData[] = [
     label: 'Integrations',
     icon: Plug,
     iconColor: 'text-violet-600',
+    routePrefix: '/data',
     menu: integrationsMenu,
   },
 ] satisfies readonly NavItemData[];
