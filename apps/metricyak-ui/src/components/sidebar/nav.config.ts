@@ -1,10 +1,13 @@
-import { Activity, BarChart3, BellRing, type LucideIcon, Settings } from 'lucide-react';
-
-export interface SubNavItem {
-  id: string;
-  label: string;
-  pathSuffix: string;
-}
+import {
+  Activity,
+  BarChart3,
+  BellRing,
+  type LucideIcon,
+  Plug,
+  Rocket,
+  Settings,
+} from 'lucide-react';
+import type { FlyoutMenuData } from '@/components/flyout/flyout-menu';
 
 export interface NavItemData {
   id: string;
@@ -12,8 +15,35 @@ export interface NavItemData {
   icon: LucideIcon;
   iconColor?: string;
   pathSuffix?: string;
-  items?: readonly SubNavItem[];
+  routePrefix?: string;
+  menu?: FlyoutMenuData;
 }
+
+export function navItemOwnsRoute(item: NavItemData, pathname: string): boolean {
+  const owned = item.routePrefix ?? item.pathSuffix;
+  if (owned === undefined) return false;
+  return pathname.includes(`${owned}/`) || pathname.endsWith(owned);
+}
+
+const integrationsMenu: FlyoutMenuData = {
+  searchPlaceholder: 'Search integrations',
+  emptyText: 'Nothing matches that. Try “deploy”.',
+  groups: [
+    {
+      id: 'signals',
+      label: 'Signals',
+      items: [
+        {
+          kind: 'link',
+          id: 'deployments',
+          label: 'Deployments',
+          pathSuffix: '/data/deployments',
+          icon: Rocket,
+        },
+      ],
+    },
+  ],
+};
 
 export const navItems: readonly NavItemData[] = [
   {
@@ -36,6 +66,14 @@ export const navItems: readonly NavItemData[] = [
     icon: BellRing,
     iconColor: 'text-amber-600',
     pathSuffix: '/monitors',
+  },
+  {
+    id: 'integrations',
+    label: 'Integrations',
+    icon: Plug,
+    iconColor: 'text-violet-600',
+    routePrefix: '/data',
+    menu: integrationsMenu,
   },
 ] satisfies readonly NavItemData[];
 

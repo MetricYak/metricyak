@@ -8,11 +8,16 @@ import { SidePanelFooter } from './SidePanelFooter';
 import { SidePanelHeader } from './SidePanelHeader';
 
 interface SidePanelProps {
-  activeSubMenuId?: string;
-  onOpenSubMenu: (id: string) => void;
+  openMenuId?: string;
+  onHoverMenu?: (id: string) => void;
+  onLeaveMenu?: () => void;
 }
 
-export function SidePanel({ activeSubMenuId, onOpenSubMenu }: SidePanelProps): React.JSX.Element {
+export function SidePanel({
+  openMenuId,
+  onHoverMenu,
+  onLeaveMenu,
+}: SidePanelProps): React.JSX.Element {
   return (
     <Resizable
       side="right"
@@ -30,19 +35,15 @@ export function SidePanel({ activeSubMenuId, onOpenSubMenu }: SidePanelProps): R
           <SidePanelHeader collapsed={collapsed} />
           <SidePanelBody>
             <NavList
-              activeId={activeSubMenuId}
+              openMenuId={openMenuId}
               collapsed={collapsed}
-              onOpenSubMenu={onOpenSubMenu}
+              onHoverMenu={onHoverMenu}
+              onLeaveMenu={onLeaveMenu}
             />
           </SidePanelBody>
           <div className="shrink-0 px-2 pb-1">
             {bottomNavItems.map((item) => (
-              <NavItem
-                key={item.id}
-                item={item}
-                collapsed={collapsed}
-                onOpenSubMenu={onOpenSubMenu}
-              />
+              <NavItem key={item.id} item={item} collapsed={collapsed} />
             ))}
           </div>
           <SidePanelFooter

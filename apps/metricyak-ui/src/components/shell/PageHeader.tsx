@@ -27,7 +27,7 @@ export function PageHeader({
   children,
 }: PageHeaderProps): React.JSX.Element {
   return (
-    <header className="shrink-0 border-border border-b pt-7">
+    <header className="shrink-0 pt-7">
       <PageContainer width={width}>
         {backTo ? (
           <Link

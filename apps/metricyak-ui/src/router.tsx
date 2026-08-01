@@ -113,6 +113,19 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            path: 'data',
+            children: [
+              { index: true, element: <Navigate to="deployments" replace /> },
+              {
+                path: 'deployments',
+                lazy: async () => ({
+                  Component: (await import('./components/data/DeploymentsPage')).DeploymentsPage,
+                }),
+              },
+              { path: '*', element: <NotFoundPage /> },
+            ],
+          },
+          {
             path: 'settings',
             lazy: async () => ({
               Component: (await import('./components/settings/SettingsPage')).SettingsPage,

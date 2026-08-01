@@ -1,18 +1,17 @@
-import { X } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { FlyoutMenuPanel } from '@/components/flyout/FlyoutMenuPanel';
 import { NavItem } from './NavItem';
 import { NavList } from './NavList';
-import { bottomNavItems, type NavItemData } from './nav.config';
+import { bottomNavItems, type NavItemData, navItems } from './nav.config';
 import { ProjectSwitcher } from './ProjectSwitcher';
 import { SidePanelBody } from './SidePanelBody';
 
 interface MobileMenuDrawerProps {
   open: boolean;
   onClose: () => void;
-  activeSubMenuId?: string;
-  onOpenSubMenu: (id: string) => void;
 }
 
 const FOCUSABLE =
@@ -60,16 +59,18 @@ function useFocusTrap(
   }, [open, onClose, panelRef]);
 }
 
-export function MobileMenuDrawer({
-  open,
-  onClose,
-  activeSubMenuId,
-  onOpenSubMenu,
-}: MobileMenuDrawerProps): React.JSX.Element {
+export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps): React.JSX.Element {
   const panelRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
+  const [openMenuId, setOpenMenuId] = useState<string | undefined>(undefined);
+  const openSection = openMenuId ? navItems.find((item) => item.id === openMenuId) : undefined;
+  const openMenu = openSection?.menu;
 
   useFocusTrap(panelRef, open, onClose);
+
+  useEffect(() => {
+    if (!open) setOpenMenuId(undefined);
+  }, [open]);
 
   const slide = shouldReduceMotion
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
@@ -116,15 +117,37 @@ export function MobileMenuDrawer({
               </button>
             </div>
 
-            <SidePanelBody>
-              <NavList activeId={activeSubMenuId} onOpenSubMenu={onOpenSubMenu} />
-            </SidePanelBody>
+            {openMenu ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <button
+                  type="button"
+                  onClick={() => setOpenMenuId(undefined)}
+                  className="flex shrink-0 cursor-pointer items-center gap-1 px-3 py-2 text-muted-foreground text-sm transition-colors hover:text-sidebar-foreground"
+                >
+                  <ChevronLeft className="size-4" aria-hidden="true" />
+                  All sections
+                </button>
+                <div className="min-h-0 flex-1">
+                  <FlyoutMenuPanel
+                    title={openSection?.label ?? ''}
+                    menu={openMenu}
+                    onNavigate={onClose}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <SidePanelBody>
+                  <NavList openMenuId={openMenuId} onOpenSubMenu={setOpenMenuId} />
+                </SidePanelBody>
 
-            <div className="shrink-0 px-2 pb-2">
-              {bottomNavItems.map((item: NavItemData) => (
-                <NavItem key={item.id} item={item} onOpenSubMenu={onOpenSubMenu} />
-              ))}
-            </div>
+                <div className="shrink-0 px-2 pb-2">
+                  {bottomNavItems.map((item: NavItemData) => (
+                    <NavItem key={item.id} item={item} />
+                  ))}
+                </div>
+              </>
+            )}
           </motion.div>
         </div>
       )}
