@@ -2,6 +2,7 @@ import { httpInstrumentationMiddleware } from "@hono/otel";
 import { Hono } from "hono";
 import type { Config } from "@/config/index.js";
 import type { AppEnv } from "./env.js";
+import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { requestLogger } from "./request-logger.js";
 
 export function createApp(config: Config): Hono<AppEnv> {
@@ -13,6 +14,9 @@ export function createApp(config: Config): Hono<AppEnv> {
     await next();
   });
   app.use(requestLogger);
+
+  app.onError(errorHandler);
+  app.notFound(notFoundHandler);
 
   return app;
 }
