@@ -1,0 +1,5 @@
+packages:
+  - "metricyak"
+allowBuilds:
+  esbuild: true
+  protobufjs: false

@@ -1,0 +1,35 @@
+{
+  "name": "metricyak",
+  "version": "0.0.0",
+  "description": "Build self-improving products.",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --write ."
+  },
+  "keywords": [],
+  "author": "MetricYak",
+  "license": "MIT",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.16.1",
+      "onFail": "download"
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.2",
+    "pino-pretty": "^13.2.0",
+    "turbo": "^2.11.10",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "dependencies": {
+    "pino": "^10.4.0"
+  }
+}
