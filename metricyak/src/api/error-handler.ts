@@ -1,7 +1,7 @@
 import type { Context, ErrorHandler, NotFoundHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { ApiError, NotFoundError } from "@/errors/index.js";
+import { ApiError, NotFoundError, ValidationError } from "@/errors/index.js";
 import { logger } from "@/logger/index.js";
 import type { AppEnv } from "./env.js";
 
@@ -16,8 +16,15 @@ function serializeError(err: Pick<ApiError, "type" | "code" | "detail">): { erro
   return { errors: [{ error_type: err.type, error_code: err.code, detail: err.detail, param: null }] };
 }
 
+function serializeValidationError(err: ValidationError): { errors: ErrorItem[] } {
+  return {
+    errors: err.params.map(({ code, detail, param }) => ({ error_type: err.type, error_code: code, detail, param })),
+  };
+}
+
 function apiErrorResponse(c: Context<AppEnv>, err: ApiError): Response {
-  return c.json(serializeError(err), err.statusCode as ContentfulStatusCode);
+  const body = err instanceof ValidationError ? serializeValidationError(err) : serializeError(err);
+  return c.json(body, err.statusCode as ContentfulStatusCode);
 }
 
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {

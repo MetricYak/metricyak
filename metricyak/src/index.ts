@@ -1,9 +1,11 @@
 import { type ServerType, serve } from "@hono/node-server";
 import type { NodeSDK } from "@opentelemetry/sdk-node";
 import type { Hono } from "hono";
+import type { Pool } from "pg";
 import { createApp } from "@/api/app.js";
 import type { AppEnv } from "@/api/env.js";
 import { type Config, loadConfig } from "@/config/index.js";
+import { createDatabase } from "@/db/index.js";
 import { logger } from "@/logger/index.js";
 import { startTelemetry } from "@/telemetry/index.js";
 
@@ -20,7 +22,7 @@ function startHttpServer(app: Hono<AppEnv>, config: Config["http"]): ServerType 
   return server;
 }
 
-function registerShutdown(server: ServerType, telemetry: NodeSDK): void {
+function registerShutdown(server: ServerType, pool: Pool, telemetry: NodeSDK): void {
   const shutdown = (signal: NodeJS.Signals) => {
     logger.info({ signal }, "Shutting down HTTP server");
 
@@ -29,6 +31,12 @@ function registerShutdown(server: ServerType, telemetry: NodeSDK): void {
         logger.error({ err: closeErr }, "HTTP server closed with an error");
       } else {
         logger.info("HTTP server stopped");
+      }
+
+      try {
+        await pool.end();
+      } catch (err) {
+        logger.error({ err }, "Database pool shutdown failed");
       }
 
       try {
@@ -65,8 +73,10 @@ function main(): void {
 
   const telemetry = startTelemetry();
 
-  const server = startHttpServer(createApp(config), config.http);
-  registerShutdown(server, telemetry);
+  const { db, pool } = createDatabase(config.database.url);
+
+  const server = startHttpServer(createApp(config, db), config.http);
+  registerShutdown(server, pool, telemetry);
 }
 
 main();

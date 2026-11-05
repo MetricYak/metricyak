@@ -32,3 +32,23 @@ export class NotFoundError extends ApiError {
   static override defaultCode = "not_found";
   static override defaultDetail = "Not found.";
 }
+
+export type ValidationErrorParam = {
+  code: string;
+  detail: string;
+  param: string | null;
+};
+
+export class ValidationError extends ApiError {
+  static override statusCode = 400;
+  static override defaultType = "invalid_request";
+  static override defaultCode = "validation_error";
+  static override defaultDetail = "Invalid request.";
+
+  readonly params: ValidationErrorParam[];
+
+  constructor(params: ValidationErrorParam[], options: ApiErrorOptions = {}) {
+    super(options);
+    this.params = params;
+  }
+}
