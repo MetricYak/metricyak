@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, snakeCase, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, snakeCase, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations.js";
 
 export const projects = snakeCase.table(
@@ -14,7 +14,7 @@ export const projects = snakeCase.table(
     createdAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
     updatedAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
   },
-  (table) => [index().on(table.organizationId)],
+  (table) => [index().on(table.organizationId), unique().on(table.organizationId, table.id)],
 );
 
 export type ProjectRecord = typeof projects.$inferSelect;
