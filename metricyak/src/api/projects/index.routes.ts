@@ -31,7 +31,7 @@ projectsRouter.post(
       .insert(projects)
       .values({ organizationId: organization.id, name, createdAt: now, updatedAt: now })
       .returning();
-      
+
     if (!record) {
       throw new Error("Insert returned no project");
     }
