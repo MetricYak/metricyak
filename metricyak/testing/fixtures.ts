@@ -7,6 +7,8 @@ import { createApp } from "@/api/app.js";
 import type { AppEnv } from "@/api/env.js";
 import { loadConfig } from "@/config/index.js";
 import type { Database } from "@/db/index.js";
+import { createEmailService } from "@/email/email-service.js";
+import { logger } from "@/logger/index.js";
 
 export const test = baseTest.extend<{
   $file: { pool: Pool };
@@ -35,7 +37,7 @@ export const test = baseTest.extend<{
   },
   app: async ({ db }, use) => {
     const config = loadConfig({ NODE_ENV: "test", DATABASE_URL: inject("databaseUrl") });
-    await use(createApp(config, db));
+    await use(createApp(config, db, createEmailService(config.email, logger)));
   },
 });
 
