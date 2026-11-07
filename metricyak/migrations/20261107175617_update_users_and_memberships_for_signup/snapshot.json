@@ -1,0 +1,97 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "aabbd869-f38a-4b36-bd38-14a9012c0aea",
+  "prevIds": ["d9ecb3c6-d2e4-402c-acda-4b8859ba338b"],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "users", "first_name"],
+      "writes": ["s|col|public.users.first_name", "n|col|public.users.first_name", "e|col|public.users.first_name"],
+      "reads": ["n|tbl|public.users", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "users", "last_name"],
+      "writes": ["s|col|public.users.last_name", "n|col|public.users.last_name", "e|col|public.users.last_name"],
+      "reads": ["n|tbl|public.users", "n|sch|public"]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": ["column", "public", "users", "name"],
+      "writes": ["s|col|public.users.name", "n|col|public.users.name", "e|col|public.users.name"],
+      "reads": ["n|tbl|public.users", "n|sch|public"]
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": ["column", "public", "organization_memberships", "job_role"],
+      "writes": ["s|colprop|public.organization_memberships.job_role.notNull"],
+      "reads": [
+        "n|tbl|public.organization_memberships",
+        "n|sch|public",
+        "n|col|public.organization_memberships.job_role"
+      ],
+      "sqlHash": "b9fac263df5a8a16"
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": ["column", "public", "users", "heard_about_us"],
+      "writes": ["s|colprop|public.users.heard_about_us.notNull"],
+      "reads": ["n|tbl|public.users", "n|sch|public", "n|col|public.users.heard_about_us"],
+      "sqlHash": "bc38ade5d1cc1b7a"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "users",
+        "name": "first_name",
+        "type": "varchar(150)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "users",
+        "name": "last_name",
+        "type": "varchar(150)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"public\",\"users\",\"name\"]"
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"organization_memberships\",\"job_role\"]",
+      "set": {
+        "notNull": true
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"users\",\"heard_about_us\"]",
+      "set": {
+        "notNull": false
+      }
+    }
+  ]
+}

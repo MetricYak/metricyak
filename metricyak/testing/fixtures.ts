@@ -5,10 +5,18 @@ import { Pool } from "pg";
 import { test as baseTest, inject } from "vitest";
 import { createApp } from "@/api/app.js";
 import type { AppEnv } from "@/api/env.js";
+import { createPasswordService } from "@/auth/password-service.js";
 import { loadConfig } from "@/config/index.js";
 import type { Database } from "@/db/index.js";
 import { createEmailService } from "@/email/email-service.js";
 import { logger } from "@/logger/index.js";
+
+const passwordService = createPasswordService();
+
+export function createTestApp(db: Database, env: NodeJS.ProcessEnv = {}): Hono<AppEnv> {
+  const config = loadConfig({ NODE_ENV: "test", DATABASE_URL: inject("databaseUrl"), ...env });
+  return createApp(config, db, createEmailService(config.email, logger), passwordService);
+}
 
 export const test = baseTest.extend<{
   $file: { pool: Pool };
@@ -36,8 +44,7 @@ export const test = baseTest.extend<{
       });
   },
   app: async ({ db }, use) => {
-    const config = loadConfig({ NODE_ENV: "test", DATABASE_URL: inject("databaseUrl") });
-    await use(createApp(config, db, createEmailService(config.email, logger)));
+    await use(createTestApp(db));
   },
 });
 

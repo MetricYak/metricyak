@@ -33,6 +33,13 @@ export class NotFoundError extends ApiError {
   static override defaultDetail = "Not found.";
 }
 
+export class ConflictError extends ApiError {
+  static override statusCode = 409;
+  static override defaultType = "invalid_request";
+  static override defaultCode = "conflict";
+  static override defaultDetail = "Conflict.";
+}
+
 export type ValidationErrorParam = {
   code: string;
   detail: string;
