@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const projectsParamSchema = z.object({
-  organization_id: z.uuid("The organization id should be a valid UUID."),
+  organization_id: z.uuid("The field should be a valid UUID."),
 });
 
 export const createProjectSchema = z.object({
