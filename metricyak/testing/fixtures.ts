@@ -6,16 +6,18 @@ import { test as baseTest, inject } from "vitest";
 import { createApp } from "@/api/app.js";
 import type { AppEnv } from "@/api/env.js";
 import { createPasswordService } from "@/auth/password-service.js";
+import { createSessionService } from "@/auth/session-service.js";
 import { loadConfig } from "@/config/index.js";
 import type { Database } from "@/db/index.js";
 import { createEmailService } from "@/email/email-service.js";
 import { logger } from "@/logger/index.js";
 
 const passwordService = createPasswordService();
+export const sessionService = createSessionService();
 
 export function createTestApp(db: Database, env: NodeJS.ProcessEnv = {}): Hono<AppEnv> {
   const config = loadConfig({ NODE_ENV: "test", DATABASE_URL: inject("databaseUrl"), ...env });
-  return createApp(config, db, createEmailService(config.email, logger), passwordService);
+  return createApp(config, db, createEmailService(config.email, logger), passwordService, sessionService);
 }
 
 export const test = baseTest.extend<{
@@ -54,4 +56,9 @@ export async function post(app: Hono<AppEnv>, path: string, body: unknown): Prom
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+export function sessionCookieToken(response: Response): string | null {
+  const match = response.headers.get("set-cookie")?.match(/^metricyak_session=([^;]+)/);
+  return match?.[1] ?? null;
 }

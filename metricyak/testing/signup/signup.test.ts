@@ -1,12 +1,14 @@
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, vi } from "vitest";
 import { signupResponseSchema, type UserResponse } from "@/api/signup/schemas.js";
 import type { Database } from "@/db/index.js";
 import { organizationMemberships } from "@/db/schema/organization-memberships.js";
 import { type OrganizationRecord, organizations } from "@/db/schema/organizations.js";
 import { type ProjectRecord, projects } from "@/db/schema/projects.js";
+import { sessions } from "@/db/schema/sessions.js";
 import { userSelections } from "@/db/schema/user-selections.js";
 import { users } from "@/db/schema/users.js";
-import { createTestApp, post, test } from "../fixtures.js";
+import { createTestApp, post, sessionCookieToken, sessionService, test } from "../fixtures.js";
 
 const signup = {
   name: "Yak Herder",
@@ -25,6 +27,7 @@ async function expectNothingCreated(db: Database): Promise<void> {
   expect(await db.$count(organizationMemberships)).toBe(0);
   expect(await db.$count(projects)).toBe(0);
   expect(await db.$count(userSelections)).toBe(0);
+  expect(await db.$count(sessions)).toBe(0);
 }
 
 type ExpectedUser = {
@@ -141,12 +144,43 @@ async function expectUserSelectionToBeInserted(
   ]);
 }
 
+async function expectSessionToBeCreated(
+  db: Database,
+  response: Response,
+  user: UserResponse,
+  now: Date,
+): Promise<void> {
+  const token = sessionCookieToken(response) as string;
+  const expiresAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  expect(response.headers.get("set-cookie")).toBe(
+    `metricyak_session=${token}; Max-Age=1209600; Path=/; Expires=${expiresAt.toUTCString()}; HttpOnly; Secure; SameSite=Lax`,
+  );
+  expect(await db.select().from(sessions)).toEqual([
+    {
+      id: expect.any(String),
+      userId: user.id,
+      tokenHash: createHash("sha256").update(token).digest("hex"),
+      expiresAt,
+      createdAt: now,
+    },
+  ]);
+  expect((await sessionService.findUserBySessionToken(db, token, now))?.id).toBe(user.id);
+}
+
+async function expectNoSession(db: Database, response: Response): Promise<void> {
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(await db.$count(sessions)).toBe(0);
+}
+
 describe("POST /api/signup", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  test("a visitor signs up and lands in their new organization and default project as owner", async ({ app, db }) => {
+  test("a visitor signs up, lands in their new organization and default project as owner, and is logged in", async ({
+    app,
+    db,
+  }) => {
     const now = new Date("2026-01-01T00:00:00.000Z");
     vi.setSystemTime(now);
 
@@ -158,9 +192,12 @@ describe("POST /api/signup", () => {
     await expectOwnerMembershipToBeInserted(db, user, organization, now);
     const project = await expectDefaultProjectToBeInserted(db, organization, now);
     await expectUserSelectionToBeInserted(db, user, project, now);
+    await expectSessionToBeCreated(db, response, user, now);
   });
 
-  test("a visitor signs up while email verification is required and is left unverified", async ({ db }) => {
+  test("a visitor signs up while email verification is required and is left unverified and logged out", async ({
+    db,
+  }) => {
     const now = new Date("2026-01-01T00:00:00.000Z");
     vi.setSystemTime(now);
     const app = createTestApp(db, {
@@ -178,6 +215,7 @@ describe("POST /api/signup", () => {
     await expectOwnerMembershipToBeInserted(db, user, organization, now);
     const project = await expectDefaultProjectToBeInserted(db, organization, now);
     await expectUserSelectionToBeInserted(db, user, project, now);
+    await expectNoSession(db, response);
   });
 
   test("a visitor signs up without saying where they heard about us", async ({ app, db }) => {
@@ -193,6 +231,7 @@ describe("POST /api/signup", () => {
     await expectOwnerMembershipToBeInserted(db, user, organization, now);
     const project = await expectDefaultProjectToBeInserted(db, organization, now);
     await expectUserSelectionToBeInserted(db, user, project, now);
+    await expectSessionToBeCreated(db, response, user, now);
   });
 
   test("a visitor signs up with a mixed-case, padded email and it is saved lowercased", async ({ app, db }) => {
@@ -207,6 +246,7 @@ describe("POST /api/signup", () => {
     await expectOwnerMembershipToBeInserted(db, user, organization, now);
     const project = await expectDefaultProjectToBeInserted(db, organization, now);
     await expectUserSelectionToBeInserted(db, user, project, now);
+    await expectSessionToBeCreated(db, response, user, now);
   });
 
   test("a visitor signs up with a single-word name and is saved without a last name", async ({ app, db }) => {
@@ -221,6 +261,7 @@ describe("POST /api/signup", () => {
     await expectOwnerMembershipToBeInserted(db, user, organization, now);
     const project = await expectDefaultProjectToBeInserted(db, organization, now);
     await expectUserSelectionToBeInserted(db, user, project, now);
+    await expectSessionToBeCreated(db, response, user, now);
   });
 
   test("a visitor signs up with a multi-word surname and it is kept as their last name", async ({ app, db }) => {
@@ -239,6 +280,7 @@ describe("POST /api/signup", () => {
     await expectOwnerMembershipToBeInserted(db, user, organization, now);
     const project = await expectDefaultProjectToBeInserted(db, organization, now);
     await expectUserSelectionToBeInserted(db, user, project, now);
+    await expectSessionToBeCreated(db, response, user, now);
   });
 
   test("a visitor cannot sign up with an email that is already registered in a different case", async ({ app, db }) => {
@@ -266,6 +308,7 @@ describe("POST /api/signup", () => {
     expect(await db.$count(organizationMemberships)).toBe(1);
     expect(await db.$count(projects)).toBe(1);
     expect(await db.$count(userSelections)).toBe(1);
+    expect(await db.$count(sessions)).toBe(1);
   });
 
   test.for([

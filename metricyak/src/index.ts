@@ -5,6 +5,7 @@ import type { Pool } from "pg";
 import { createApp } from "@/api/app.js";
 import type { AppEnv } from "@/api/env.js";
 import { createPasswordService } from "@/auth/password-service.js";
+import { createSessionService } from "@/auth/session-service.js";
 import { type Config, loadConfig } from "@/config/index.js";
 import { createDatabase } from "@/db/index.js";
 import { createEmailService } from "@/email/email-service.js";
@@ -85,8 +86,9 @@ function main(): void {
   const { db, pool } = createDatabase(config.database.url);
   const emailService = createEmailService(config.email, logger);
   const passwordService = createPasswordService();
+  const sessionService = createSessionService();
 
-  const server = startHttpServer(createApp(config, db, emailService, passwordService), config.http);
+  const server = startHttpServer(createApp(config, db, emailService, passwordService, sessionService), config.http);
   registerShutdown(server, pool, telemetry);
 }
 

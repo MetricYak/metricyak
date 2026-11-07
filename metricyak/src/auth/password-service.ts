@@ -4,6 +4,7 @@ import { type PasswordStrength, PasswordStrengthChecker } from "./password-stren
 export class PasswordService {
   private readonly hasher: PasswordHasher;
   private readonly strengthChecker: PasswordStrengthChecker;
+  private dummyPasswordHash: Promise<string> | undefined;
 
   constructor(hasher: PasswordHasher, strengthChecker: PasswordStrengthChecker) {
     this.hasher = hasher;
@@ -16,6 +17,11 @@ export class PasswordService {
 
   verifyPassword(passwordHash: string, password: string): Promise<boolean> {
     return this.hasher.verify(passwordHash, password);
+  }
+
+  async verifyAgainstDummy(password: string): Promise<void> {
+    this.dummyPasswordHash ??= this.hasher.hash("metricyak-dummy-password");
+    await this.hasher.verify(await this.dummyPasswordHash, password);
   }
 
   checkPasswordStrength(password: string, userInputs: string[]): PasswordStrength {
