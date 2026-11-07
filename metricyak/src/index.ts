@@ -6,6 +6,7 @@ import { createApp } from "@/api/app.js";
 import type { AppEnv } from "@/api/env.js";
 import { type Config, loadConfig } from "@/config/index.js";
 import { createDatabase } from "@/db/index.js";
+import { createEmailService } from "@/email/email-service.js";
 import { logger } from "@/logger/index.js";
 import { startTelemetry } from "@/telemetry/index.js";
 
@@ -69,13 +70,22 @@ function main(): void {
   registerCrashHandlers();
 
   const config = loadConfig();
-  logger.info({ env: config.env }, "Configuration loaded");
+  logger.info(
+    {
+      env: config.env,
+      email_provider: config.email.provider.type,
+      email_verification_required: config.email.verificationRequired,
+    },
+    "Configuration loaded",
+  );
 
   const telemetry = startTelemetry();
 
   const { db, pool } = createDatabase(config.database.url);
 
-  const server = startHttpServer(createApp(config, db), config.http);
+  const emailService = createEmailService(config.email, logger);
+
+  const server = startHttpServer(createApp(config, db, emailService), config.http);
   registerShutdown(server, pool, telemetry);
 }
 

@@ -12,7 +12,7 @@ export type ErrorItem = {
   param: string | null;
 };
 
-function serializeError(err: Pick<ApiError, "type" | "code" | "detail">): { errors: ErrorItem[] } {
+function serializeError(err: ApiError): { errors: ErrorItem[] } {
   return { errors: [{ error_type: err.type, error_code: err.code, detail: err.detail, param: null }] };
 }
 
@@ -29,7 +29,7 @@ function apiErrorResponse(c: Context<AppEnv>, err: ApiError): Response {
 
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
   if (err instanceof HTTPException) {
-    return c.json(serializeError({ type: ApiError.defaultType, code: "http_error", detail: err.message }), err.status);
+    return c.json(serializeError(new ApiError({ code: "http_error", detail: err.message })), err.status);
   }
 
   const apiError = err instanceof ApiError ? err : new ApiError();
