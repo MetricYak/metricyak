@@ -6,6 +6,7 @@ import { userSelections } from "@/db/schema/user-selections.js";
 import { users } from "@/db/schema/users.js";
 import { ConflictError, ValidationError } from "@/errors/index.js";
 import type { AppEnv } from "../env.js";
+import { setSessionCookie } from "../session-cookie.js";
 import { validate } from "../validator.js";
 import { signupSchema } from "./schemas.js";
 import { serializeUser } from "./serializers.js";
@@ -42,7 +43,7 @@ signupRouter.post("/signup", validate("json", signupSchema), async (c) => {
   const { firstName, lastName } = splitName(request.name);
   const now = new Date();
 
-  const user = await c.var.db.transaction(async (tx) => {
+  const { user, session } = await c.var.db.transaction(async (tx) => {
     const [user] = await tx
       .insert(users)
       .values({
@@ -91,8 +92,16 @@ signupRouter.post("/signup", validate("json", signupSchema), async (c) => {
       .insert(userSelections)
       .values({ userId: user.id, organizationId: organization.id, projectId: project.id, updatedAt: now });
 
-    return user;
+    const session = c.var.config.email.verificationRequired
+      ? null
+      : await c.var.sessionService.createSession(tx, user.id, now);
+
+    return { user, session };
   });
+
+  if (session) {
+    setSessionCookie(c, session);
+  }
 
   return c.json({ user: serializeUser(user) }, 201);
 });
