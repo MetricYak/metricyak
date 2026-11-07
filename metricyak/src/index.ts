@@ -4,6 +4,7 @@ import type { Hono } from "hono";
 import type { Pool } from "pg";
 import { createApp } from "@/api/app.js";
 import type { AppEnv } from "@/api/env.js";
+import { createPasswordService } from "@/auth/password-service.js";
 import { type Config, loadConfig } from "@/config/index.js";
 import { createDatabase } from "@/db/index.js";
 import { createEmailService } from "@/email/email-service.js";
@@ -82,10 +83,10 @@ function main(): void {
   const telemetry = startTelemetry();
 
   const { db, pool } = createDatabase(config.database.url);
-
   const emailService = createEmailService(config.email, logger);
+  const passwordService = createPasswordService();
 
-  const server = startHttpServer(createApp(config, db, emailService), config.http);
+  const server = startHttpServer(createApp(config, db, emailService, passwordService), config.http);
   registerShutdown(server, pool, telemetry);
 }
 
