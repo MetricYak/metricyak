@@ -6,6 +6,7 @@ import type { EmailService } from "@/email/email-service.js";
 import type { AppEnv } from "./env.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { organizationsRouter } from "./organizations/index.routes.js";
+import { projectsRouter } from "./projects/index.routes.js";
 import { requestLogger } from "./request-logger.js";
 
 export function createApp(config: Config, db: Database, emailService: EmailService): Hono<AppEnv> {
@@ -24,6 +25,7 @@ export function createApp(config: Config, db: Database, emailService: EmailServi
   app.notFound(notFoundHandler);
 
   app.route("/api", organizationsRouter);
+  app.route("/api", projectsRouter);
 
   return app;
 }
