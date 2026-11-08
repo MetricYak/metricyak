@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
+    "storybook": "pnpm --filter @metricyak/shearling storybook",
     "build": "turbo run build",
+    "build-storybook": "turbo run build-storybook",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "lint": "biome lint .",

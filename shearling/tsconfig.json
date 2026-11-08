@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "customConditions": ["@metricyak/source"],
+    "noEmit": true
+  },
+  "include": ["src", ".storybook/*.ts", "vite.config.ts"]
+}
