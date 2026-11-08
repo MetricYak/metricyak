@@ -13,7 +13,8 @@ export type Catalog = {
   describe(): ComponentDescription[];
 };
 
-export function createCatalog(entries: readonly CatalogEntry[]): Catalog {
+export function createCatalog(components: readonly CatalogEntry[]): Catalog {
+  const entries = Object.freeze([...components]);
   const byName = new Map<string, CatalogEntry>();
   for (const entry of entries) {
     if (byName.has(entry.name)) {

@@ -107,6 +107,17 @@ describe("generative UI rendering", () => {
     ]);
   });
 
+  it("ignores components added to the original list after the catalog is created", () => {
+    const components = [yakBadge];
+    const herdCatalog = createCatalog(components);
+
+    components.push(yakPen);
+
+    expect(herdCatalog.entries).toEqual([yakBadge]);
+    expect(herdCatalog.describe().map(({ name }) => name)).toEqual(["YakBadge"]);
+    expect(herdCatalog.get("YakPen")).toBeUndefined();
+  });
+
   it("refuses a catalog with two components under the same name", () => {
     expect(() => createCatalog([yakBadge, yakBadge])).toThrow("Duplicate component name: YakBadge");
   });

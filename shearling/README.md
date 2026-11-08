@@ -7,14 +7,17 @@ Every Shearling component is a normal React component and also an entry in a **c
 ## Install
 
 ```sh
-pnpm add @metricyak/shearling react react-dom
+pnpm add @metricyak/shearling react react-dom tailwindcss
 ```
 
-Shearling is styled with Tailwind CSS v4. Import its stylesheet from your app's CSS:
+Shearling is compiled by your app's Tailwind CSS v4, so set up Tailwind for your build tool first (for example `@tailwindcss/vite`). Then import Tailwind followed by Shearling's stylesheet in your app's CSS:
 
 ```css
+@import "tailwindcss";
 @import "@metricyak/shearling/styles.css";
 ```
+
+Shearling's stylesheet doesn't import Tailwind itself. It tells your Tailwind to scan Shearling's components for the classes they use.
 
 ## Generative UI
 

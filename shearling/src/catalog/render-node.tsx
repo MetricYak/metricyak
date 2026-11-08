@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode, useEffect, useMemo } from "react";
+import { Fragment, type ReactNode, useEffect, useEffectEvent, useMemo } from "react";
 import type { z } from "zod";
 import type { Catalog } from "./catalog.js";
 import type { UiNode } from "./ui-node.js";
@@ -53,11 +53,13 @@ export type RenderNodeProps = {
 export function RenderNode({ catalog, node, onError }: RenderNodeProps): ReactNode {
   const { element, issues } = useMemo(() => renderUiNode(catalog, node), [catalog, node]);
 
+  const reportIssues = useEffectEvent((rendered: RenderIssue[]) => onError?.(rendered));
+
   useEffect(() => {
     if (issues.length > 0) {
-      onError?.(issues);
+      reportIssues(issues);
     }
-  }, [issues, onError]);
+  }, [issues]);
 
   return element;
 }
