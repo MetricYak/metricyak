@@ -8,6 +8,7 @@ import type { EmailService } from "@/email/email-service.js";
 import type { AppEnv } from "./env.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { loginRouter } from "./login/index.routes.js";
+import { logoutRouter } from "./logout/index.routes.js";
 import { organizationsRouter } from "./organizations/index.routes.js";
 import { projectsRouter } from "./projects/index.routes.js";
 import { requestLogger } from "./request-logger.js";
@@ -40,6 +41,7 @@ export function createApp(
   app.route("/api", projectsRouter);
   app.route("/api", signupRouter);
   app.route("/api", loginRouter);
+  app.route("/api", logoutRouter);
 
   return app;
 }

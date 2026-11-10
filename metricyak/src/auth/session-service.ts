@@ -47,6 +47,10 @@ export class SessionService {
       .where(and(eq(sessions.tokenHash, hashToken(token)), gt(sessions.expiresAt, now)));
     return row?.user ?? null;
   }
+
+  async deleteSession(db: Database, token: string): Promise<void> {
+    await db.delete(sessions).where(eq(sessions.tokenHash, hashToken(token)));
+  }
 }
 
 export function createSessionService(): SessionService {
