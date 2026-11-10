@@ -8,6 +8,7 @@ export function serializeUser(record: UserRecord): UserResponse {
     last_name: record.lastName,
     email: record.email,
     is_email_verified: record.emailVerifiedAt !== null,
+    job_role: record.jobRole,
     created_at: record.createdAt.toISOString(),
     updated_at: record.updatedAt.toISOString(),
   };

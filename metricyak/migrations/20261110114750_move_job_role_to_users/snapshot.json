@@ -1,0 +1,47 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "c5bf199b-d19f-4a77-81a6-e1e60f6d5681",
+  "prevIds": ["7f5eaf8e-e379-4e45-aea6-5af1ed5ca2ad"],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "users", "job_role"],
+      "writes": ["s|col|public.users.job_role", "n|col|public.users.job_role", "e|col|public.users.job_role"],
+      "reads": ["n|tbl|public.users", "n|sch|public"]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": ["column", "public", "organization_memberships", "job_role"],
+      "writes": [
+        "s|col|public.organization_memberships.job_role",
+        "n|col|public.organization_memberships.job_role",
+        "e|col|public.organization_memberships.job_role"
+      ],
+      "reads": ["n|tbl|public.organization_memberships", "n|sch|public"]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "users",
+        "name": "job_role",
+        "type": "varchar(100)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"public\",\"organization_memberships\",\"job_role\"]"
+    }
+  ]
+}

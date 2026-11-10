@@ -37,6 +37,7 @@ export const userResponseSchema = z.object({
   last_name: z.string().nullable(),
   email: z.email(),
   is_email_verified: z.boolean(),
+  job_role: z.string().nullable(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
 });
