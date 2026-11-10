@@ -14,7 +14,6 @@ export const organizationMemberships = snakeCase.table(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: varchar({ length: 32 }).notNull(),
-    jobRole: varchar({ length: 100 }).notNull(),
     createdAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
     updatedAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
   },

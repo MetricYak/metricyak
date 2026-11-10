@@ -53,6 +53,7 @@ signupRouter.post("/signup", validate("json", signupSchema), async (c) => {
         passwordHash,
         emailVerifiedAt: c.var.config.email.verificationRequired ? null : now,
         heardAboutUs: request.heard_about_us ?? null,
+        jobRole: request.job_role,
         createdAt: now,
         updatedAt: now,
       })
@@ -75,7 +76,6 @@ signupRouter.post("/signup", validate("json", signupSchema), async (c) => {
       organizationId: organization.id,
       userId: user.id,
       role: "owner",
-      jobRole: request.job_role,
       createdAt: now,
       updatedAt: now,
     });

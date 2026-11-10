@@ -50,6 +50,7 @@ async function expectLoggedIn(db: Database, response: Response, user: UserRecord
       last_name: "Herder",
       email: "herder@yak.test",
       is_email_verified: user.emailVerifiedAt !== null,
+      job_role: null,
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
     },

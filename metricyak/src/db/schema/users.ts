@@ -11,6 +11,7 @@ export const users = snakeCase.table(
     passwordHash: text(),
     emailVerifiedAt: timestamp({ mode: "date", precision: 3, withTimezone: true }),
     heardAboutUs: varchar({ length: 255 }),
+    jobRole: varchar({ length: 100 }),
     isActive: boolean().notNull().default(true),
     createdAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
     updatedAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
