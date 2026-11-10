@@ -15,6 +15,7 @@ import { requireSession } from "./middleware/require-session.js";
 import { organizationsRouter } from "./organizations/index.routes.js";
 import { projectsRouter } from "./projects/index.routes.js";
 import { signupRouter } from "./signup/index.routes.js";
+import { usersRouter } from "./users/index.routes.js";
 
 export function createApp(
   config: Config,
@@ -49,6 +50,7 @@ export function createApp(
 
   app.route("/api", organizationsRouter);
   app.route("/api", projectsRouter);
+  app.route("/api", usersRouter);
 
   return app;
 }

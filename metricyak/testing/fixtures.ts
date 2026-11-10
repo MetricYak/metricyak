@@ -75,6 +75,10 @@ export async function post(
   });
 }
 
+export async function get(app: Hono<AppEnv>, path: string, options: RequestOptions = {}): Promise<Response> {
+  return app.request(path, { method: "GET", headers: requestHeaders(options) });
+}
+
 export function sessionCookieToken(response: Response): string | null {
   const match = response.headers.get("set-cookie")?.match(/^__Host-id=([^;]+)/);
   return match?.[1] ?? null;
