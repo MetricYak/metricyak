@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { organizationMemberships } from "@/db/schema/organization-memberships.js";
 import { organizations } from "@/db/schema/organizations.js";
@@ -17,8 +16,6 @@ organizationsRouter.post("/organizations", validate("json", createOrganizationSc
   const now = new Date();
 
   const record = await c.var.db.transaction(async (tx) => {
-    const [selection] = await tx.select().from(userSelections).where(eq(userSelections.userId, user.id));
-
     const [organization] = await tx.insert(organizations).values({ name, createdAt: now, updatedAt: now }).returning();
     if (!organization) {
       throw new Error("Insert returned no organization");
@@ -40,11 +37,10 @@ organizationsRouter.post("/organizations", validate("json", createOrganizationSc
       throw new Error("Insert returned no project");
     }
 
-    if (!selection) {
-      await tx
-        .insert(userSelections)
-        .values({ userId: user.id, organizationId: organization.id, projectId: project.id, updatedAt: now });
-    }
+    await tx
+      .insert(userSelections)
+      .values({ userId: user.id, organizationId: organization.id, projectId: project.id, updatedAt: now })
+      .onConflictDoNothing({ target: userSelections.userId });
 
     return organization;
   });
