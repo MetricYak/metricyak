@@ -46,9 +46,7 @@ async function whenTheyLogOut(app: Hono<AppEnv>, options: RequestOptions = {}): 
 async function thenTheyAreLoggedOut(response: Response): Promise<void> {
   expect(response.status).toBe(204);
   expect(await response.text()).toBe("");
-  expect(response.headers.get("set-cookie")).toBe(
-    "metricyak_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
-  );
+  expect(response.headers.get("set-cookie")).toBe("__Host-id=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax");
 }
 
 async function thenTheSessionIsRemoved(db: Database, { session, token }: CreatedSession): Promise<void> {

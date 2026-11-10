@@ -59,7 +59,7 @@ async function expectLoggedIn(db: Database, response: Response, user: UserRecord
   const token = sessionCookieToken(response);
   expect(token).toEqual(expect.any(String));
   expect(response.headers.get("set-cookie")).toBe(
-    `metricyak_session=${token}; Max-Age=1209600; Path=/; Expires=${sessionExpiresAt.toUTCString()}; HttpOnly; Secure; SameSite=Lax`,
+    `__Host-id=${token}; Max-Age=1209600; Path=/; Expires=${sessionExpiresAt.toUTCString()}; HttpOnly; Secure; SameSite=Lax`,
   );
   expect(await db.select().from(sessions)).toEqual([
     {
