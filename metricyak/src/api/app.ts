@@ -9,9 +9,11 @@ import type { AppEnv } from "./env.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { loginRouter } from "./login/index.routes.js";
 import { logoutRouter } from "./logout/index.routes.js";
+import { csrfProtection } from "./middleware/csrf-protection.js";
+import { requestLogger } from "./middleware/request-logger.js";
+import { requireSession } from "./middleware/require-session.js";
 import { organizationsRouter } from "./organizations/index.routes.js";
 import { projectsRouter } from "./projects/index.routes.js";
-import { requestLogger } from "./request-logger.js";
 import { signupRouter } from "./signup/index.routes.js";
 
 export function createApp(
@@ -37,11 +39,16 @@ export function createApp(
   app.onError(errorHandler);
   app.notFound(notFoundHandler);
 
-  app.route("/api", organizationsRouter);
-  app.route("/api", projectsRouter);
+  app.use("/api/*", csrfProtection);
+
   app.route("/api", signupRouter);
   app.route("/api", loginRouter);
   app.route("/api", logoutRouter);
+
+  app.use("/api/*", requireSession);
+
+  app.route("/api", organizationsRouter);
+  app.route("/api", projectsRouter);
 
   return app;
 }

@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { routePath } from "hono/route";
 import { logger } from "@/logger/index.js";
-import type { AppEnv } from "./env.js";
+import type { AppEnv } from "../env.js";
 
 export const requestLogger = createMiddleware<AppEnv>(async (c, next) => {
   await next();

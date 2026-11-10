@@ -63,13 +63,13 @@ export class ValidationError extends ApiError {
 export class UnauthorizedError extends ApiError {
   static override statusCode = 401;
   static override defaultType = "invalid_request";
-  static override defaultCode = "unauthorized";
+  static override defaultCode = "not_authenticated";
   static override defaultDetail = "Authentication required.";
 }
 
 export class ForbiddenError extends ApiError {
   static override statusCode = 403;
   static override defaultType = "invalid_request";
-  static override defaultCode = "forbidden";
+  static override defaultCode = "permission_denied";
   static override defaultDetail = "You don't have permission to do this.";
 }

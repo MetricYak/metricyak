@@ -3,6 +3,8 @@ import { index, snakeCase, timestamp, unique, uuid, varchar } from "drizzle-orm/
 import { organizations } from "./organizations.js";
 import { users } from "./users.js";
 
+export type MembershipRole = "owner" | "admin" | "member";
+
 export const organizationMemberships = snakeCase.table(
   "organization_memberships",
   {
@@ -13,7 +15,7 @@ export const organizationMemberships = snakeCase.table(
     userId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    role: varchar({ length: 32 }).notNull(),
+    role: varchar({ length: 32 }).$type<MembershipRole>().notNull(),
     createdAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
     updatedAt: timestamp({ mode: "date", precision: 3, withTimezone: true }).notNull(),
   },
