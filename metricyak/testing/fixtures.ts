@@ -59,7 +59,7 @@ export function requestHeaders({
   token,
   headers = { "sec-fetch-site": "same-origin" },
 }: RequestOptions = {}): Record<string, string> {
-  return token === undefined ? headers : { ...headers, cookie: `metricyak_session=${token}` };
+  return token === undefined ? headers : { ...headers, cookie: `__Host-id=${token}` };
 }
 
 export async function post(
@@ -76,6 +76,6 @@ export async function post(
 }
 
 export function sessionCookieToken(response: Response): string | null {
-  const match = response.headers.get("set-cookie")?.match(/^metricyak_session=([^;]+)/);
+  const match = response.headers.get("set-cookie")?.match(/^__Host-id=([^;]+)/);
   return match?.[1] ?? null;
 }

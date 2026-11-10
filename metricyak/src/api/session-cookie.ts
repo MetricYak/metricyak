@@ -1,26 +1,29 @@
 import type { Context } from "hono";
-import { deleteCookie, setCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import type { CookieOptions } from "hono/utils/cookie";
 import type { CreatedSession } from "@/auth/session-service.js";
-import type { AppEnv } from "./env.js";
 
-export const SESSION_COOKIE_NAME = "metricyak_session";
+const SESSION_COOKIE_NAME = "id";
 
-export function setSessionCookie(c: Context<AppEnv>, { token, session }: CreatedSession): void {
+const SESSION_COOKIE_OPTIONS: CookieOptions = {
+  prefix: "host",
+  httpOnly: true,
+  sameSite: "Lax",
+  path: "/",
+};
+
+export function getSessionToken(c: Context): string | undefined {
+  return getCookie(c, SESSION_COOKIE_NAME, "host");
+}
+
+export function setSessionCookie(c: Context, { token, session }: CreatedSession): void {
   setCookie(c, SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "Lax",
-    path: "/",
-    secure: c.var.config.env !== "development",
+    ...SESSION_COOKIE_OPTIONS,
     expires: session.expiresAt,
     maxAge: Math.floor((session.expiresAt.getTime() - session.createdAt.getTime()) / 1000),
   });
 }
 
-export function clearSessionCookie(c: Context<AppEnv>): void {
-  deleteCookie(c, SESSION_COOKIE_NAME, {
-    httpOnly: true,
-    sameSite: "Lax",
-    path: "/",
-    secure: c.var.config.env !== "development",
-  });
+export function clearSessionCookie(c: Context): void {
+  deleteCookie(c, SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS);
 }

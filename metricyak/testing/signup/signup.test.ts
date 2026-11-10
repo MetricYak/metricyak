@@ -154,7 +154,7 @@ async function expectSessionToBeCreated(
   const token = sessionCookieToken(response) as string;
   const expiresAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
   expect(response.headers.get("set-cookie")).toBe(
-    `metricyak_session=${token}; Max-Age=1209600; Path=/; Expires=${expiresAt.toUTCString()}; HttpOnly; Secure; SameSite=Lax`,
+    `__Host-id=${token}; Max-Age=1209600; Path=/; Expires=${expiresAt.toUTCString()}; HttpOnly; Secure; SameSite=Lax`,
   );
   expect(await db.select().from(sessions)).toEqual([
     {
