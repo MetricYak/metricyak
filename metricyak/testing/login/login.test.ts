@@ -117,6 +117,31 @@ describe("POST /api/login", () => {
     await expectLoggedIn(db, response, user);
   });
 
+  test("a cross-site page cannot submit a form that logs a visitor in", async ({ app, db }) => {
+    await createUser(db);
+
+    const response = await post(
+      app,
+      "/api/login",
+      { email: "herder@yak.test", password },
+      { headers: { "content-type": "text/plain", "sec-fetch-site": "cross-site" } },
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      errors: [
+        {
+          error_type: "invalid_request",
+          error_code: "permission_denied",
+          detail: "Cross-origin requests are not allowed.",
+          param: null,
+        },
+      ],
+    });
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(await db.$count(sessions)).toBe(0);
+  });
+
   test("an unverified user is told to verify their email when the instance requires it", async ({ db }) => {
     await createUser(db, { emailVerifiedAt: null });
     const app = createTestApp(db, verificationRequiredEnv);

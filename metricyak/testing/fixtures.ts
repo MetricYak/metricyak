@@ -50,10 +50,27 @@ export const test = baseTest.extend<{
   },
 });
 
-export async function post(app: Hono<AppEnv>, path: string, body: unknown): Promise<Response> {
+export type RequestOptions = {
+  token?: string;
+  headers?: Record<string, string>;
+};
+
+export function requestHeaders({
+  token,
+  headers = { "sec-fetch-site": "same-origin" },
+}: RequestOptions = {}): Record<string, string> {
+  return token === undefined ? headers : { ...headers, cookie: `metricyak_session=${token}` };
+}
+
+export async function post(
+  app: Hono<AppEnv>,
+  path: string,
+  body: unknown,
+  options: RequestOptions = {},
+): Promise<Response> {
   return app.request(path, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...requestHeaders(options) },
     body: JSON.stringify(body),
   });
 }

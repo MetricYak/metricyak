@@ -6,7 +6,7 @@ import type { CreatedSession } from "@/auth/session-service.js";
 import type { Database } from "@/db/index.js";
 import { type SessionRecord, sessions } from "@/db/schema/sessions.js";
 import { type UserRecord, users } from "@/db/schema/users.js";
-import { sessionService, test } from "../fixtures.js";
+import { type RequestOptions, requestHeaders, sessionService, test } from "../fixtures.js";
 
 const now = new Date("2026-01-01T00:00:00.000Z");
 const lastYear = new Date("2025-01-01T00:00:00.000Z");
@@ -39,11 +39,8 @@ async function givenASessionExistsForUser(db: Database, user: UserRecord, at: Da
   return sessionService.createSession(db, user.id, at);
 }
 
-async function whenTheyLogOut(app: Hono<AppEnv>, token?: string): Promise<Response> {
-  return app.request("/api/logout", {
-    method: "POST",
-    headers: token === undefined ? {} : { cookie: `metricyak_session=${token}` },
-  });
+async function whenTheyLogOut(app: Hono<AppEnv>, options: RequestOptions = {}): Promise<Response> {
+  return app.request("/api/logout", { method: "POST", headers: requestHeaders(options) });
 }
 
 async function thenTheyAreLoggedOut(response: Response): Promise<void> {
@@ -64,12 +61,26 @@ async function thenTheSessionIsStillActive(db: Database, { session, token }: Cre
   expect((await sessionService.findUserBySessionToken(db, token, now))?.id).toBe(session.userId);
 }
 
+async function thenTheRequestIsRejectedAsCrossOrigin(response: Response): Promise<void> {
+  expect(response.status).toBe(403);
+  expect(await response.json()).toEqual({
+    errors: [
+      {
+        error_type: "invalid_request",
+        error_code: "permission_denied",
+        detail: "Cross-origin requests are not allowed.",
+        param: null,
+      },
+    ],
+  });
+}
+
 describe("POST /api/logout", () => {
   test("a logged-in user logs out and their old session cookie is no longer recognised", async ({ app, db }) => {
     const user = await givenAUser(db);
     const session = await givenASessionExistsForUser(db, user);
 
-    const response = await whenTheyLogOut(app, session.token);
+    const response = await whenTheyLogOut(app, { token: session.token });
 
     await thenTheyAreLoggedOut(response);
     await thenTheSessionIsRemoved(db, session);
@@ -80,7 +91,7 @@ describe("POST /api/logout", () => {
     const firstSession = await givenASessionExistsForUser(db, user);
     const secondSession = await givenASessionExistsForUser(db, user);
 
-    const response = await whenTheyLogOut(app, firstSession.token);
+    const response = await whenTheyLogOut(app, { token: firstSession.token });
 
     await thenTheyAreLoggedOut(response);
     await thenTheSessionIsRemoved(db, firstSession);
@@ -101,7 +112,7 @@ describe("POST /api/logout", () => {
     const user = await givenAUser(db);
     const session = await givenASessionExistsForUser(db, user);
 
-    const response = await whenTheyLogOut(app, "unknown-yak-token");
+    const response = await whenTheyLogOut(app, { token: "unknown-yak-token" });
 
     await thenTheyAreLoggedOut(response);
     await thenTheSessionIsStillActive(db, session);
@@ -111,9 +122,19 @@ describe("POST /api/logout", () => {
     const user = await givenAUser(db);
     const expiredSession = await givenASessionExistsForUser(db, user, lastYear);
 
-    const response = await whenTheyLogOut(app, expiredSession.token);
+    const response = await whenTheyLogOut(app, { token: expiredSession.token });
 
     await thenTheyAreLoggedOut(response);
     await thenTheSessionIsRemoved(db, expiredSession);
+  });
+
+  test("a cross-site page cannot log a user out", async ({ app, db }) => {
+    const user = await givenAUser(db);
+    const session = await givenASessionExistsForUser(db, user);
+
+    const response = await whenTheyLogOut(app, { token: session.token, headers: { "sec-fetch-site": "cross-site" } });
+
+    await thenTheRequestIsRejectedAsCrossOrigin(response);
+    await thenTheSessionIsStillActive(db, session);
   });
 });
